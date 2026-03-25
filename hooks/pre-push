@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+#
+# Git pre-push hook for gaudi-shell
+# Runs pre-commit lint checks and tests before pushing.
+
+: "${GAUDI_SHELL:=$HOME/.gaudi-shell}"
+
+# Run pre-commit checks if available
+if command -v pre-commit &>/dev/null; then
+	echo "Running pre-commit checks before push..."
+	pre-commit run --all-files || {
+		echo "Pre-commit checks failed. Push aborted."
+		exit 1
+	}
+fi
+
+# Run tests if a test runner is available
+if [[ -f "${GAUDI_SHELL}/test/run" ]]; then
+	echo "Running tests before push..."
+	"${GAUDI_SHELL}/test/run" || {
+		echo "Tests failed. Push aborted."
+		exit 1
+	}
+fi
+
+exit 0

@@ -5,7 +5,7 @@
 load "$GAUDI_TEST_DIRECTORY"/helper.bash
 
 local_setup() {
-	load_gaudi_libs log gaudi-shell components
+	load_gaudi_libs log utils gaudi-shell components
 }
 
 @test "gaudi-shell log: _log_general should not log if no message passed" {
