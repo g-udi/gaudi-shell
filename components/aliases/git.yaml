@@ -1,0 +1,29 @@
+name: git
+description: Common git abbreviations
+
+aliases:
+  ga: git add
+  gaa: git add --all
+  gc: git commit
+  gcm: git commit -m
+  gca: git commit --amend
+  gco: git checkout
+  gcb: git checkout -b
+  gd: git diff
+  gds: git diff --staged
+  gf: git fetch
+  gfa: git fetch --all
+  gl: git log --oneline
+  gla: git log --oneline --all --graph
+  gp: git push
+  gpf: git push --force-with-lease
+  gpu: git pull
+  gpur: git pull --rebase
+  gr: git rebase
+  gri: git rebase -i
+  gs: git status
+  gss: git status --short
+  gst: git stash
+  gstp: git stash pop
+  gbl: git branch --list
+  gbd: git branch -d

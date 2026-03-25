@@ -1,0 +1,13 @@
+# Runtime state
+registry/enabled/
+profiles/
+
+# OS
+.DS_Store
+
+# Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
