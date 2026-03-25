@@ -1,0 +1,100 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-22.04, macos-14, macos-15]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install dependencies (macOS)
+      if: startsWith(runner.os, 'macOS')
+      run: brew install coreutils parallel
+
+    - name: Install dependencies (Linux)
+      if: startsWith(runner.os, 'Linux')
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y parallel
+
+    - name: Run tests (Linux)
+      if: startsWith(runner.os, 'Linux')
+      shell: 'script -q -e -c "bash {0}"'
+      run: test/run
+
+    - name: Run tests (macOS)
+      if: startsWith(runner.os, 'macOS')
+      run: script -q /dev/null bash -c 'test/run'
+
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install shellcheck
+      run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+    - name: Install shfmt
+      run: |
+        curl -sS https://webi.sh/shfmt | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Run shellcheck
+      run: |
+        find . -name '*.bash' -o -name '*.sh' -o -name '*.bats' | \
+          grep -v '/bin/' | xargs shellcheck --shell=bash || true
+
+    - name: Run shfmt
+      run: shfmt -d .
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [test, lint]
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Bump version and release
+      run: |
+        LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        if git describe --exact-match HEAD 2>/dev/null; then
+          echo "HEAD already tagged, skipping"
+          exit 0
+        fi
+        VERSION="${LATEST_TAG#v}"
+        IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+        PATCH=$((PATCH + 1))
+        NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
+        git push origin "$NEW_TAG"
+
+    - name: Create GitHub Release
+      if: success()
+      uses: softprops/action-gh-release@v2
+      with:
+        generate_release_notes: true

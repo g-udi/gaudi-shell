@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# shellcheck shell=bash
+
+GAUDI_TEST_DIRECTORY="$(cd "$(dirname "$0")" && pwd)"
+
+export GAUDI_SHELL_DIR="${GAUDI_TEST_DIRECTORY%/*}"
+export GAUDI_BATS="${GAUDI_TEST_DIRECTORY}/../bin/bats-core/bin/bats"
+export GAUDI_SHELL_GIT_DIR="${GAUDI_SHELL_DIR}/.git"
+export GAUDI_TEST_DEPS_DIR="${GAUDI_SHELL_DIR}/bin"
+
+git submodule init && git submodule update
+
+if [[ -z "${GAUDI_SHELL_ORIGIN}" ]]; then
+	GAUDI_SHELL_ORIGIN=$(cd "${GAUDI_TEST_DIRECTORY%/*}" && pwd)
+	export GAUDI_SHELL_ORIGIN
+fi
+
+case $OSTYPE in
+	darwin*)
+		export GAUDI_SHELL_PROFILE=".bash_profile"
+		;;
+	*)
+		export GAUDI_SHELL_PROFILE=".bashrc"
+		;;
+esac
+
+export GAUDI_TEST_DIRECTORY
+
+echo -e "\n${CYAN:-}Running gaudi-shell tests...${NC:-}\n"
+
+# Find all .bats files except search tests
+shopt -s globstar
+test_dirs=()
+for lib in "${GAUDI_TEST_DIRECTORY}"/**/*.bats; do
+	[[ ! "$lib" =~ "search" ]] && test_dirs+=("$lib")
+done
+
+exec "$GAUDI_BATS" ${CI:+--tap} "${test_dirs[@]}"

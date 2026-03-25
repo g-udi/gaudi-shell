@@ -1,6 +1,7 @@
 # Runtime state
-registry/enabled/
+components/enabled/
 profiles/
+tmp/
 
 # OS
 .DS_Store
@@ -11,3 +12,6 @@ profiles/
 *.swp
 *.swo
 *~
+
+# Test artifacts
+test/gaudi-shell/
