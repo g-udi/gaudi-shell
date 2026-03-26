@@ -6,8 +6,12 @@
 # Entry point: source this from your shell's init file via the adapter.
 
 GAUDI_SHELL_LOG_PREFIX="CORE"
-: "${GAUDI_SHELL:=${BASH_SOURCE%/*}}"
-: "${GAUDI_SHELL_INIT:=${BASH_SOURCE[${#BASH_SOURCE[@]}-1]}}"
+# GAUDI_SHELL should be set by the adapter; fallback to BASH_SOURCE for direct sourcing
+if [[ -z "${GAUDI_SHELL:-}" ]]; then
+	if [[ -n "${BASH_SOURCE:-}" ]]; then
+		GAUDI_SHELL="${BASH_SOURCE%/*}"
+	fi
+fi
 
 # Detect current shell
 if [[ -n "$ZSH_VERSION" ]]; then

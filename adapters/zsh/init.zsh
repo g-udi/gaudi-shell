@@ -8,5 +8,21 @@
 
 : "${GAUDI_SHELL:=${0:A:h}/../..}"
 
-# Enable bash compatibility for the core framework
-emulate bash -c 'source "$GAUDI_SHELL/gaudi_shell.sh"'
+# Make zsh compatible with bash syntax used in gaudi-shell core
+setopt SH_WORD_SPLIT    # Split unquoted parameter expansions like bash
+setopt KSH_ARRAYS       # 0-indexed arrays like bash
+setopt NO_NOMATCH       # Don't error on failed globs
+setopt BASH_REMATCH     # Populate BASH_REMATCH for =~ regex
+setopt KSH_GLOB         # Bash-style glob patterns
+
+# Provide bash builtins that zsh lacks
+if ! whence shopt &>/dev/null; then
+	shopt() { true; }
+fi
+
+# complete -p is bash-only; stub it for zsh
+if ! whence -w 'complete' | grep -q builtin; then
+	complete() { true; }
+fi
+
+source "$GAUDI_SHELL/gaudi_shell.sh"

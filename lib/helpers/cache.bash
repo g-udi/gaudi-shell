@@ -14,7 +14,7 @@ _gaudi-shell-component-cache-add() {
 _gaudi-shell-component-cache-clean() {
 	local component="$1"
 	local cache
-	local -a GAUDI_SHELL_COMPONENTS=(aliases plugins completions)
+	declare -a GAUDI_SHELL_COMPONENTS=(aliases plugins completions)
 
 	if [[ -z ${component} ]]; then
 		for component in "${GAUDI_SHELL_COMPONENTS[@]}"; do

@@ -59,14 +59,14 @@ _gaudi-shell-search() {
 	local COMPONENT
 	: "${GAUDI_SHELL_GREP:=$(_gaudi-shell-grep)}"
 	export GAUDI_SHELL_GREP=${GAUDI_SHELL_GREP:-$(which egrep)}
-	local -a GAUDI_SHELL_COMPONENTS=(aliases plugins completions)
+	declare -a GAUDI_SHELL_COMPONENTS=(aliases plugins completions)
 
 	if [[ -z "$*" ]]; then
 		_gaudi-shell-search-help
 		return 0
 	fi
 
-	local -a args=()
+	declare -a args=()
 	for word in "$@"; do
 		case "${word}" in
 			'-h' | '--help')
@@ -149,23 +149,23 @@ _gaudi-shell-search-component() {
 		fi
 	done
 
-	local -a terms=("$@")
+	declare -a terms=("$@")
 
 	unset exact_terms
 	unset partial_terms
 	unset negative_terms
 
 	# Terms that should be included only if they match exactly
-	local -a exact_terms=()
+	declare -a exact_terms=()
 	# Terms that should be included if they match partially
-	local -a partial_terms=()
+	declare -a partial_terms=()
 	# Negated partial terms that should be excluded
-	local -a negative_terms=()
+	declare -a negative_terms=()
 	local modified=0
 
 	unset component_list
 	# The component list is the list/array of all components for each category (alias, plugin and completion)
-	local -a component_list=($(_gaudi-shell-component-list "${component}"))
+	declare -a component_list=($(_gaudi-shell-component-list "${component}"))
 	local term
 
 	for term in "${terms[@]}"; do
@@ -185,7 +185,7 @@ _gaudi-shell-search-component() {
 		fi
 	done
 
-	local -a total_matches=($(_array-dedupe "${exact_terms[@]}" "${partial_terms[@]}"))
+	declare -a total_matches=($(_array-dedupe "${exact_terms[@]}" "${partial_terms[@]}"))
 
 	[[ ${#total_matches} -eq 0 ]] && return 1
 
@@ -224,7 +224,7 @@ _gaudi-shell-search-component() {
 # @example      ❯ _gaudi-shell-search-print-result "${component}" "${action}" "${action_func}" "${matches[@]}"
 _gaudi-shell-search-print-result() {
 	local component="$1" && shift
-	local -a matches=("$@")
+	declare -a matches=("$@")
 	local match
 
 	if [[ "${#matches[@]}" -gt 0 ]]; then

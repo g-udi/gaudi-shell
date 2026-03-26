@@ -14,9 +14,9 @@ _gaudi-shell-enable() {
 
 	type=$(_gaudi-shell-pluralize-component "$1")
 	type_singular=$(_gaudi-shell-singularize-component "$1")
-	local _load_priority="GAUDI_SHELL_LOAD_PRIORITY_DEFAULT_${type^^}"
+	local _load_priority="GAUDI_SHELL_LOAD_PRIORITY_DEFAULT_$(echo "$type" | tr "[:lower:]" "[:upper:]")"
 	component="$2"
-	load_priority="${!_load_priority}"
+	eval "load_priority=\${${_load_priority}}"
 
 	# Enable all
 	if [[ "$type" = "alls" ]] && [[ -z "$component" ]]; then
@@ -43,7 +43,7 @@ _gaudi-shell-enable() {
 		_component=$(basename "$_component")
 
 		local enabled_component
-		enabled_component=$(compgen -G "${GAUDI_SHELL}/components/enabled/[0-9][0-9][0-9]${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${_component}" 2>/dev/null | head -1)
+		enabled_component=$(ls ${GAUDI_SHELL}/components/enabled/[0-9][0-9][0-9]${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${_component} 2>/dev/null | head -1)
 		if [[ -n "$enabled_component" ]]; then
 			printf "${GREEN}$type_singular ${CYAN}$component${NC} %s\n" "is already enabled"
 			return 0

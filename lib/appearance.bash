@@ -13,7 +13,7 @@ alias grep='grep --color=auto'
 
 # Load the theme if configured
 if [[ -n "${GAUDI_SHELL_THEME:-}" ]]; then
-	local theme_file="${GAUDI_SHELL}/components/themes/${GAUDI_SHELL_CURRENT}/${GAUDI_SHELL_THEME}.${GAUDI_SHELL_CURRENT}"
+	theme_file="${GAUDI_SHELL}/components/themes/${GAUDI_SHELL_CURRENT}/${GAUDI_SHELL_THEME}.${GAUDI_SHELL_CURRENT}"
 	if [[ -f "$theme_file" ]]; then
 		source "$theme_file"
 		_log_component "$GAUDI_SHELL_THEME" "theme"

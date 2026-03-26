@@ -12,7 +12,7 @@ _command_exists() {
 
 _binary_exists() {
 	local msg="${2:-Binary '$1' does not exist}"
-	if type -P "$1" >/dev/null; then
+	if command -v "$1" >/dev/null; then
 		return 0
 	else
 		_log_debug "$msg"
