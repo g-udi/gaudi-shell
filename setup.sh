@@ -97,6 +97,7 @@ export GAUDI_SHELL="$GAUDI_SETUP_DIRECTORY"
 
 echo -e "\n${MAGENTA}Enabling gaudi-shell default components${NC}"
 
+_gaudi-shell-enable completion gaudi-shell 2>/dev/null
 _gaudi-shell-enable completion system 2>/dev/null
 _gaudi-shell-enable plugin base 2>/dev/null
 _gaudi-shell-enable alias general 2>/dev/null
