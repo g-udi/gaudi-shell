@@ -12,34 +12,23 @@ function load_gaudi_libs() {
 
 function setup() {
 	export GIT_CONFIG_NOSYSTEM
-	export XDG_CACHE_HOME="${GAUDI_TEST_DIRECTORY?}"
+	export XDG_CACHE_HOME="${BATS_TEST_TMPDIR}"
 
-	cp "$LEGACY_HOME/$GAUDI_SHELL_PROFILE" "$HOME" 2>/dev/null || true
+	# Use a fresh copy of the project for each test
+	export GAUDI_SHELL="${BATS_TEST_TMPDIR}/gaudi-shell"
 
-	[[ ! -d "$GAUDI_SHELL" ]] && git --git-dir="${GAUDI_SHELL_GIT_DIR?}" worktree add -d -f "${GAUDI_SHELL}"
-
-	# Sync test worktree
-	(
-		cd "${GAUDI_SHELL_ORIGIN}" &&
-			tar \
-				--exclude='.git' \
-				--exclude='bin' \
-				--exclude='components' \
-				--exclude='test/gaudi-shell' \
-				-cf - .
-	) | (
-		cd "${GAUDI_SHELL}" &&
-			tar -xf -
-	)
+	if [[ ! -d "$GAUDI_SHELL" ]]; then
+		mkdir -p "$GAUDI_SHELL"
+		# Copy everything except .git and bin (test deps)
+		tar -C "${GAUDI_SHELL_ORIGIN}" \
+			--exclude='.git' \
+			--exclude='bin' \
+			-cf - . | tar -C "${GAUDI_SHELL}" -xf -
+	fi
 
 	# Clean runtime state
-	rm -rf "$GAUDI_SHELL/tmp"
+	rm -rf "$GAUDI_SHELL/tmp" "$GAUDI_SHELL/components/enabled"
 	mkdir -p "$GAUDI_SHELL/components/enabled"
-
-	# Copy components from origin
-	cp -r "$GAUDI_SHELL_ORIGIN/components/aliases" "$GAUDI_SHELL/components/" 2>/dev/null || true
-	cp -r "$GAUDI_SHELL_ORIGIN/components/plugins" "$GAUDI_SHELL/components/" 2>/dev/null || true
-	cp -r "$GAUDI_SHELL_ORIGIN/components/completions" "$GAUDI_SHELL/components/" 2>/dev/null || true
 
 	local_setup
 }
@@ -48,7 +37,7 @@ function setup_file() {
 	set -a
 
 	export GAUDI_TEST_RUNNER="enabled"
-	export LEGACY_HOME=$HOME
+	export LEGACY_HOME="$HOME"
 
 	load "${GAUDI_TEST_DEPS_DIR}/bats-support/load.bash"
 	load "${GAUDI_TEST_DEPS_DIR}/bats-assert/load.bash"
@@ -65,6 +54,6 @@ function setup_file() {
 }
 
 function teardown() {
-	rm -rf "${GAUDI_SHELL}/components/enabled"
-	rm -rf "${GAUDI_SHELL}/tmp"
+	rm -rf "${GAUDI_SHELL}/components/enabled" 2>/dev/null
+	rm -rf "${GAUDI_SHELL}/tmp" 2>/dev/null
 }
