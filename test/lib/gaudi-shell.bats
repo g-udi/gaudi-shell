@@ -82,3 +82,27 @@ assert_sane_defaults() {
 	assert_sane_defaults
 
 }
+
+@test "gaudi-shell core: _gaudi-shell-show should include usage hints for valid component types" {
+	run _gaudi-shell-show aliases
+
+	assert_success
+	assert_output --partial "gaudi-shell allows you to easily enable/disable components:"
+	assert_output --partial "to enable alias, do:"
+	assert_output --partial "to disable alias, do:"
+}
+
+@test "gaudi-shell core: _gaudi-shell-show should fail without usage hints for invalid component types" {
+	run _gaudi-shell-show invalid
+
+	assert_failure
+	refute_output --partial "gaudi-shell allows you to easily enable/disable components:"
+}
+
+@test "gaudi-shell core: _gaudi-shell-show should fail without usage hints for invalid modes" {
+	run _gaudi-shell-show plugins invalid
+
+	assert_failure
+	assert_output --partial "unsupported describe mode"
+	refute_output --partial "gaudi-shell allows you to easily enable/disable components:"
+}

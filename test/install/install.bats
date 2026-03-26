@@ -4,7 +4,12 @@
 load "$GAUDI_TEST_DIRECTORY"/helper.bash
 
 local_setup() {
-	true
+	# Match the config file that setup.sh detects
+	if [[ "$OSTYPE" == darwin* ]]; then
+		export GAUDI_SHELL_PROFILE=".bash_profile"
+	else
+		export GAUDI_SHELL_PROFILE=".bashrc"
+	fi
 }
 
 @test "gaudi-shell install: verify that the install script exists" {
@@ -46,7 +51,7 @@ local_setup() {
 	rm -rf "${HOME:?}/${GAUDI_SHELL_PROFILE:?}"
 
 	cd "$GAUDI_SHELL"
-	./setup.sh --silent --no_modify_config
+	./setup.sh --silent --no-modify-config
 
 	assert_file_not_exist "$HOME/${GAUDI_SHELL_PROFILE}"
 }

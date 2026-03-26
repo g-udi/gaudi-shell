@@ -1,11 +1,17 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 
-export GAUDI_SHELL_COMPONENT_TYPES=(plugins aliases completions)
+# Note: arrays cannot be exported in bash — don't use `export` here.
+# The array is available in the current shell and subshells (fork inherits).
+GAUDI_SHELL_COMPONENT_TYPES=(plugins aliases completions)
 
 __check-function-parameters() {
 	[[ -z "$1" ]] && return 1
-	_array-contains "$(_gaudi-shell-pluralize-component "${1}")" "${GAUDI_SHELL_COMPONENT_TYPES[@]}" && return 0
+	# Ensure the component types array is populated (defensive — cannot rely
+	# on array export surviving across bats `run` or other subshell boundaries).
+	local -a _types=("${GAUDI_SHELL_COMPONENT_TYPES[@]}")
+	(( ${#_types[@]} )) || _types=(plugins aliases completions)
+	_array-contains "$(_gaudi-shell-pluralize-component "${1}")" "${_types[@]}" && return 0
 	return 1
 }
 
@@ -19,12 +25,15 @@ _gaudi-shell-pluralize-component() {
 }
 
 _gaudi-shell-singularize-component() {
-	__check-function-parameters "$1" || return 1
 	local component="${1}"
+	[[ -n "$component" ]] || return 1
+	local plural
+	plural="$(_gaudi-shell-pluralize-component "$component")"
 	local component_singular
-	[[ "$component" == *es ]] && component_singular=${component%es}
-	[[ "$component" == *ns ]] && component_singular=${component%s}
-	printf "%s" "${component_singular:-$component}"
+	[[ "$plural" == *ies ]] && component_singular=${plural%ies} && { printf "%s" "${component_singular}y"; return 0; }
+	[[ "$plural" == *es ]] && component_singular=${plural%es}
+	[[ "$plural" == *ns ]] && component_singular=${plural%s}
+	printf "%s" "${component_singular:-$plural}"
 }
 
 _gaudi-shell-component-help() {
@@ -32,7 +41,7 @@ _gaudi-shell-component-help() {
 	local type component
 	type=$(_gaudi-shell-pluralize-component "${1}")
 	component="$2"
-	help=$(_gaudi-shell-show "$type" | tail -n +4)
+	help=$(_gaudi-shell-describe "$type" | tail -n +4)
 	if [[ -n $component ]]; then
 		printf "%s" "$help" | grep "${component}" && return 0
 		return 1

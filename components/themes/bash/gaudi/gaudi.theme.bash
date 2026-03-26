@@ -277,32 +277,30 @@ gaudi::prompt () {
   right_prompt="$(gaudi::render_prompt GAUDI_PROMPT_RIGHT[@])"
   gaudi::store_prompt_state "$left_prompt" "$right_prompt"
 
-  gaudi::prime_global_async_segments GAUDI_PROMPT_ASYNC[@]
-  async_prompt="$(gaudi::render_cached_async_prompt GAUDI_PROMPT_ASYNC[@])"
-
   if [[ -n "${ZSH_VERSION:-}" ]]; then
-    # Sanitize all prompt parts for zsh: wraps raw ANSI codes with %{...%}
-    # and escapes literal % → %%. This handles ANSI codes embedded in content
-    # (e.g., battstat coloring battery percentage).
+    # In zsh, render async segments synchronously — always fresh, no stale
+    # cache flash. Async redraw via tput doesn't work in zsh, and showing
+    # stale-then-fresh data looks buggy (e.g., yellow then green git status).
+    async_prompt="$(gaudi::render_prompt GAUDI_PROMPT_ASYNC[@])"
+
     left_prompt="$(gaudi::zsh_sanitize_prompt "$left_prompt")"
     right_prompt="$(gaudi::zsh_sanitize_prompt "$right_prompt")"
     async_prompt="$(gaudi::zsh_sanitize_prompt "$async_prompt")"
 
-    # Use native PROMPT/RPROMPT — RPROMPT handles right-alignment automatically.
     PROMPT=$'\n'"${left_prompt}${async_prompt}"$'\n\n'"${prompt_char}"
     RPROMPT="${right_prompt}"
-  elif [[ $GAUDI_SPLIT_PROMPT == false ]]; then
-    PS1=$(printf "\n%b%b%b\n\n%b" "$right_prompt" "$left_prompt" "$async_prompt" "$prompt_char")
   else
-    [[ "$TERM" =~ screen.* ]] && compensate=45
-    [[ $GAUDI_SPLIT_PROMPT_TWO_LINES == true ]] && line_separator=$'\n' || line_separator=$'\r'
-    PS1=$(printf "\n%*b%b%b%b\n\n%b" "$(($(tput cols) + compensate))" "$right_prompt" "$line_separator" "$left_prompt" "$async_prompt" "$prompt_char")
-  fi
+    # Render async segments synchronously — always fresh, no stale cache flash.
+    async_prompt="$(gaudi::render_prompt GAUDI_PROMPT_ASYNC[@])"
 
-  # Disable job monitoring to suppress "[1] Done" messages from async workers.
-  # Only in bash — zsh handles this differently and set +m would persist.
-  [[ -z "${ZSH_VERSION:-}" ]] && set +m
-  gaudi::launch_async_segment_jobs "$generation" GAUDI_PROMPT_ASYNC[@]
+    if [[ $GAUDI_SPLIT_PROMPT == false ]]; then
+      PS1=$(printf "\n%b%b%b\n\n%b" "$right_prompt" "$left_prompt" "$async_prompt" "$prompt_char")
+    else
+      [[ "$TERM" =~ screen.* ]] && compensate=45
+      [[ $GAUDI_SPLIT_PROMPT_TWO_LINES == true ]] && line_separator=$'\n' || line_separator=$'\r'
+      PS1=$(printf "\n%*b%b%b%b\n\n%b" "$(($(tput cols) + compensate))" "$right_prompt" "$line_separator" "$left_prompt" "$async_prompt" "$prompt_char")
+    fi
+  fi
 }
 
 gaudi::init

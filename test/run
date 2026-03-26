@@ -19,11 +19,10 @@ esac
 
 echo -e "\nRunning gaudi-shell tests...\n"
 
-# Find all .bats files
-shopt -s globstar
+# Find all .bats files (bash 3.x compatible — no globstar or mapfile needed)
 test_dirs=()
-for lib in "${GAUDI_TEST_DIRECTORY}"/**/*.bats; do
-	test_dirs+=("$lib")
-done
+while IFS= read -r f; do
+	test_dirs+=("$f")
+done < <(find "${GAUDI_TEST_DIRECTORY}" -name '*.bats' -type f | sort)
 
 exec "$GAUDI_BATS" ${CI:+--tap} "${test_dirs[@]}"

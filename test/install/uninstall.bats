@@ -5,7 +5,11 @@
 load "$GAUDI_TEST_DIRECTORY"/helper.bash
 
 local_setup() {
-	true
+	if [[ "$OSTYPE" == darwin* ]]; then
+		export GAUDI_SHELL_PROFILE=".bash_profile"
+	else
+		export GAUDI_SHELL_PROFILE=".bashrc"
+	fi
 }
 
 @test "gaudi-shell uninstall: verify that the uninstall script exists" {

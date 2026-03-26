@@ -38,3 +38,15 @@ local_setup() {
 	run _gaudi-shell-singularize-component completions
 	assert_output "completion"
 }
+
+@test "gaudi-shell helpers: components: list contains only real alias components" {
+	local expected actual
+
+	expected="$(find "${GAUDI_SHELL}/components/aliases" -maxdepth 1 -type f -name '*.aliases.bash' -exec basename {} .aliases.bash \; | sort | tr '\n' ' ')"
+
+	run _gaudi-shell-component-list aliases
+	assert_success
+
+	actual="$(printf '%s' "$output" | tr ' ' '\n' | sed '/^$/d' | sort | tr '\n' ' ')"
+	assert_equal "$expected" "$actual"
+}
