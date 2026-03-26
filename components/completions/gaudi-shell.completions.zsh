@@ -22,7 +22,9 @@ _gaudi-shell-zsh-comp() {
 		else
 			for f in "${GAUDI_SHELL}/components/${subdirectory}/"*.bash(N); do
 				local file_entity="${f:t}"
-				if ! ls "${GAUDI_SHELL}/components/enabled/"*"___${file_entity}" &>/dev/null; then
+				local -a enabled_matches
+				enabled_matches=("${GAUDI_SHELL}/components/enabled/"*"___${file_entity}"(N))
+				if [[ ${#enabled_matches} -eq 0 ]]; then
 					name="${file_entity%%.*}"
 					names+=("$name")
 				fi
