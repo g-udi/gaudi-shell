@@ -51,11 +51,24 @@ _gaudi-shell-help() {
 _gaudi-shell-show() {
 	if [[ -n "$1" ]]; then
 		_gaudi-shell-describe "$1" "$2"
+		_gaudi-shell-show-usage "$1"
 	else
 		for file_type in "aliases" "plugins" "completions"; do
 			_gaudi-shell-describe "$file_type" "enabled"
 		done
 	fi
+}
+
+_gaudi-shell-show-usage() {
+	local type type_plural
+	type="$(_gaudi-shell-singularize-component "$1")"
+	type_plural="$(_gaudi-shell-pluralize-component "$1")"
+
+	printf "\ngaudi-shell allows you to easily enable/disable components:\n\n"
+	printf "to enable %s, do:\n" "$type"
+	printf "gaudi enable ${GREEN}%s${NC}  <%s name> [%s name]... -or- \$ gaudi enable ${GREEN}%s${NC} all\n\n" "$type" "$type" "$type" "$type_plural"
+	printf "to disable %s, do:\n" "$type"
+	printf "gaudi disable ${GREEN}%s${NC} <%s name> [%s name]... -or- \$ gaudi disable ${GREEN}%s${NC} all\n" "$type" "$type" "$type" "$type_plural"
 }
 
 _gaudi-shell-backup() {

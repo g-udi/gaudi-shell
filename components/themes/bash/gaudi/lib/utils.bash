@@ -101,7 +101,7 @@ gaudi::render_segment () {
 gaudi::render_prompt () {
   local _prompt=""
   local info=""
-  local _arr_name="${1%\[*\]}"
+  local _arr_name="${1%"[@]"}"
   eval "local _segments=(\"\${${_arr_name}[@]}\")"
   if [[ -n "${_segments[*]:-}" ]]; then
     for segment in "${_segments[@]}"; do

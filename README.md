@@ -4,6 +4,31 @@ A cross-shell framework for managing aliases, plugins, completions, and themes a
 
 Evolved from [gaudi-bash](https://github.com/g-udi/gaudi-bash), gaudi-shell keeps the same proven architecture — symlink-based component management, priority-sorted loading, profiles — while adding native zsh support. Most components work in both shells without modification.
 
+## Why gaudi-shell?
+
+Years ago I forked [bash-it](https://github.com/Bash-it/bash-it) into [gaudi-bash](https://github.com/g-udi/gaudi-bash) and rewrote large parts of it — cleaner architecture, async theme rendering, better component management, and a curated set of plugins that actually work well together. It became my daily driver for bash.
+
+Then I started using zsh more. And I hit a gap.
+
+The zsh ecosystem has plenty of frameworks and plugin managers — [oh-my-zsh](https://github.com/ohmyzsh/ohmyzsh), [prezto](https://github.com/sorin-ionescu/prezto), [antidote](https://github.com/mattmc3/antidote), [zinit](https://github.com/zdharma-continuum/zinit), [zplug](https://github.com/zplug/zplug), [sheldon](https://github.com/rossmacarthur/sheldon), [zgenom](https://github.com/jandamm/zgenom), [antigen](https://github.com/zsh-users/antigen), among others. But they all solve a different problem: they manage *zsh-specific* plugin installation and loading. None of them give you the workflow I was used to — an intuitive `enable plugin fzf` / `disable alias git` CLI, symlink-based component management, profiles to save and switch configurations, or a single `search` command to find what's available across aliases, plugins, and completions. And critically, none of them work across shells.
+
+On the bash side, the options are even more limited. [bash-it](https://github.com/Bash-it/bash-it) (which gaudi-bash forked from) is essentially the only framework with a comparable component management approach.
+
+I found myself context-switching between two completely different mental models depending on which shell I opened. Different config patterns, different commands, different plugin ecosystems.
+
+gaudi-shell closes that gap. **One framework, one CLI, one set of components — across bash and zsh.**
+
+What makes it different:
+
+- **Cross-shell by design**: aliases and plugins are plain bash scripts that work in both shells. Only completions and themes need shell-specific versions. No duplication, no maintaining parallel configs.
+- **Intuitive component management**: `gaudi enable plugin fzf` works the same in bash and zsh. No editing config files, no sourcing order puzzles, no plugin spec syntax to learn.
+- **Batteries included**: ships with 71 plugins, 39 alias sets, and 62 completions — curated and ready to use. No need to find and wire up third-party repositories.
+- **Profiles**: save your entire setup as a named profile (`gaudi profile save work`), switch between configurations (`gaudi profile load minimal`), share them across machines.
+- **Search**: `gaudi search docker` finds every docker-related alias, plugin, and completion in one shot. Add `--enable` to activate all matches.
+- **Proven foundation**: built on years of real-world use in [gaudi-bash](https://github.com/g-udi/gaudi-bash) — async theme rendering, priority-sorted loading, diagnostic tooling (`gaudi doctor`).
+
+If you're someone who uses both bash and zsh and wants **one consistent experience** instead of maintaining two separate shell configurations — that's what this is for.
+
 ## Installation
 
 ```bash
