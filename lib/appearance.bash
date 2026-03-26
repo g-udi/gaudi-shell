@@ -13,16 +13,32 @@ alias grep='grep --color=auto'
 
 # Load the theme if configured
 if [[ -n "${GAUDI_SHELL_THEME:-}" ]]; then
-	# Check for directory-based theme first (e.g., gaudi/gaudi.theme.bash)
-	theme_dir="${GAUDI_SHELL}/components/themes/${GAUDI_SHELL_CURRENT}/${GAUDI_SHELL_THEME}"
-	theme_file="${theme_dir}/${GAUDI_SHELL_THEME}.theme.bash"
-	if [[ -f "$theme_file" ]]; then
+	theme_file=""
+	# Check shell-specific theme directory first, then fall back to bash
+	for _shell_type in "${GAUDI_SHELL_CURRENT}" "bash"; do
+		_theme_dir="${GAUDI_SHELL}/components/themes/${_shell_type}/${GAUDI_SHELL_THEME}"
+		if [[ -f "${_theme_dir}/${GAUDI_SHELL_THEME}.theme.bash" ]]; then
+			theme_file="${_theme_dir}/${GAUDI_SHELL_THEME}.theme.bash"
+			break
+		elif [[ -f "${_theme_dir}.bash" ]]; then
+			theme_file="${_theme_dir}.bash"
+			break
+		fi
+	done
+	unset _shell_type _theme_dir
+
+	if [[ -n "$theme_file" ]]; then
 		source "$theme_file"
 		_log_component "$GAUDI_SHELL_THEME" "theme"
-	# Fallback: single file theme
-	elif [[ -f "${theme_dir}.bash" ]]; then
-		source "${theme_dir}.bash"
-		_log_component "$GAUDI_SHELL_THEME" "theme"
+
+		# In zsh, PROMPT_COMMAND doesn't exist — hook into precmd instead
+		if [[ -n "${ZSH_VERSION:-}" ]] && [[ -n "${PROMPT_COMMAND:-}" ]]; then
+			_gaudi_zsh_precmd() {
+				eval "$PROMPT_COMMAND"
+			}
+			precmd_functions+=(_gaudi_zsh_precmd)
+			unset PROMPT_COMMAND
+		fi
 	fi
 fi
 

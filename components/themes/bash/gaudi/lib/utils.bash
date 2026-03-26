@@ -52,12 +52,13 @@ gaudi::section () {
 #   gaudi::load_segment <segment>
 gaudi::load_segment () {
   local segment="$1"
-  local loaded_var="GAUDI_SEGMENT_LOADED_${segment//[^a-zA-Z0-9_]/_}"
+  local loaded_var="GAUDI_SEGMENT_LOADED_$(echo "$segment" | tr -c 'a-zA-Z0-9_' '_')"
 
-  [[ ${!loaded_var:-0} == 1 ]] && return 0
+  eval "local _loaded=\${${loaded_var}:-0}"
+  [[ "$_loaded" == 1 ]] && return 0
 
   source "$GAUDI_ROOT/segments/$segment.bash" || return 1
-  printf -v "$loaded_var" '%s' '1'
+  eval "${loaded_var}=1"
 }
 
 # Render a single segment by name.
@@ -81,8 +82,9 @@ gaudi::render_segment () {
 #   gaudi::render_prompt segments <array>
 gaudi::render_prompt () {
   local _prompt=""
-  declare -a _segments=("${!1}")
-  if [[ -n "${_segments}" ]]; then
+  local _arr_name="${1%\[*\]}"
+  eval "local _segments=(\"\${${_arr_name}[@]}\")"
+  if [[ -n "${_segments[*]:-}" ]]; then
     for segment in "${_segments[@]}"; do
       local info
       info="$(gaudi::render_segment "$segment")"

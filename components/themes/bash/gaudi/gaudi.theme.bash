@@ -89,7 +89,7 @@ gaudi::render_cached_async_prompt () {
   local prompt=""
   local segment=""
   local cache_file=""
-  declare -a segments=("${!1}")
+  local _arr="${1%[*]}"; eval "local segments=(\"\${${_arr}[@]}\")"  
 
   for segment in "${segments[@]}"; do
     cache_file="$(gaudi::async_segment_cache_file "$segment")"
@@ -104,7 +104,7 @@ gaudi::prime_global_async_segments () {
   local segment=""
   local cache_file=""
   local output=""
-  declare -a segments=("${!1}")
+  local _arr="${1%[*]}"; eval "local segments=(\"\${${_arr}[@]}\")"  
 
   for segment in "${segments[@]}"; do
     [[ "$(gaudi::async_segment_scope "$segment")" == "global" ]] || continue
@@ -208,7 +208,7 @@ gaudi::refresh_async_segment () {
 gaudi::launch_async_segment_jobs () {
   local generation="$1"
   local segment=""
-  declare -a segments=("${!2}")
+  local _arr="${2%[*]}"; eval "local segments=(\"\${${_arr}[@]}\")"  
 
   for segment in "${segments[@]}"; do
     GAUDI_THEME_SHELL_ID="$GAUDI_THEME_SHELL_ID" \
