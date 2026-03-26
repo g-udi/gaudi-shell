@@ -31,13 +31,15 @@ if [[ -n "${GAUDI_SHELL_THEME:-}" ]]; then
 		source "$theme_file"
 		_log_component "$GAUDI_SHELL_THEME" "theme"
 
-		# In zsh, PROMPT_COMMAND doesn't exist — hook into precmd instead
-		if [[ -n "${ZSH_VERSION:-}" ]] && [[ -n "${PROMPT_COMMAND:-}" ]]; then
+		# In zsh, PROMPT_COMMAND doesn't run automatically — hook into precmd
+		if [[ -n "${ZSH_VERSION:-}" ]]; then
 			_gaudi_zsh_precmd() {
-				eval "$PROMPT_COMMAND"
+				gaudi::prompt
 			}
-			precmd_functions+=(_gaudi_zsh_precmd)
-			unset PROMPT_COMMAND
+			# Only add once
+			if [[ ! " ${precmd_functions[*]} " == *" _gaudi_zsh_precmd "* ]]; then
+				precmd_functions+=(_gaudi_zsh_precmd)
+			fi
 		fi
 	fi
 fi
