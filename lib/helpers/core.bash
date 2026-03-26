@@ -27,14 +27,14 @@ _gaudi-shell-describe() {
 
 	if [[ ! -s "${file}" ]]; then
 		rm -f "${file}" 2>/dev/null
-		local __file
+		local __file enabled_file component_name about_text
 		for __file in "${GAUDI_SHELL}/components/$component/"*.bash; do
-			local enabled_file component_name about_text
 			enabled_file="${__file##*/}"
 			component_name="${enabled_file%%.*}"
-			about_text="$(head -5 "$__file" | grep 'about-' | sed "s/.*about-[a-z]* '\\(.*\\)'/\\1/" 2>/dev/null)"
+			# Extract description from about-TYPE 'desc' (with or without # prefix, with optional leading whitespace)
+			about_text="$(sed -n "s/^[# ]*about-[a-z]* ['\"]*\\([^'\"]*\\)['\"]*$/\\1/p" "$__file" 2>/dev/null | head -1)"
 
-			if ls ${GAUDI_SHELL}/components/enabled/*${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${enabled_file} &>/dev/null; then
+			if ls "${GAUDI_SHELL}"/components/enabled/*"${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${enabled_file}" &>/dev/null; then
 				printf "%-20s${GREEN}%-10s${NC}%s\n" "$component_name" "  ◉" "    $about_text" | tee -a "${file}"
 			elif [[ "$mode" = "all" ]]; then
 				printf "%-20s${RED}%-10s${NC}%s\n" "$component_name" "  ◯" "    $about_text" | tee -a "${file}"
