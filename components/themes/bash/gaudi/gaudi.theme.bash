@@ -148,6 +148,11 @@ gaudi::store_prompt_state () {
 }
 
 gaudi::redraw_prompt () {
+  # In zsh, skip manual redraw — cached segments are picked up on next precmd.
+  # GAUDI_ASYNC_NO_REDRAW is set when workers are launched from a zsh parent,
+  # so bash workers don't do tput cursor manipulation that corrupts zsh's display.
+  [[ -n "${ZSH_VERSION:-}" || -n "${GAUDI_ASYNC_NO_REDRAW:-}" ]] && return 0
+
   local async_prompt=""
   local left_prompt=""
   local right_prompt=""
@@ -208,11 +213,12 @@ gaudi::refresh_async_segment () {
 gaudi::launch_async_segment_jobs () {
   local generation="$1"
   local segment=""
-  local _arr="${2%[*]}"; eval "local segments=(\"\${${_arr}[@]}\")"  
+  local _arr="${2%[*]}"; eval "local segments=(\"\${${_arr}[@]}\")"
 
   for segment in "${segments[@]}"; do
     GAUDI_THEME_SHELL_ID="$GAUDI_THEME_SHELL_ID" \
       GAUDI_SHELL="$GAUDI_SHELL" \
+      GAUDI_ASYNC_NO_REDRAW="${ZSH_VERSION:+1}" \
       bash "$GAUDI_ROOT/lib/async_segment_worker.bash" "$segment" "$generation"
   done
 }
@@ -256,7 +262,13 @@ gaudi::prompt () {
   local async_prompt=""
   local line_separator=""
 
-  prompt_char="${GAUDI_GREEN}>>${NC} "
+  if [[ -n "${ZSH_VERSION:-}" ]]; then
+    # Use zsh native prompt escapes — no %{...%} wrapping needed, cursor
+    # width is always correct.
+    prompt_char="%F{2}>>%f "
+  else
+    prompt_char="${GAUDI_GREEN}>>${NC} "
+  fi
 
   gaudi::ensure_async_dirs
   generation="$(gaudi::next_generation)" || return 1
@@ -268,7 +280,18 @@ gaudi::prompt () {
   gaudi::prime_global_async_segments GAUDI_PROMPT_ASYNC[@]
   async_prompt="$(gaudi::render_cached_async_prompt GAUDI_PROMPT_ASYNC[@])"
 
-  if [[ $GAUDI_SPLIT_PROMPT == false ]]; then
+  if [[ -n "${ZSH_VERSION:-}" ]]; then
+    # Sanitize all prompt parts for zsh: wraps raw ANSI codes with %{...%}
+    # and escapes literal % → %%. This handles ANSI codes embedded in content
+    # (e.g., battstat coloring battery percentage).
+    left_prompt="$(gaudi::zsh_sanitize_prompt "$left_prompt")"
+    right_prompt="$(gaudi::zsh_sanitize_prompt "$right_prompt")"
+    async_prompt="$(gaudi::zsh_sanitize_prompt "$async_prompt")"
+
+    # Use native PROMPT/RPROMPT — RPROMPT handles right-alignment automatically.
+    PROMPT=$'\n'"${left_prompt}${async_prompt}"$'\n\n'"${prompt_char}"
+    RPROMPT="${right_prompt}"
+  elif [[ $GAUDI_SPLIT_PROMPT == false ]]; then
     PS1=$(printf "\n%b%b%b\n\n%b" "$right_prompt" "$left_prompt" "$async_prompt" "$prompt_char")
   else
     [[ "$TERM" =~ screen.* ]] && compensate=45
@@ -276,7 +299,9 @@ gaudi::prompt () {
     PS1=$(printf "\n%*b%b%b%b\n\n%b" "$(($(tput cols) + compensate))" "$right_prompt" "$line_separator" "$left_prompt" "$async_prompt" "$prompt_char")
   fi
 
-  set +m
+  # Disable job monitoring to suppress "[1] Done" messages from async workers.
+  # Only in bash — zsh handles this differently and set +m would persist.
+  [[ -z "${ZSH_VERSION:-}" ]] && set +m
   gaudi::launch_async_segment_jobs "$generation" GAUDI_PROMPT_ASYNC[@]
 }
 

@@ -13,7 +13,28 @@ gaudi::exists () {
 # USAGE:
 #   gaudi::defined <function>
 gaudi::defined () {
-  type -t "$1" &> /dev/null
+  if [[ -n "${ZSH_VERSION:-}" ]]; then
+    (( ${+functions[$1]} ))
+  else
+    type -t "$1" &> /dev/null
+  fi
+}
+
+# Sanitize a prompt string for zsh.
+# 1. Escapes literal % → %% (so zsh doesn't interpret them as prompt escapes)
+# 2. Wraps ALL raw ANSI escape sequences with %{...%} (so zsh knows they are
+#    zero-width and doesn't miscount the visible prompt length)
+# This must be applied ONCE to the final assembled prompt, not per-segment,
+# because segments like battstat embed raw ANSI codes in content.
+# USAGE:
+#   gaudi::zsh_sanitize_prompt <string>
+gaudi::zsh_sanitize_prompt () {
+  [[ -z "${ZSH_VERSION:-}" ]] && { printf '%s' "$1"; return; }
+  local input="$1"
+  # Step 1: Escape all literal % to %% (ANSI codes don't contain %)
+  input="${input//[%]/%%}"
+  # Step 2: Wrap ANSI CSI sequences (ESC[...letter) and charset sequences (ESC(letter)
+  printf '%s' "$input" | sed $'s/\x1b\\[[0-9;]*[a-zA-Z]/%{&%}/g; s/\x1b([A-Z]/%{&%}/g'
 }
 
 # Draw prompt section
@@ -29,22 +50,19 @@ gaudi::section () {
     [[ -n $4 ]] && content="$4"  || content=""
     [[ -n $5 ]] && suffix="$5"   || suffix=""
 
-    # gaudi::escape "$color$prefix$symbol $content$suffix${NC}"
-    # printf "%b%b%b %b%b%b" "$color" "$prefix" "$symbol" "$content" "$suffix" "${NC}"
-
     if [[ $GAUDI_ENABLE_SYMBOLS == false ]]; then
       symbol="$GAUDI_SYMBOL_ALT"
     fi
     [[ -n $symbol ]] && symbol="$symbol "
-    # Why are wrapping the cariables with "" you say ?
-    # To pass a whole string containing GAUDI_WHITEspaces as a single argument, enclose it in double quotes
-    # Like every other program, echo or printf interprets strings separated by GAUDI_WHITEspace as different arguments
-    echo -n "$color"    # Print out any coloring needed for the section with order of <font_color><background_color>
-    echo -n "$prefix"   # Print the prefix before the content .. default prefix is a space
-    echo -n "$symbol"   # Print the symbol if exists which is the icon to show before the segment
-    echo -n "$content"  # Print the actual content to display in the prompt
-    echo -n "$suffix"   # Print the suffix before the content .. default prefix is a space
-    echo -n "$NC"       # Reset the coloring set in the $color
+
+    # Output raw ANSI for both shells. In zsh, gaudi::zsh_sanitize_prompt
+    # post-processes the entire prompt to add %{...%} wrapping.
+    printf '%s' "$color"     # Coloring (font_color + background_color)
+    printf '%s' "$prefix"    # Prefix before content (default: space)
+    printf '%b' "$symbol"    # Symbol/icon (%b interprets \uXXXX codes)
+    printf '%s' "$content"   # Actual content to display
+    printf '%s' "$suffix"    # Suffix after content
+    printf '%s' "$NC"        # Reset coloring
 }
 
 # Load a segment definition once per shell session.
@@ -82,11 +100,11 @@ gaudi::render_segment () {
 #   gaudi::render_prompt segments <array>
 gaudi::render_prompt () {
   local _prompt=""
+  local info=""
   local _arr_name="${1%\[*\]}"
   eval "local _segments=(\"\${${_arr_name}[@]}\")"
   if [[ -n "${_segments[*]:-}" ]]; then
     for segment in "${_segments[@]}"; do
-      local info
       info="$(gaudi::render_segment "$segment")"
       [[ -n "${info}" ]] && _prompt+="$info"
     done

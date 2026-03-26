@@ -24,6 +24,10 @@ priority "365"
 alias_completion () {
     about 'alias_completion'
 
+	# This plugin uses bash-specific completion internals (complete -p,
+	# COMP_WORDS, read -ra). Skip entirely in zsh.
+	[[ -n "${ZSH_VERSION:-}" ]] && return 0
+
 	local namespace="alias_completion"
 	local tmp_file completion_loader alias_name line completions chars
 	local alias_arg_words new_completion compl_func compl_wrapper alias_defn
