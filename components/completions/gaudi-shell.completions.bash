@@ -1,108 +1,157 @@
 # shellcheck shell=bash
-# shellcheck disable=SC2207
+# shellcheck disable=SC2207,SC2128
 
 # about-completion 'Tab completions for the gaudi command'
 
+# --- Helper: list available but not enabled components ---
 _gaudi-shell-comp-list-available-not-enabled() {
 	local subdirectory="$1"
-	local available_things=""
-	local f
+	local result=""
+	local f file_entity name
 
 	for f in "${GAUDI_SHELL}/components/${subdirectory}/"*.bash; do
 		[[ -f "$f" ]] || continue
-		local file_entity
 		file_entity=$(basename "$f")
 		if ! ls "${GAUDI_SHELL}/components/enabled/"*"${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${file_entity}" &>/dev/null; then
-			local name="${file_entity%%.*}"
-			available_things="${available_things} ${name}"
+			name="${file_entity%%.*}"
+			result="${result} ${name}"
 		fi
 	done
-
-	COMPREPLY=($(compgen -W "all ${available_things}" -- "${COMP_WORDS[COMP_CWORD]}"))
+	echo "all ${result}"
 }
 
+# --- Helper: list enabled components ---
 _gaudi-shell-comp-list-enabled() {
 	local subdirectory="$1"
-	local enabled_things=""
-	local f
+	local result=""
+	local f name
 
 	for f in "${GAUDI_SHELL}/components/enabled/"*".${subdirectory}.bash"; do
 		[[ -f "$f" ]] || continue
-		local name
 		name=$(basename "$f")
 		name="${name#*"${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}"}"
 		name="${name%%.*}"
-		enabled_things="${enabled_things} ${name}"
+		result="${result} ${name}"
 	done
-
-	COMPREPLY=($(compgen -W "all ${enabled_things}" -- "${COMP_WORDS[COMP_CWORD]}"))
+	echo "all ${result}"
 }
 
-_gaudi-shell-comp() {
-	local BASE_OPTIONS="show enable disable reload restart search update backup restore profile doctor help version"
+# --- Helper: list saved profiles ---
+_gaudi-shell-comp-list-profiles() {
+	local result=""
+	local f
 
-	COMPREPLY=()
-	local current="${COMP_WORDS[COMP_CWORD]}"
-	local verb="${COMP_WORDS[1]:-}"
-	local file_type="${COMP_WORDS[2]:-}"
-
-	case "${verb}" in
-		show)
-			COMPREPLY=($(compgen -W "aliases completions plugins" -- "${current}"))
-			return 0
-			;;
-		help)
-			COMPREPLY=($(compgen -W "aliases completions plugins" -- "${current}"))
-			return 0
-			;;
-		doctor)
-			COMPREPLY=($(compgen -W "errors warnings all" -- "${current}"))
-			return 0
-			;;
-		profile)
-			if [[ "${COMP_CWORD}" -eq 2 ]]; then
-				COMPREPLY=($(compgen -W "save load list rm" -- "${current}"))
-			elif [[ "${COMP_CWORD}" -eq 3 ]]; then
-				local profiles=""
-				for f in "${GAUDI_SHELL}/profiles/"*.gaudi-shell; do
-					[[ -f "$f" ]] || continue
-					profiles="${profiles} $(basename "$f" .gaudi-shell)"
-				done
-				COMPREPLY=($(compgen -W "${profiles}" -- "${current}"))
-			fi
-			return 0
-			;;
-		update)
-			COMPREPLY=($(compgen -W "stable dev all" -- "${current}"))
-			return 0
-			;;
-		reload | restart | search | version | backup | restore)
-			return 0
-			;;
-		enable | disable)
-			if [[ "${COMP_CWORD}" -eq 2 ]]; then
-				COMPREPLY=($(compgen -W "alias plugin completion" -- "${current}"))
-				return 0
-			fi
-			local suffix
-			if [[ "${verb}" == "enable" ]]; then
-				suffix="available-not-enabled"
-			else
-				suffix="enabled"
-			fi
-			case "${file_type}" in
-				alias) "_gaudi-shell-comp-list-${suffix}" aliases ;;
-				plugin) "_gaudi-shell-comp-list-${suffix}" plugins ;;
-				completion) "_gaudi-shell-comp-list-${suffix}" completions ;;
-			esac
-			return 0
-			;;
-	esac
-
-	COMPREPLY=($(compgen -W "${BASE_OPTIONS}" -- "${current}"))
-	return 0
+	for f in "${GAUDI_SHELL}/profiles/"*.gaudi-shell; do
+		[[ -f "$f" ]] || continue
+		result="${result} $(basename "$f" .gaudi-shell)"
+	done
+	echo "${result}"
 }
 
-# Register completion for both the full command and the alias
-complete -F _gaudi-shell-comp gaudi
-complete -F _gaudi-shell-comp g
+# =====================================================================
+# BASH completion
+# =====================================================================
+if [[ -n "${BASH_VERSION:-}" ]]; then
+
+	_gaudi-shell-comp() {
+		local BASE_OPTIONS="show enable disable reload restart search update backup restore profile doctor help version"
+
+		COMPREPLY=()
+		local current="${COMP_WORDS[COMP_CWORD]}"
+		local verb="${COMP_WORDS[1]:-}"
+		local file_type="${COMP_WORDS[2]:-}"
+
+		case "${verb}" in
+			show | help)
+				COMPREPLY=($(compgen -W "aliases completions plugins" -- "${current}"))
+				;;
+			doctor)
+				COMPREPLY=($(compgen -W "errors warnings all" -- "${current}"))
+				;;
+			profile)
+				if [[ "${COMP_CWORD}" -eq 2 ]]; then
+					COMPREPLY=($(compgen -W "save load list rm" -- "${current}"))
+				elif [[ "${COMP_CWORD}" -eq 3 ]]; then
+					COMPREPLY=($(compgen -W "$(_gaudi-shell-comp-list-profiles)" -- "${current}"))
+				fi
+				;;
+			update)
+				COMPREPLY=($(compgen -W "stable dev all" -- "${current}"))
+				;;
+			reload | restart | search | version | backup | restore)
+				;;
+			enable | disable)
+				if [[ "${COMP_CWORD}" -eq 2 ]]; then
+					COMPREPLY=($(compgen -W "alias plugin completion" -- "${current}"))
+				else
+					local suffix="available-not-enabled"
+					[[ "${verb}" == "disable" ]] && suffix="enabled"
+					case "${file_type}" in
+						alias) COMPREPLY=($(compgen -W "$(_gaudi-shell-comp-list-${suffix} aliases)" -- "${current}")) ;;
+						plugin) COMPREPLY=($(compgen -W "$(_gaudi-shell-comp-list-${suffix} plugins)" -- "${current}")) ;;
+						completion) COMPREPLY=($(compgen -W "$(_gaudi-shell-comp-list-${suffix} completions)" -- "${current}")) ;;
+					esac
+				fi
+				;;
+			*)
+				COMPREPLY=($(compgen -W "${BASE_OPTIONS}" -- "${current}"))
+				;;
+		esac
+		return 0
+	}
+
+	complete -F _gaudi-shell-comp gaudi
+	complete -F _gaudi-shell-comp g
+fi
+
+# =====================================================================
+# ZSH completion
+# =====================================================================
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+
+	_gaudi-shell-zsh-comp() {
+		local BASE_OPTIONS=(show enable disable reload restart search update backup restore profile doctor help version)
+		local verb="${words[2]:-}"
+		local file_type="${words[3]:-}"
+
+		case "${verb}" in
+			show | help)
+				compadd -- aliases completions plugins
+				;;
+			doctor)
+				compadd -- errors warnings all
+				;;
+			profile)
+				if [[ "${CURRENT}" -eq 3 ]]; then
+					compadd -- save load list rm
+				elif [[ "${CURRENT}" -eq 4 ]]; then
+					compadd -- $(_gaudi-shell-comp-list-profiles)
+				fi
+				;;
+			update)
+				compadd -- stable dev all
+				;;
+			reload | restart | search | version | backup | restore)
+				;;
+			enable | disable)
+				if [[ "${CURRENT}" -eq 3 ]]; then
+					compadd -- alias plugin completion
+				else
+					local suffix="available-not-enabled"
+					[[ "${verb}" == "disable" ]] && suffix="enabled"
+					case "${file_type}" in
+						alias) compadd -- $(_gaudi-shell-comp-list-${suffix} aliases) ;;
+						plugin) compadd -- $(_gaudi-shell-comp-list-${suffix} plugins) ;;
+						completion) compadd -- $(_gaudi-shell-comp-list-${suffix} completions) ;;
+					esac
+				fi
+				;;
+			*)
+				compadd -- "${BASE_OPTIONS[@]}"
+				;;
+		esac
+	}
+
+	compdef _gaudi-shell-zsh-comp gaudi
+	compdef _gaudi-shell-zsh-comp g
+fi

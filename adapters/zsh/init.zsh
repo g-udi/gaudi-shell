@@ -25,4 +25,7 @@ if ! whence -w 'complete' | grep -q builtin; then
 	complete() { true; }
 fi
 
+# Initialize zsh completion system (needed for compdef)
+autoload -Uz compinit && compinit -i -d "${XDG_CACHE_HOME:-$HOME/.cache}/gaudi-shell/zcompdump" 2>/dev/null
+
 source "$GAUDI_SHELL/gaudi_shell.sh"
