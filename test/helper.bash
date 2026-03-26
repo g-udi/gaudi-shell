@@ -3,6 +3,12 @@
 
 function load_gaudi_libs() {
 	for lib in "$@"; do
+		# If loading the main CLI, also load all helpers (mirrors gaudi_shell.sh behavior)
+		if [[ "$lib" == "gaudi-shell" ]]; then
+			for helper in "${GAUDI_SHELL}"/lib/helpers/*.bash; do
+				[[ -f "$helper" ]] && load "$helper"
+			done
+		fi
 		local component
 		component=$(find "${GAUDI_SHELL}/lib" -type f -iname "${lib}.bash" 2>/dev/null | head -1)
 		[[ -n "$component" ]] && load "$component"

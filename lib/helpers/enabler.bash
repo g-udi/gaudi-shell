@@ -51,7 +51,8 @@ _gaudi-shell-enable() {
 
 		# Load priority from file if present
 		local local_file_priority use_load_priority
-		local_file_priority=$(grep -m1 '# GAUDI_SHELL_LOAD_PRIORITY:' "${GAUDI_SHELL}/components/$type/$_component" 2>/dev/null | sed 's/.*: *//')
+		# Check for priority in either format: '# GAUDI_SHELL_LOAD_PRIORITY: NNN' or 'priority "NNN"'
+		local_file_priority=$(grep -m1 -E '(GAUDI_SHELL_LOAD_PRIORITY:|priority ")' "${GAUDI_SHELL}/components/$type/$_component" 2>/dev/null | sed 's/.*: *//;s/priority "//;s/".*//')
 		use_load_priority=${local_file_priority:-$load_priority}
 		ln -s "${GAUDI_SHELL}/components/$type/$_component" "${GAUDI_SHELL}/components/enabled/${use_load_priority}${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${_component}"
 	fi

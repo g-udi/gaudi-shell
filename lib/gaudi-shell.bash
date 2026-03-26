@@ -42,7 +42,7 @@ _gaudi-shell-restart() {
 }
 
 _gaudi-shell-help() {
-	! __check-function-parameters "$1" && reference gaudi && return 0
+	! __check-function-parameters "$1" && echo "Usage: gaudi <command> [args]. Run 'gaudi help' for details." && return 0
 	local type component
 	type="$(_gaudi-shell-pluralize-component "$1")"
 	_command_exists _help-"${type}" && _help-"${type}" "$2"
@@ -59,6 +59,7 @@ _gaudi-shell-show() {
 }
 
 _gaudi-shell-backup() {
+	mkdir -p "${GAUDI_SHELL}/tmp"
 	echo -n "" > "${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
 	for _file in "${GAUDI_SHELL}"/components/enabled/*.bash; do
 		[[ ! -e "$_file" ]] && continue
@@ -104,7 +105,7 @@ gaudi() {
 		reload) func=_gaudi-shell-reload ;;
 		restart) func=_gaudi-shell-restart ;;
 		search) _gaudi-shell-search "$component" "$@"; return ;;
-		*) reference gaudi; return ;;
+		*) echo "Usage: gaudi <command> [args]. Run 'gaudi help' for details."; return ;;
 	esac
 
 	if [[ "$verb" == "enable" || "$verb" == "disable" ]] && [[ ${#@} != 0 ]]; then
