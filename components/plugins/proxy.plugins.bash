@@ -74,16 +74,16 @@ show-proxy () {
 }
 
 proxy-help () {
-	about 'Provides an overview of the gaudi-bash proxy configuration'
+	about 'Provides an overview of the gaudi-shell proxy configuration'
 	group 'Proxy'
 
 	cat << EOF
-gaudi-bash provides support for enabling/disabling proxy settings for various shell tools.
+gaudi-shell provides support for enabling/disabling proxy settings for various shell tools.
 
 The following backends are currently supported (in addition to the shell's environment variables): Git, SVN, npm, ssh
 
-gaudi-bash uses the following variables to set the shell's proxy settings when you call 'enable-proxy'.
-These variables are best defined in a custom script in gaudi-bash's custom script folder ('$BASH_IT/custom'),
+gaudi-shell uses the following variables to set the shell's proxy settings when you call 'enable-proxy'.
+These variables are best defined in a custom script in gaudi-shell's custom script folder ('$BASH_IT/custom'),
 e.g. '$BASH_IT/custom/proxy.env.bash'
 * BASH_IT_HTTP_PROXY and BASH_IT_HTTPS_PROXY: Define the proxy URL to be used, e.g. 'http://localhost:1234'
 * BASH_IT_NO_PROXY: A comma-separated list of proxy exclusions, e.g. '127.0.0.1,localhost'
@@ -95,10 +95,10 @@ EOF
 }
 
 show-proxy () {
-	about 'Shows the gaudi-bash proxy settings'
+	about 'Shows the gaudi-shell proxy settings'
 	group 'Proxy'
 
-  printf "\n${GREEN}%s${NC}\n%s\n$PROXY_DIVIDER\n" "gaudi-bash Environment Variables" "(These variables will be used to set the proxy when you call 'enable-proxy')"
+  printf "\n${GREEN}%s${NC}\n%s\n$PROXY_DIVIDER\n" "gaudi-shell Environment Variables" "(These variables will be used to set the proxy when you call 'enable-proxy')"
 	env | grep -e "BASH_IT.*PROXY"
 }
 
