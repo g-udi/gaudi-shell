@@ -110,9 +110,35 @@ fi
 if [[ -n "${ZSH_VERSION:-}" ]]; then
 
 	_gaudi-shell-zsh-comp() {
-		local BASE_OPTIONS=(show enable disable reload restart search update backup restore profile doctor help version)
+		# Restore native zsh mode inside completion (KSH_ARRAYS breaks word indexing)
+		emulate -L zsh
+
 		local verb="${words[2]:-}"
 		local file_type="${words[3]:-}"
+
+		_gaudi_zsh_list_components() {
+			local subdirectory="$1" mode="$2"
+			local names=()
+			local f name
+
+			if [[ "$mode" == "enabled" ]]; then
+				for f in "${GAUDI_SHELL}/components/enabled/"*".${subdirectory}.bash"(N); do
+					name="${f:t}"
+					name="${name#*___}"
+					name="${name%%.*}"
+					names+=("$name")
+				done
+			else
+				for f in "${GAUDI_SHELL}/components/${subdirectory}/"*.bash(N); do
+					local file_entity="${f:t}"
+					if ! ls "${GAUDI_SHELL}/components/enabled/"*"___${file_entity}" &>/dev/null; then
+						name="${file_entity%%.*}"
+						names+=("$name")
+					fi
+				done
+			fi
+			compadd -- all "${names[@]}"
+		}
 
 		case "${verb}" in
 			show | help)
@@ -122,10 +148,15 @@ if [[ -n "${ZSH_VERSION:-}" ]]; then
 				compadd -- errors warnings all
 				;;
 			profile)
-				if [[ "${CURRENT}" -eq 3 ]]; then
+				if (( CURRENT == 3 )); then
 					compadd -- save load list rm
-				elif [[ "${CURRENT}" -eq 4 ]]; then
-					compadd -- $(_gaudi-shell-comp-list-profiles)
+				elif (( CURRENT == 4 )); then
+					local profiles=()
+					local f
+					for f in "${GAUDI_SHELL}/profiles/"*.gaudi-shell(N); do
+						profiles+=("${${f:t}%.gaudi-shell}")
+					done
+					compadd -- "${profiles[@]}"
 				fi
 				;;
 			update)
@@ -134,20 +165,20 @@ if [[ -n "${ZSH_VERSION:-}" ]]; then
 			reload | restart | search | version | backup | restore)
 				;;
 			enable | disable)
-				if [[ "${CURRENT}" -eq 3 ]]; then
+				if (( CURRENT == 3 )); then
 					compadd -- alias plugin completion
 				else
-					local suffix="available-not-enabled"
-					[[ "${verb}" == "disable" ]] && suffix="enabled"
+					local mode="available"
+					[[ "${verb}" == "disable" ]] && mode="enabled"
 					case "${file_type}" in
-						alias) compadd -- $(_gaudi-shell-comp-list-${suffix} aliases) ;;
-						plugin) compadd -- $(_gaudi-shell-comp-list-${suffix} plugins) ;;
-						completion) compadd -- $(_gaudi-shell-comp-list-${suffix} completions) ;;
+						alias) _gaudi_zsh_list_components aliases "$mode" ;;
+						plugin) _gaudi_zsh_list_components plugins "$mode" ;;
+						completion) _gaudi_zsh_list_components completions "$mode" ;;
 					esac
 				fi
 				;;
 			*)
-				compadd -- "${BASE_OPTIONS[@]}"
+				compadd -- show enable disable reload restart search update backup restore profile doctor help version
 				;;
 		esac
 	}
