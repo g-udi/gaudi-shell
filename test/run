@@ -9,12 +9,12 @@ export GAUDI_TEST_DEPS_DIR="${GAUDI_SHELL_ORIGIN}/bin"
 export GAUDI_TEST_DIRECTORY
 
 case $OSTYPE in
-	darwin*)
-		export GAUDI_SHELL_PROFILE=".bash_profile"
-		;;
-	*)
-		export GAUDI_SHELL_PROFILE=".bashrc"
-		;;
+darwin*)
+	export GAUDI_SHELL_PROFILE=".bash_profile"
+	;;
+*)
+	export GAUDI_SHELL_PROFILE=".bashrc"
+	;;
 esac
 
 echo -e "\nRunning gaudi-shell tests...\n"

@@ -11,10 +11,10 @@ function _gaudi-shell_update_and_restart() {
 	about 'Checks out the wanted version, pops directory and restart. Does not return (because of the restart!)'
 	group 'gaudi-shell:core:updater'
 
-	git checkout "$1" &> /dev/null
+	git checkout "$1" &>/dev/null
 	if [[ $? -eq 0 ]]; then
 		echo "gaudi-shell successfully updated."
-		popd &> /dev/null || return
+		popd &>/dev/null || return
 		_gaudi-shell-restart
 	else
 		echo "Error updating gaudi-shell, please, check if your gaudi-shell installation folder (${BASH_IT}) is clean."
@@ -36,12 +36,12 @@ function _gaudi-shell-update() {
 		fi
 	done
 
-	pushd "${GAUDI_SHELL?}" > /dev/null || return
+	pushd "${GAUDI_SHELL?}" >/dev/null || return
 
 	DIFF=$(git diff --name-status)
 	if [[ -n "$DIFF" ]]; then
 		echo -e "Local changes detected in gaudi-shell directory. Clean '$GAUDI_SHELL' directory to proceed.\n$DIFF"
-		popd > /dev/null || return
+		popd >/dev/null || return
 		return 1
 	fi
 
@@ -49,7 +49,7 @@ function _gaudi-shell-update() {
 		GAUDI_SHELL_REMOTE="origin"
 	fi
 
-	git fetch "$GAUDI_SHELL_REMOTE" --tags &> /dev/null
+	git fetch "$GAUDI_SHELL_REMOTE" --tags &>/dev/null
 
 	if [[ -z "$GAUDI_SHELL_DEVELOPMENT_BRANCH" ]]; then
 		GAUDI_SHELL_DEVELOPMENT_BRANCH="master"
@@ -57,11 +57,11 @@ function _gaudi-shell-update() {
 
 	if [[ -z "${1:-}" || "$1" == "stable" ]]; then
 		version="stable"
-		TARGET=$(git describe --tags "$(git rev-list --tags --max-count=1)" 2> /dev/null)
+		TARGET=$(git describe --tags "$(git rev-list --tags --max-count=1)" 2>/dev/null)
 
 		if [[ -z "$TARGET" ]]; then
 			echo "Can not find tags, so can not update to latest stable version..."
-			popd > /dev/null || return
+			popd >/dev/null || return
 			return
 		fi
 	else
@@ -70,11 +70,11 @@ function _gaudi-shell-update() {
 	fi
 
 	revision="HEAD..${TARGET}"
-	status="$(git rev-list "${revision}" 2> /dev/null)"
+	status="$(git rev-list "${revision}" 2>/dev/null)"
 
 	if [[ -z "${status}" && "${version}" == "stable" ]]; then
 		revision="${TARGET}..HEAD"
-		status="$(git rev-list "${revision}" 2> /dev/null)"
+		status="$(git rev-list "${revision}" 2>/dev/null)"
 		revert=true
 	fi
 
@@ -95,15 +95,15 @@ function _gaudi-shell-update() {
 		else
 			read -r -e -n 1 -p "Would you like to update to ${TARGET}($(git log -1 --format=%h "${TARGET}"))? [Y/n] " RESP
 			case "$RESP" in
-				[yY] | "")
-					_gaudi-shell_update_and_restart "$TARGET" "$version"
-					;;
-				[nN])
-					echo "Not updating…"
-					;;
-				*)
-					echo -e "${echo_orange?}Please choose y or n.${echo_reset_color?}"
-					;;
+			[yY] | "")
+				_gaudi-shell_update_and_restart "$TARGET" "$version"
+				;;
+			[nN])
+				echo "Not updating…"
+				;;
+			*)
+				echo -e "${echo_orange?}Please choose y or n.${echo_reset_color?}"
+				;;
 			esac
 		fi
 	else
@@ -113,5 +113,5 @@ function _gaudi-shell-update() {
 			echo "gaudi-shell is up to date, nothing to do!"
 		fi
 	fi
-	popd > /dev/null || return
+	popd >/dev/null || return
 }

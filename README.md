@@ -42,6 +42,7 @@ Options:
 
 - `--silent` (`-s`): Install with defaults without prompting
 - `--no-modify-config` (`-n`): Do not modify your existing config file
+- `--shell bash|zsh`: Install for a specific shell instead of auto-detecting from `$SHELL`
 
 ### Bash
 

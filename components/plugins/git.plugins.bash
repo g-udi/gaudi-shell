@@ -275,5 +275,3 @@ gitignore-reload () {
     echo >&2 "Files readded. Commit your new changes now."
   fi
 }
-
-

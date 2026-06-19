@@ -10,12 +10,12 @@ local_setup() {
 @test "gaudi-shell core: _gaudi-shell-restore should reject invalid backup entries" {
 
 	cd "$GAUDI_SHELL"
-	./setup.sh --silent
+	./setup.sh --silent --shell bash
 
 	mkdir -p "$GAUDI_SHELL/tmp"
 
 	# Write a backup file with a mix of valid and invalid entries
-	cat > "$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup" << 'BACKUP'
+	cat >"$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup" <<'BACKUP'
 gaudi enable plugin base
 echo INJECTED
 gaudi enable alias general
@@ -43,11 +43,11 @@ BACKUP
 @test "gaudi-shell core: _gaudi-shell-restore should accept all valid component types" {
 
 	cd "$GAUDI_SHELL"
-	./setup.sh --silent
+	./setup.sh --silent --shell bash
 
 	mkdir -p "$GAUDI_SHELL/tmp"
 
-	cat > "$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup" << 'BACKUP'
+	cat >"$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup" <<'BACKUP'
 gaudi enable plugin base
 gaudi enable alias general
 gaudi enable completion gaudi-shell
@@ -68,7 +68,7 @@ BACKUP
 @test "gaudi-shell core: _gaudi-shell-restore should fail gracefully with no backup file" {
 
 	cd "$GAUDI_SHELL"
-	./setup.sh --silent
+	./setup.sh --silent --shell bash
 
 	rm -f "$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup"
 

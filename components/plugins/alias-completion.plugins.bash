@@ -126,6 +126,6 @@ alias_completion () {
 	done < <(alias -p)
 	# shellcheck source=/dev/null
 	source "$tmp_file" && command rm -f "$tmp_file"
-}; 
+};
 
 alias_completion

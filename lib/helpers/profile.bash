@@ -14,7 +14,7 @@ _gaudi-shell-profile-save() {
 		[[ ! $REPLY =~ ^[yY]$ ]] && printf "${CYAN}%s${NC}\n" "Profile save cancelled" && return 0
 	fi
 
-	: > "${profile_file}"
+	: >"${profile_file}"
 	local _count=0
 
 	for _file in "${GAUDI_SHELL}"/components/enabled/*.bash; do
@@ -24,7 +24,7 @@ _gaudi-shell-profile-save() {
 		_component="${_component%.bash}"
 		_type=$(_gaudi-shell-singularize-component "${_component##*.}")
 		_component=${_component%%.*}
-		printf "%s\n" "${_type} ${_component}" >> "${profile_file}"
+		printf "%s\n" "${_type} ${_component}" >>"${profile_file}"
 		_count=$((_count + 1))
 	done
 
@@ -47,7 +47,7 @@ _gaudi-shell-profile-load() {
 			printf "${RED}%s${NC} %s: %s\n" "Invalid entry" "line ${_line_num}" "${line}"
 			_errors=$((_errors + 1))
 		fi
-	done < "${profile_file}"
+	done <"${profile_file}"
 	[[ $_errors -gt 0 ]] && printf "${RED}%s${NC}\n" "Profile validation failed" && return 1
 
 	printf "${MAGENTA}%s ${CYAN}%s${MAGENTA}%s${NC}\n" "Loading profile" "${profile_name}" "..."
@@ -60,7 +60,7 @@ _gaudi-shell-profile-load() {
 		[[ -z "$line" ]] && continue
 		local _type="${line%% *}" _component="${line#* }"
 		_gaudi-shell-enable "$(_gaudi-shell-pluralize-component "$_type")" "$_component"
-	done < "${profile_file}"
+	done <"${profile_file}"
 
 	printf "${GREEN}%s ${CYAN}%s${GREEN}%s${NC}\n" "Profile" "${profile_name}" " loaded"
 }
@@ -75,7 +75,7 @@ _gaudi-shell-profile-list() {
 	for _profile in "${profile_dir}"/*.gaudi-shell; do
 		local _name _count
 		_name="$(basename "$_profile" .gaudi-shell)"
-		_count=$(wc -l < "$_profile" | tr -d ' ')
+		_count=$(wc -l <"$_profile" | tr -d ' ')
 		printf "  ${CYAN}%s${NC} (%s component(s))\n" "$_name" "$_count"
 	done
 }
@@ -95,10 +95,13 @@ _gaudi-shell-profile() {
 	local action="$1"
 	shift
 	case "$action" in
-		save) _gaudi-shell-profile-save "$@" ;;
-		load) _gaudi-shell-profile-load "$@" ;;
-		list) _gaudi-shell-profile-list ;;
-		rm) _gaudi-shell-profile-rm "$@" ;;
-		*) printf "%s\n" "Usage: gaudi profile [save|load|list|rm] [name]"; return 1 ;;
+	save) _gaudi-shell-profile-save "$@" ;;
+	load) _gaudi-shell-profile-load "$@" ;;
+	list) _gaudi-shell-profile-list ;;
+	rm) _gaudi-shell-profile-rm "$@" ;;
+	*)
+		printf "%s\n" "Usage: gaudi profile [save|load|list|rm] [name]"
+		return 1
+		;;
 	esac
 }

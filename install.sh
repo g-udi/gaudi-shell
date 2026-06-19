@@ -17,7 +17,7 @@ __install() {
 		exit 1
 	}
 
-	source "$GAUDI_SHELL/setup.sh" "$@"
+	"$GAUDI_SHELL/setup.sh" "$@"
 }
 
 if [[ -d "$GAUDI_SHELL" ]]; then

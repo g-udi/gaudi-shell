@@ -9,4 +9,4 @@ if [[ -x "$HOME/.basher/bin/basher" ]]; then
 else
 	_log_warning 'basher not found'
 	return 0
-fi	
+fi

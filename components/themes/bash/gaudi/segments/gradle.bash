@@ -38,4 +38,3 @@ gaudi_gradle () {
     "v.$gradle_version" \
     "$GAUDI_GRADLE_SUFFIX"
 }
-

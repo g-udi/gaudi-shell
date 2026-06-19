@@ -21,8 +21,8 @@ local_setup() {
 
 	local md5_conf
 
-	echo "test file content for backup" > "$HOME/$GAUDI_SHELL_PROFILE.bak"
-	echo "test file content for original file" > "$HOME/$GAUDI_SHELL_PROFILE"
+	echo "test file content for backup" >"$HOME/$GAUDI_SHELL_PROFILE.bak"
+	echo "test file content for original file" >"$HOME/$GAUDI_SHELL_PROFILE"
 	md5_bak=$(md5sum "$HOME/$GAUDI_SHELL_PROFILE.bak" | awk '{print $1}')
 
 	. "$GAUDI_SHELL"/uninstall.sh
@@ -41,7 +41,7 @@ local_setup() {
 	local md5_uninstall
 	local md5_orig
 
-	echo "test file content for original file" > "$HOME/$GAUDI_SHELL_PROFILE"
+	echo "test file content for original file" >"$HOME/$GAUDI_SHELL_PROFILE"
 	md5_orig=$(md5sum "$HOME/$GAUDI_SHELL_PROFILE" | awk '{print $1}')
 	. "$GAUDI_SHELL"/uninstall.sh
 

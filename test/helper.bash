@@ -49,6 +49,7 @@ function setup_file() {
 	load "${GAUDI_TEST_DEPS_DIR}/bats-assert/load.bash"
 	load "${GAUDI_TEST_DEPS_DIR}/bats-file/load.bash"
 
+	# shellcheck disable=SC2034
 	XDG_DUMMY=""
 	unset "${!XDG_@}"
 

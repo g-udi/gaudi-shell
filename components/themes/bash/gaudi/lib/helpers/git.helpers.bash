@@ -268,7 +268,7 @@ git_prompt_vars () {
     GAUDI_SCM_BRANCH="$(_git-friendly-ref)"
     [[ -n "$(_git-remote-info)" ]] && GAUDI_SCM_BRANCH+=" → $(_git-remote-info)"
   else
-  	local detached_prefix
+	local detached_prefix
 		if _git-tag &> /dev/null; then
 			detached_prefix="${GAUDI_SCM_THEME_TAG_PREFIX}"
 		else
@@ -289,9 +289,9 @@ git_prompt_vars () {
   [[ "${stash_count:-0}" -gt 0 ]] && GAUDI_SCM_BRANCH+=" ${GAUDI_SCM_GIT_STASH_CHAR}${stash_count}"
 
   GAUDI_SCM_STATE=${GIT_THEME_PROMPT_CLEAN:-$GAUDI_SCM_THEME_PROMPT_CLEAN}
-  
+
   IFS=$'\t' read -r num_untracked num_changed num_staged num_conflicted < <(_git-status-counts)
-  
+
   if [[ "${num_staged}" -gt 0 || "${num_changed}" -gt 0 || "${num_untracked}" -gt 0 || "${num_conflicted}" -gt 0 ]]; then
     working_tree_dirty=true
 
@@ -322,9 +322,9 @@ git_prompt_vars () {
     GAUDI_SCM_BRANCH+=" ${GAUDI_SCM_GIT_SHA_CHAR}$(_git-short-sha)"
   fi
   [[ "${GAUDI_SCM_GIT_SHOW_CURRENT_USER}" == "true" ]] && GAUDI_SCM_BRANCH+="$(git_user_info)"
-  
+
   GAUDI_SCM_CHANGE=$(_git-short-sha 2>/dev/null || echo "")
-  
+
 }
 
 export GAUDI_SCM_STATE

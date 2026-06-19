@@ -16,7 +16,7 @@ assert_sane_defaults() {
 @test "gaudi-shell core: _gaudi-shell-backup should successfully backup enabled components" {
 
 	cd "$GAUDI_SHELL"
-	./setup.sh --silent
+	./setup.sh --silent --shell bash
 
 	assert_sane_defaults
 
@@ -36,7 +36,7 @@ assert_sane_defaults() {
 @test "gaudi-shell core: _gaudi-shell-backup should overwrite old backed up components" {
 
 	cd "$GAUDI_SHELL"
-	./setup.sh --silent
+	./setup.sh --silent --shell bash
 
 	assert_sane_defaults
 
@@ -57,7 +57,7 @@ assert_sane_defaults() {
 @test "gaudi-shell core: _gaudi-shell-restore should successfully restore backed up components" {
 
 	cd "$GAUDI_SHELL"
-	./setup.sh --silent
+	./setup.sh --silent --shell bash
 
 	assert_sane_defaults
 

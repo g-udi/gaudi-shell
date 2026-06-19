@@ -4,10 +4,10 @@ cite about-plugin
 about-plugin 'history manipulation'
 
 _bash_history_sync () {
-  builtin history -a         
-  HISTFILESIZE=$HISTSIZE     
-  builtin history -c         
-  builtin history -r         
+  builtin history -a
+  HISTFILESIZE=$HISTSIZE
+  builtin history -c
+  builtin history -r
 }
 
 history () {

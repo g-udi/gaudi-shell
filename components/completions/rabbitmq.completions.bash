@@ -155,4 +155,3 @@ _rabbitmqadmin () {
    return 0
 }
 complete -F _rabbitmqadmin rabbitmqadmin
-

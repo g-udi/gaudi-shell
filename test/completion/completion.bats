@@ -12,7 +12,7 @@ local_setup() {
 # Helper: simulate bash tab completion
 _complete_at() {
 	COMP_WORDS=("$@")
-	COMP_CWORD=$(( ${#COMP_WORDS[@]} - 1 ))
+	COMP_CWORD=$((${#COMP_WORDS[@]} - 1))
 	COMPREPLY=()
 	_gaudi-shell-comp
 	echo "${COMPREPLY[*]}"

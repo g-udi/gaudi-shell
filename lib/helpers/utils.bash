@@ -7,11 +7,14 @@ _is_function() {
 
 _command_exists() {
 	local msg="${2:-"command $1 does not exist!"}"
-	type "$1" &>/dev/null || { _log_error "$msg"; return 1; }
+	type "$1" &>/dev/null || {
+		_log_error "$msg"
+		return 1
+	}
 }
 
 _binary_exists() {
-	local msg="${2:-Binary '$1' does not exist}"
+	local msg="${2:-Binary $1 does not exist}"
 	if command -v "$1" >/dev/null; then
 		return 0
 	else
@@ -21,7 +24,7 @@ _binary_exists() {
 }
 
 _completion_exists() {
-	local msg="${2:-Completion for '$1' already exists}"
+	local msg="${2:-Completion for $1 already exists}"
 	if complete -p "$1" &>/dev/null; then
 		_log_debug "$msg"
 		return 0

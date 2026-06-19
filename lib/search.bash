@@ -53,7 +53,7 @@ _gaudi-shell-search() {
 	about "searches for given terms amongst gaudi-shell plugins, aliases and completions"
 	group "gaudi-shell:search"
 
-	[[ -z "$(type _array-contains 2> /dev/null)" ]]
+	[[ -z "$(type _array-contains 2>/dev/null)" ]]
 
 	local GAUDI_SHELL_SEARCH_USE_COLOR="${GAUDI_SHELL_SEARCH_USE_COLOR:=true}"
 	local COMPONENT
@@ -69,28 +69,28 @@ _gaudi-shell-search() {
 	declare -a args=()
 	for word in "$@"; do
 		case "${word}" in
-			'-h' | '--help')
-				_gaudi-shell-search-help
-				return 0
-				;;
-			'-r' | '--refresh')
-				_gaudi-shell-component-cache-clean
-				;;
-			'-x' | '--no-color')
-				GAUDI_SHELL_SEARCH_USE_COLOR=false
-				;;
-			'-p' | '--plugin')
-				COMPONENT="plugins"
-				;;
-			'-a' | '--alias')
-				COMPONENT="aliases"
-				;;
-			'-c' | '--completion')
-				COMPONENT="completions"
-				;;
-			*)
-				args+=("${word}")
-				;;
+		'-h' | '--help')
+			_gaudi-shell-search-help
+			return 0
+			;;
+		'-r' | '--refresh')
+			_gaudi-shell-component-cache-clean
+			;;
+		'-x' | '--no-color')
+			GAUDI_SHELL_SEARCH_USE_COLOR=false
+			;;
+		'-p' | '--plugin')
+			COMPONENT="plugins"
+			;;
+		'-a' | '--alias')
+			COMPONENT="aliases"
+			;;
+		'-c' | '--completion')
+			COMPONENT="completions"
+			;;
+		*)
+			args+=("${word}")
+			;;
 		esac
 	done
 

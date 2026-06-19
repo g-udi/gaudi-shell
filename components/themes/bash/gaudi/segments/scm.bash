@@ -28,7 +28,7 @@ gaudi_scm () {
   local color scm_prompt
 
   scm_prompt_vars
-  
+
   if [[ "${GAUDI_SCM_NONE_CHAR}" != "${GAUDI_SCM_CHAR}" ]]; then
     if [[ "${GAUDI_SCM_DIRTY}" -ge 4 ]]; then
       color=${GAUDI_THEME_PROMPT_DIRTY_COLOR}

@@ -76,7 +76,7 @@ _gaudi-shell-show-usage() {
 
 _gaudi-shell-backup() {
 	mkdir -p "${GAUDI_SHELL}/tmp"
-	echo -n "" > "${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
+	echo -n "" >"${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
 	for _file in "${GAUDI_SHELL}"/components/enabled/*.bash; do
 		[[ ! -e "$_file" ]] && continue
 		local _component _type
@@ -85,7 +85,7 @@ _gaudi-shell-backup() {
 		_type=$(_gaudi-shell-singularize-component "${_component##*.}")
 		_component=${_component%%.*}
 		echo "Backing up $_type: ${_component}"
-		printf "%s\n" "gaudi enable ${_type} ${_component}" >> "${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
+		printf "%s\n" "gaudi enable ${_type} ${_component}" >>"${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
 	done
 }
 
@@ -97,7 +97,7 @@ _gaudi-shell-restore() {
 		else
 			_log_warning "Skipping invalid backup entry: $line"
 		fi
-	done < "${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
+	done <"${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
 }
 
 gaudi() {
@@ -108,20 +108,35 @@ gaudi() {
 	local func
 
 	case $verb in
-		show) func=_gaudi-shell-show ;;
-		enable) func=_gaudi-shell-enable ;;
-		disable) func=_gaudi-shell-disable ;;
-		help) _gaudi-shell-help "$component" "$@"; return ;;
-		doctor) func=_gaudi-shell-doctor ;;
-		update) _gaudi-shell-update "$component" "$@"; return ;;
-		version) func=_gaudi-shell-version ;;
-		backup) func=_gaudi-shell-backup ;;
-		restore) func=_gaudi-shell-restore ;;
-		profile) _gaudi-shell-profile "$component" "$@"; return ;;
-		reload) func=_gaudi-shell-reload ;;
-		restart) func=_gaudi-shell-restart ;;
-		search) _gaudi-shell-search "$component" "$@"; return ;;
-		*) echo "Usage: gaudi <command> [args]. Run 'gaudi help' for details."; return ;;
+	show) func=_gaudi-shell-show ;;
+	enable) func=_gaudi-shell-enable ;;
+	disable) func=_gaudi-shell-disable ;;
+	help)
+		_gaudi-shell-help "$component" "$@"
+		return
+		;;
+	doctor) func=_gaudi-shell-doctor ;;
+	update)
+		_gaudi-shell-update "$component" "$@"
+		return
+		;;
+	version) func=_gaudi-shell-version ;;
+	backup) func=_gaudi-shell-backup ;;
+	restore) func=_gaudi-shell-restore ;;
+	profile)
+		_gaudi-shell-profile "$component" "$@"
+		return
+		;;
+	reload) func=_gaudi-shell-reload ;;
+	restart) func=_gaudi-shell-restart ;;
+	search)
+		_gaudi-shell-search "$component" "$@"
+		return
+		;;
+	*)
+		echo "Usage: gaudi <command> [args]. Run 'gaudi help' for details."
+		return
+		;;
 	esac
 
 	if [[ "$verb" == "enable" || "$verb" == "disable" ]] && [[ ${#@} != 0 ]]; then

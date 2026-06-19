@@ -93,11 +93,11 @@ __vboxmanage_default () {
     # echo "DEBUG: cur: $cur, prev: $prev"
     # echo "DEBUG: default: |$p1|$p2|$p3|$p4|"
     case ${cur} in
- 	-*)
+	-*)
 	    echo $opts
- 	    # COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
- 	    return 0
- 	    ;;
+	    # COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
+	    return 0
+	    ;;
     esac;
 
     for WORD in $opts; do
@@ -195,7 +195,7 @@ _vboxmanage () {
 	    # echo "previous: $pprev"
 	    case $pprev in
 		startvm)
- 		    opts="--type"
+		    opts="--type"
 		    COMPREPLY=($(compgen -W "${opts}" -- ${cur}))
 		    return 0
 		    ;;

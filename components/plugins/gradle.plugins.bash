@@ -21,4 +21,3 @@ gw () {
   # Call gradle
   "${result}" $*
 }
-

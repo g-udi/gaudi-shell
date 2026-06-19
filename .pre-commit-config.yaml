@@ -17,8 +17,11 @@ repos:
     rev: 2.1.5
     hooks:
       - id: git-check  # Configure in .gitattributes
+        exclude: ^(components/|template/)
       - id: shellcheck
+        exclude: ^(adapters/zsh/|components/|template/)
       - id: shfmt
+        exclude: ^(adapters/zsh/|components/|template/)
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.1.7
     hooks:
@@ -32,12 +35,11 @@ repos:
         language: system
         files: "\\.sh$"
         types: [file]
-        exclude: ^(^test/fixtures/|^template/)
+        exclude: ^(test/fixtures/|template/)
       - id: shellcheck-audit
         name: Check .bash files against gaudi-shell requirements (shellcheck shebang)
-        exclude: "test/test_helper.bash"
         entry: ./hooks/shellcheck-audit.sh
         language: system
         files: "\\.bash$"
         types: [file]
-        exclude: ^(^test/fixtures/|^template/)
+        exclude: ^(components/|test/fixtures/|test/test_helper\\.bash|template/)

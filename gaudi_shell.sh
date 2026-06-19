@@ -23,14 +23,14 @@ export GAUDI_SHELL_CURRENT
 
 # Determine profile file
 case $OSTYPE in
-	darwin*)
-		export GAUDI_SHELL_PROFILE=".bash_profile"
-		[[ "$GAUDI_SHELL_CURRENT" == "zsh" ]] && export GAUDI_SHELL_PROFILE=".zshrc"
-		;;
-	*)
-		export GAUDI_SHELL_PROFILE=".bashrc"
-		[[ "$GAUDI_SHELL_CURRENT" == "zsh" ]] && export GAUDI_SHELL_PROFILE=".zshrc"
-		;;
+darwin*)
+	export GAUDI_SHELL_PROFILE=".bash_profile"
+	[[ "$GAUDI_SHELL_CURRENT" == "zsh" ]] && export GAUDI_SHELL_PROFILE=".zshrc"
+	;;
+*)
+	export GAUDI_SHELL_PROFILE=".bashrc"
+	[[ "$GAUDI_SHELL_CURRENT" == "zsh" ]] && export GAUDI_SHELL_PROFILE=".zshrc"
+	;;
 esac
 
 # Finalize hook array — plugins can append callbacks to run after all loading

@@ -5,7 +5,7 @@ cite about-completion
 about-completion 'Ngrok bash completions'
 
 __ngrok_completion() {
-	
+
 	local prev=$(_get_pword)
 	local curr=$(_get_cword)
 

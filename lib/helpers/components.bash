@@ -10,7 +10,7 @@ __check-function-parameters() {
 	# Ensure the component types array is populated (defensive — cannot rely
 	# on array export surviving across bats `run` or other subshell boundaries).
 	local -a _types=("${GAUDI_SHELL_COMPONENT_TYPES[@]}")
-	(( ${#_types[@]} )) || _types=(plugins aliases completions)
+	((${#_types[@]})) || _types=(plugins aliases completions)
 	_array-contains "$(_gaudi-shell-pluralize-component "${1}")" "${_types[@]}" && return 0
 	return 1
 }
@@ -30,7 +30,10 @@ _gaudi-shell-singularize-component() {
 	local plural
 	plural="$(_gaudi-shell-pluralize-component "$component")"
 	local component_singular
-	[[ "$plural" == *ies ]] && component_singular=${plural%ies} && { printf "%s" "${component_singular}y"; return 0; }
+	[[ "$plural" == *ies ]] && component_singular=${plural%ies} && {
+		printf "%s" "${component_singular}y"
+		return 0
+	}
 	[[ "$plural" == *es ]] && component_singular=${plural%es}
 	[[ "$plural" == *ns ]] && component_singular=${plural%s}
 	printf "%s" "${component_singular:-$plural}"

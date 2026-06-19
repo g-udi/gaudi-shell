@@ -125,4 +125,3 @@ _packer_completion () {
 }
 
 complete -o nospace -F _packer_completion packer
-

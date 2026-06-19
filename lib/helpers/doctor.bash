@@ -6,15 +6,15 @@ _gaudi-shell-doctor() {
 	local original_level="${GAUDI_SHELL_LOG_LEVEL:-0}"
 
 	case "$mode" in
-		errors)
-			GAUDI_SHELL_LOG_LEVEL=$GAUDI_SHELL_LOG_LEVEL_ERROR
-			;;
-		warnings)
-			GAUDI_SHELL_LOG_LEVEL=$GAUDI_SHELL_LOG_LEVEL_WARNING
-			;;
-		all | *)
-			GAUDI_SHELL_LOG_LEVEL=$GAUDI_SHELL_LOG_LEVEL_ALL
-			;;
+	errors)
+		GAUDI_SHELL_LOG_LEVEL=$GAUDI_SHELL_LOG_LEVEL_ERROR
+		;;
+	warnings)
+		GAUDI_SHELL_LOG_LEVEL=$GAUDI_SHELL_LOG_LEVEL_WARNING
+		;;
+	all | *)
+		GAUDI_SHELL_LOG_LEVEL=$GAUDI_SHELL_LOG_LEVEL_ALL
+		;;
 	esac
 
 	source "${GAUDI_SHELL}/gaudi_shell.sh"
