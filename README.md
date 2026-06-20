@@ -114,6 +114,7 @@ gaudi-shell/
     completions/           # Bash completions (.completions.bash) + zsh completion (.zsh)
     themes/                # Prompt themes (bash/ and zsh/ subdirectories)
     enabled/               # Symlinks to enabled components (runtime state)
+    custom/                # Untracked local scripts loaded after enabled components
   scripts/
     loader.bash            # Loads all enabled components in priority-sorted order
   profiles/                # Saved named configurations
@@ -127,6 +128,35 @@ The core engine loads libraries from `lib/`, then the loader walks `components/e
 - **Symlink-based**: enabling a component creates a symlink; disabling removes it. No config files to edit.
 - **Priority-sorted**: components load in numeric order (aliases at 150, plugins at 250, completions at 350) so aliases are available when plugins run.
 - **Zero dependencies**: pure bash/zsh — no external tools required to run.
+
+## Local Untracked Customizations
+
+Use `components/custom/` for machine-local aliases, functions, exports, and plugin-like behavior that should not be committed.
+
+```bash
+mkdir -p "$GAUDI_SHELL/components/custom"
+cat > "$GAUDI_SHELL/components/custom/100-local.aliases.bash" <<'EOF'
+# shellcheck shell=bash
+alias work='cd ~/Projects'
+alias kctx='kubectl config current-context'
+EOF
+```
+
+Files under `components/custom/` are ignored by git and sourced after enabled components. Prefix filenames with numbers if you need deterministic ordering, for example `100-env.bash`, `200-aliases.bash`, and `900-overrides.bash`.
+
+You can keep private scripts outside the repository:
+
+```bash
+export GAUDI_SHELL_CUSTOM="$HOME/.config/gaudi-shell/custom"
+```
+
+Or load several custom directories:
+
+```bash
+export GAUDI_SHELL_CUSTOM_PATHS="$GAUDI_SHELL/components/custom:$HOME/.config/gaudi-shell/private"
+```
+
+Set `GAUDI_SHELL_CUSTOM` or `GAUDI_SHELL_CUSTOM_PATHS` before sourcing the Bash or Zsh adapter. Custom scripts should stay shell-portable if you use both Bash and Zsh; branch on `$GAUDI_SHELL_CURRENT` when behavior needs to differ.
 
 ## Commands
 

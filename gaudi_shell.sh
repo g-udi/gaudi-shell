@@ -58,13 +58,17 @@ unset _gs_helper
 # Load enabled components (sorted by priority via glob)
 source "${GAUDI_SHELL}/scripts/loader.bash"
 
-# Load custom components if configured
-if [[ -n "${GAUDI_SHELL_CUSTOM:-}" ]]; then
-	for _gs_custom in "${GAUDI_SHELL_CUSTOM}"/*.bash "${GAUDI_SHELL_CUSTOM}"/**/*.bash; do
-		[[ -f "$_gs_custom" ]] && source "$_gs_custom"
-	done
-	unset _gs_custom
-fi
+# Load local custom components after enabled components.
+: "${GAUDI_SHELL_CUSTOM:=${GAUDI_SHELL}/components/custom}"
+: "${GAUDI_SHELL_CUSTOM_PATHS:=$GAUDI_SHELL_CUSTOM}"
+while IFS= read -r _gs_custom_dir; do
+	[[ -n "$_gs_custom_dir" && -d "$_gs_custom_dir" ]] || continue
+	while IFS= read -r _gs_custom; do
+		_log_component "$_gs_custom" "custom"
+		source "$_gs_custom"
+	done < <(find "$_gs_custom_dir" -type f -name '*.bash' | sort)
+done < <(printf "%s\n" "$GAUDI_SHELL_CUSTOM_PATHS" | tr ':' '\n')
+unset _gs_custom _gs_custom_dir
 
 # Load appearance/theme
 [[ -f "${GAUDI_SHELL}/lib/appearance.bash" ]] && source "${GAUDI_SHELL}/lib/appearance.bash"

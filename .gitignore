@@ -1,5 +1,6 @@
 # Runtime state
 components/enabled/
+components/custom/
 profiles/
 tmp/
 
