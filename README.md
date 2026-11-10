@@ -203,7 +203,7 @@ gshell reload                        # re-source your shell profile
 gshell restart                       # re-exec the shell (stronger than reload)
 ```
 
-`gshell update dev` targets `origin/master` unless `GAUDI_SHELL_DEVELOPMENT_BRANCH` is set; this repository's branch is `main`, so set `GAUDI_SHELL_DEVELOPMENT_BRANCH=main` before using it.
+`gshell update dev` targets `origin/main` unless `GAUDI_SHELL_DEVELOPMENT_BRANCH` is set.
 
 ## Components
 
