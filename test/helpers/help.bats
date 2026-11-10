@@ -10,7 +10,7 @@ local_setup() {
 @test "gaudi-shell-helpers: help: should show usage when no valid argument passed" {
 	run _gaudi-shell-help INVALID
 	assert_success
-	assert_output --partial "Usage: gaudi"
+	assert_output --partial "Usage: gshell"
 }
 
 @test "gaudi-shell-helpers: help: _gaudi-shell-help aliases without any enabled" {

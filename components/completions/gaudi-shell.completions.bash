@@ -1,7 +1,7 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2207,SC2128
 
-# about-completion 'Tab completions for the gaudi command'
+# about-completion 'Tab completions for the gshell command'
 
 # --- Helper: list available but not enabled components ---
 _gaudi-shell-comp-list-available-not-enabled() {
@@ -100,7 +100,7 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
 		return 0
 	}
 
-	complete -F _gaudi-shell-comp gaudi
+	complete -F _gaudi-shell-comp gshell
 	complete -F _gaudi-shell-comp g
 fi
 

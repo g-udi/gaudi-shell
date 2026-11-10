@@ -16,16 +16,16 @@ local_setup() {
 
 	# Write a backup file with a mix of valid and invalid entries
 	cat >"$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup" <<'BACKUP'
-gaudi enable plugin base
+gshell enable plugin base
 echo INJECTED
-gaudi enable alias general
+gshell enable alias general
 rm -rf /tmp/should-not-run
 BACKUP
 
 	# Disable everything first
-	run gaudi disable plugins all
-	run gaudi disable aliases all
-	run gaudi disable completion all
+	run gshell disable plugins all
+	run gshell disable aliases all
+	run gshell disable completion all
 
 	# Restore should only process valid lines
 	run _gaudi-shell-restore
@@ -48,14 +48,14 @@ BACKUP
 	mkdir -p "$GAUDI_SHELL/tmp"
 
 	cat >"$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup" <<'BACKUP'
-gaudi enable plugin base
+gshell enable plugin base
 gaudi enable alias general
-gaudi enable completion gaudi-shell
+gshell enable completion gaudi-shell
 BACKUP
 
-	run gaudi disable plugins all
-	run gaudi disable aliases all
-	run gaudi disable completion all
+	run gshell disable plugins all
+	run gshell disable aliases all
+	run gshell disable completion all
 
 	run _gaudi-shell-restore
 	assert_success

@@ -28,9 +28,9 @@ assert_sane_defaults() {
 
 	run cat "$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup"
 	assert_success
-	assert_output --partial "gaudi enable alias general"
-	assert_output --partial "gaudi enable plugin base"
-	assert_output --partial "gaudi enable completion system"
+	assert_output --partial "gshell enable alias general"
+	assert_output --partial "gshell enable plugin base"
+	assert_output --partial "gshell enable completion system"
 }
 
 @test "gaudi-shell core: _gaudi-shell-backup should overwrite old backed up components" {
@@ -46,12 +46,12 @@ assert_sane_defaults() {
 
 	assert_file_exist "$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup"
 
-	run gaudi disable completion git
+	run gshell disable completion git
 	run _gaudi-shell-backup
 
 	assert_file_exist "$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup"
 	run cat "$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup"
-	assert_output --partial "gaudi enable alias general"
+	assert_output --partial "gshell enable alias general"
 }
 
 @test "gaudi-shell core: _gaudi-shell-restore should successfully restore backed up components" {
@@ -68,9 +68,9 @@ assert_sane_defaults() {
 	assert_line --index 0 "Backing up alias: general"
 	assert_file_exist "$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup"
 
-	run gaudi disable plugins all
-	run gaudi disable completion all
-	run gaudi disable aliases all
+	run gshell disable plugins all
+	run gshell disable completion all
+	run gshell disable aliases all
 
 	assert_file_not_exist "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
 	assert_file_not_exist "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"

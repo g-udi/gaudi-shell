@@ -42,7 +42,7 @@ _gaudi-shell-restart() {
 }
 
 _gaudi-shell-help() {
-	! __check-function-parameters "$1" && echo "Usage: gaudi <command> [args]. Run 'gaudi help' for details." && return 0
+	! __check-function-parameters "$1" && echo "Usage: gshell <command> [args]. Run 'gshell help' for details." && return 0
 	local type component
 	type="$(_gaudi-shell-pluralize-component "$1")"
 	_command_exists _help-"${type}" && _help-"${type}" "$2"
@@ -69,9 +69,9 @@ _gaudi-shell-show-usage() {
 	local _green="${GREEN:-}" _nc="${NC:-}"
 	printf "\ngaudi-shell allows you to easily enable/disable components:\n\n"
 	printf "to enable %s, do:\n" "$type"
-	printf "gaudi enable %s%s%s  <%s name> [%s name]... -or- \$ gaudi enable %s%s%s all\n\n" "$_green" "$type" "$_nc" "$type" "$type" "$_green" "$type_plural" "$_nc"
+	printf "gshell enable %s%s%s  <%s name> [%s name]... -or- \$ gshell enable %s%s%s all\n\n" "$_green" "$type" "$_nc" "$type" "$type" "$_green" "$type_plural" "$_nc"
 	printf "to disable %s, do:\n" "$type"
-	printf "gaudi disable %s%s%s <%s name> [%s name]... -or- \$ gaudi disable %s%s%s all\n" "$_green" "$type" "$_nc" "$type" "$type" "$_green" "$type_plural" "$_nc"
+	printf "gshell disable %s%s%s <%s name> [%s name]... -or- \$ gshell disable %s%s%s all\n" "$_green" "$type" "$_nc" "$type" "$type" "$_green" "$type_plural" "$_nc"
 }
 
 _gaudi-shell-backup() {
@@ -85,22 +85,24 @@ _gaudi-shell-backup() {
 		_type=$(_gaudi-shell-singularize-component "${_component##*.}")
 		_component=${_component%%.*}
 		echo "Backing up $_type: ${_component}"
-		printf "%s\n" "gaudi enable ${_type} ${_component}" >>"${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
+		printf "%s\n" "gshell enable ${_type} ${_component}" >>"${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
 	done
 }
 
 _gaudi-shell-restore() {
 	! [[ -f "${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup" ]] && echo -e "${RED}No valid backup file found :(${NC}" && return
 	while IFS= read -r line; do
-		if [[ "$line" =~ ^gaudi\ enable\ (alias|plugin|completion)\ [a-zA-Z0-9_-]+$ ]]; then
-			$line
+		# Backups written before the command was renamed use the "gaudi" prefix; accept both.
+		if [[ "$line" =~ ^(gshell|gaudi)\ enable\ (alias|plugin|completion)\ [a-zA-Z0-9_-]+$ ]]; then
+			# shellcheck disable=SC2086
+			gshell ${line#* }
 		else
 			_log_warning "Skipping invalid backup entry: $line"
 		fi
 	done <"${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
 }
 
-gaudi() {
+gshell() {
 	local verb=${1:-}
 	shift 2>/dev/null || true
 	local component=${1:-}
@@ -134,7 +136,7 @@ gaudi() {
 		return
 		;;
 	*)
-		echo "Usage: gaudi <command> [args]. Run 'gaudi help' for details."
+		echo "Usage: gshell <command> [args]. Run 'gshell help' for details."
 		return
 		;;
 	esac
@@ -149,4 +151,4 @@ gaudi() {
 }
 
 # Short alias
-alias g='gaudi'
+alias g='gshell'

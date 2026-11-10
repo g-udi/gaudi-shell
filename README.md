@@ -21,11 +21,11 @@ gaudi-shell closes that gap. **One framework, one CLI, one set of components —
 What makes it different:
 
 - **Cross-shell by design**: aliases and plugins are plain bash scripts that work in both shells. Only completions and themes need shell-specific versions. No duplication, no maintaining parallel configs.
-- **Intuitive component management**: `gaudi enable plugin fzf` works the same in bash and zsh. No editing config files, no sourcing order puzzles, no plugin spec syntax to learn.
+- **Intuitive component management**: `gshell enable plugin fzf` works the same in bash and zsh. No editing config files, no sourcing order puzzles, no plugin spec syntax to learn.
 - **Batteries included**: ships with 71 plugins, 39 alias sets, and 62 completions — curated and ready to use. No need to find and wire up third-party repositories.
-- **Profiles**: save your entire setup as a named profile (`gaudi profile save work`), switch between configurations (`gaudi profile load minimal`), share them across machines.
-- **Search**: `gaudi search docker` finds every docker-related alias, plugin, and completion in one shot. Add `--enable` to activate all matches.
-- **Proven foundation**: built on years of real-world use in [gaudi-bash](https://github.com/g-udi/gaudi-bash) — async theme rendering, priority-sorted loading, diagnostic tooling (`gaudi doctor`).
+- **Profiles**: save your entire setup as a named profile (`gshell profile save work`), switch between configurations (`gshell profile load minimal`), share them across machines.
+- **Search**: `gshell search docker` finds every docker-related alias, plugin, and completion in one shot. Add `--enable` to activate all matches.
+- **Proven foundation**: built on years of real-world use in [gaudi-bash](https://github.com/g-udi/gaudi-bash) — async theme rendering, priority-sorted loading, diagnostic tooling (`gshell doctor`).
 
 If you're someone who uses both bash and zsh and wants **one consistent experience** instead of maintaining two separate shell configurations — that's what this is for.
 
@@ -65,17 +65,17 @@ source "$GAUDI_SHELL/adapters/zsh/init.zsh"
 ## Quick Start
 
 ```bash
-gaudi show                        # see what's currently enabled
-gaudi show plugins                # browse all available plugins
-gaudi enable plugin fzf           # enable a plugin
-gaudi enable alias git            # enable git aliases
-gaudi enable completion docker    # enable docker tab completion
-gaudi disable plugin nvm          # disable a plugin
-gaudi search docker               # find docker-related components
-gaudi reload                      # reload your shell to apply changes
+gshell show                       # see what's currently enabled
+gshell show plugins               # browse all available plugins
+gshell enable plugin fzf          # enable a plugin
+gshell enable alias git           # enable git aliases
+gshell enable completion docker   # enable docker tab completion
+gshell disable plugin nvm         # disable a plugin
+gshell search docker              # find docker-related components
+gshell reload                     # reload your shell to apply changes
 ```
 
-`g` is a shortcut for `gaudi` — use `g show`, `g enable alias git`, etc.
+`g` is a shortcut for `gshell` — use `g show`, `g enable alias git`, etc.
 
 Tab completion works in both bash and zsh for all commands and component names.
 
@@ -85,7 +85,7 @@ Tab completion works in both bash and zsh for all commands and component names.
 gaudi-shell/
   gaudi_shell.sh           # Entry point (sourced by adapters)
   lib/
-    gaudi-shell.bash       # CLI dispatcher (gaudi show, enable, disable, ...)
+    gaudi-shell.bash       # CLI dispatcher (gshell show, enable, disable, ...)
     composure.bash         # Compatibility stubs for ported components
     log.bash               # Logging subsystem (ERROR, WARNING, DEBUG levels)
     colors.bash            # Terminal color definitions
@@ -99,7 +99,7 @@ gaudi-shell/
       core.bash            # Core utilities and describe
       enabler.bash         # Enable components (symlink creation with priority)
       disabler.bash        # Disable components (symlink removal)
-      doctor.bash          # Diagnostics (gaudi doctor)
+      doctor.bash          # Diagnostics (gshell doctor)
       generic.bash         # pathmunge and utility helpers
       help.bash            # Help display for components
       profile.bash         # Profile save/load/list/rm
@@ -120,7 +120,7 @@ gaudi-shell/
   profiles/                # Saved named configurations
 ```
 
-The core engine loads libraries from `lib/`, then the loader walks `components/enabled/` and sources every enabled alias, plugin, and completion. Components are enabled and disabled by creating or removing symlinks in the `enabled/` directory, managed through the `gaudi enable` and `gaudi disable` commands.
+The core engine loads libraries from `lib/`, then the loader walks `components/enabled/` and sources every enabled alias, plugin, and completion. Components are enabled and disabled by creating or removing symlinks in the `enabled/` directory, managed through the `gshell enable` and `gshell disable` commands.
 
 ### Design Principles
 
@@ -161,46 +161,46 @@ Set `GAUDI_SHELL_CUSTOM` or `GAUDI_SHELL_CUSTOM_PATHS` before sourcing the Bash 
 ## Commands
 
 ```bash
-gaudi show                           # list all currently enabled components
-gaudi show aliases                   # list all available aliases (enabled and disabled)
-gaudi show plugins                   # list all available plugins
-gaudi show completions               # list all available completions
-gaudi show aliases enabled           # list only enabled aliases
+gshell show                          # list all currently enabled components
+gshell show aliases                  # list all available aliases (enabled and disabled)
+gshell show plugins                  # list all available plugins
+gshell show completions              # list all available completions
+gshell show aliases enabled          # list only enabled aliases
 
-gaudi enable alias git               # enable the git aliases
-gaudi enable plugin fzf nvm sudo     # enable multiple plugins at once
-gaudi enable completion docker       # enable docker completion
-gaudi enable alias all               # enable all aliases
+gshell enable alias git              # enable the git aliases
+gshell enable plugin fzf nvm sudo    # enable multiple plugins at once
+gshell enable completion docker      # enable docker completion
+gshell enable alias all              # enable all aliases
 
-gaudi disable plugin nvm             # disable the nvm plugin
-gaudi disable alias all              # disable all aliases
+gshell disable plugin nvm            # disable the nvm plugin
+gshell disable alias all             # disable all aliases
 
-gaudi help aliases                   # show help for enabled aliases
-gaudi help plugins                   # show functions defined by enabled plugins
+gshell help aliases                  # show help for enabled aliases
+gshell help plugins                  # show functions defined by enabled plugins
 
-gaudi search ruby                    # find components matching "ruby"
-gaudi search git -chruby             # search for git, exclude chruby
-gaudi search docker --enable         # search and enable all matches
+gshell search ruby                   # find components matching "ruby"
+gshell search git -chruby            # search for git, exclude chruby
+gshell search docker --enable        # search and enable all matches
 
-gaudi profile save work              # save current enabled components as "work" profile
-gaudi profile load minimal           # disable everything, then enable from "minimal" profile
-gaudi profile list                   # list saved profiles
-gaudi profile rm old-setup           # delete a saved profile
+gshell profile save work             # save current enabled components as "work" profile
+gshell profile load minimal          # disable everything, then enable from "minimal" profile
+gshell profile list                  # list saved profiles
+gshell profile rm old-setup          # delete a saved profile
 
-gaudi backup                         # back up enabled components to a file
-gaudi restore                        # re-enable components from backup
+gshell backup                        # back up enabled components to a file
+gshell restore                       # re-enable components from backup
 
-gaudi doctor                         # diagnostic reload with logging (shows all levels)
-gaudi doctor errors                  # show only error-level logs
-gaudi doctor warnings                # show error + warning logs
+gshell doctor                        # diagnostic reload with logging (shows all levels)
+gshell doctor errors                 # show only error-level logs
+gshell doctor warnings               # show error + warning logs
 
-gaudi update                         # update gaudi-shell to latest stable tag
-gaudi update dev                     # update to latest development branch
-gaudi update all                     # update core + sync component submodules
+gshell update                        # update gaudi-shell to latest stable tag
+gshell update dev                    # update to latest development branch
+gshell update all                    # update core + sync component submodules
 
-gaudi version                        # show version, git SHA, and shell type
-gaudi reload                         # re-source your shell profile
-gaudi restart                        # re-exec the shell (stronger than reload)
+gshell version                       # show version, git SHA, and shell type
+gshell reload                        # re-source your shell profile
+gshell restart                       # re-exec the shell (stronger than reload)
 ```
 
 ## Components
@@ -261,17 +261,17 @@ Tab-completion for 62 tools including:
 - **pip** / **conda** -- Python
 - **brew** -- Homebrew
 - **ssh** / **gcloud** / **awscli** -- Cloud and system tools
-- **gaudi-shell** -- completion for the `gaudi` command itself
+- **gaudi-shell** -- completion for the `gshell` command itself
 
 ## Profiles
 
 Profiles let you save, switch between, and share complete component configurations:
 
 ```bash
-gaudi profile save mysetup          # save current enabled components
-gaudi profile load mysetup          # disable all, re-enable from profile
-gaudi profile list                  # list saved profiles with component counts
-gaudi profile rm mysetup            # delete a profile
+gshell profile save mysetup         # save current enabled components
+gshell profile load mysetup         # disable all, re-enable from profile
+gshell profile list                 # list saved profiles with component counts
+gshell profile rm mysetup           # delete a profile
 ```
 
 Profiles are plain text files in `$GAUDI_SHELL/profiles/` with one component per line:
@@ -305,17 +305,17 @@ export GAUDI_SHELL_COMMAND_DURATION=true
 Find components by keyword across all types:
 
 ```bash
-$ gaudi search ruby
+$ gshell search ruby
       aliases:  bundler rails
       plugins:  chruby ruby
   completions:  bundler gem rake
 
-$ gaudi search docker -machine
+$ gshell search docker -machine
       aliases:  docker docker-compose
       plugins:  docker docker-compose
   completions:  docker docker-compose
 
-$ gaudi search git --enable    # search and enable all matches
+$ gshell search git --enable    # search and enable all matches
 ```
 
 Prefix a term with `-` to exclude it. Use `@` for exact match. Add `--enable` or `--disable` to act on results.
@@ -341,8 +341,8 @@ Lower numbers load first. This ensures aliases are available when plugins run, a
 Quick one-off backups:
 
 ```bash
-gaudi backup     # writes to $GAUDI_SHELL/tmp/enabled.gaudi-shell.backup
-gaudi restore    # re-enables from the backup file (validates entries)
+gshell backup    # writes to $GAUDI_SHELL/tmp/enabled.gaudi-shell.backup
+gshell restore   # re-enables from the backup file (validates entries)
 ```
 
 For named, reusable configurations, use profiles instead.
