@@ -1,5 +1,5 @@
 #!/usr/bin/env zsh
-# Zsh-native tab completion for gaudi / g commands
+# Zsh-native tab completion for gshell / g commands
 
 _gaudi-shell-zsh-comp() {
 	emulate -L zsh
@@ -76,5 +76,5 @@ _gaudi-shell-zsh-comp() {
 	esac
 }
 
-compdef _gaudi-shell-zsh-comp gaudi
+compdef _gaudi-shell-zsh-comp gshell
 compdef _gaudi-shell-zsh-comp g

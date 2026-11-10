@@ -100,7 +100,7 @@ _gaudi-shell-profile() {
 	list) _gaudi-shell-profile-list ;;
 	rm) _gaudi-shell-profile-rm "$@" ;;
 	*)
-		printf "%s\n" "Usage: gaudi profile [save|load|list|rm] [name]"
+		printf "%s\n" "Usage: gshell profile [save|load|list|rm] [name]"
 		return 1
 		;;
 	esac

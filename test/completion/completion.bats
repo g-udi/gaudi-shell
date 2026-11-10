@@ -21,7 +21,7 @@ _complete_at() {
 # --- Top-level ---
 
 @test "bash completion: top level lists all commands" {
-	run _complete_at gaudi ""
+	run _complete_at gshell ""
 	assert_success
 	assert_output --partial "show"
 	assert_output --partial "enable"
@@ -31,7 +31,7 @@ _complete_at() {
 }
 
 @test "bash completion: partial match filters results" {
-	run _complete_at gaudi "en"
+	run _complete_at gshell "en"
 	assert_success
 	assert_output --partial "enable"
 	refute_output --partial "disable"
@@ -40,7 +40,7 @@ _complete_at() {
 # --- show ---
 
 @test "bash completion: show lists component types" {
-	run _complete_at gaudi show ""
+	run _complete_at gshell show ""
 	assert_success
 	assert_output --partial "aliases"
 	assert_output --partial "plugins"
@@ -50,7 +50,7 @@ _complete_at() {
 # --- enable ---
 
 @test "bash completion: enable lists component types" {
-	run _complete_at gaudi enable ""
+	run _complete_at gshell enable ""
 	assert_success
 	assert_output --partial "alias"
 	assert_output --partial "plugin"
@@ -58,14 +58,14 @@ _complete_at() {
 }
 
 @test "bash completion: enable alias lists available aliases" {
-	run _complete_at gaudi enable alias ""
+	run _complete_at gshell enable alias ""
 	assert_success
 	assert_output --partial "git"
 	assert_output --partial "all"
 }
 
 @test "bash completion: enable plugin lists available plugins" {
-	run _complete_at gaudi enable plugin ""
+	run _complete_at gshell enable plugin ""
 	assert_success
 	assert_output --partial "sudo"
 	assert_output --partial "extract"
@@ -76,7 +76,7 @@ _complete_at() {
 	ln -s "$GAUDI_SHELL/components/aliases/git.aliases.bash" \
 		"$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
 
-	run _complete_at gaudi enable alias "g"
+	run _complete_at gshell enable alias "g"
 	assert_success
 	# git should not appear, but general, gaudi-shell, gls, gitsvn should
 	refute_output --partial "git "
@@ -88,14 +88,14 @@ _complete_at() {
 	ln -s "$GAUDI_SHELL/components/plugins/base.plugins.bash" \
 		"$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
 
-	run _complete_at gaudi disable plugin ""
+	run _complete_at gshell disable plugin ""
 	assert_success
 	assert_output --partial "base"
 	assert_output --partial "all"
 }
 
 @test "bash completion: disable alias with nothing enabled shows only all" {
-	run _complete_at gaudi disable alias ""
+	run _complete_at gshell disable alias ""
 	assert_success
 	assert_output "all"
 }
@@ -103,7 +103,7 @@ _complete_at() {
 # --- profile ---
 
 @test "bash completion: profile lists subcommands" {
-	run _complete_at gaudi profile ""
+	run _complete_at gshell profile ""
 	assert_success
 	assert_output --partial "save"
 	assert_output --partial "load"
@@ -114,7 +114,7 @@ _complete_at() {
 # --- doctor ---
 
 @test "bash completion: doctor lists log levels" {
-	run _complete_at gaudi doctor ""
+	run _complete_at gshell doctor ""
 	assert_success
 	assert_output --partial "errors"
 	assert_output --partial "warnings"
@@ -124,7 +124,7 @@ _complete_at() {
 # --- update ---
 
 @test "bash completion: update lists modes" {
-	run _complete_at gaudi update ""
+	run _complete_at gshell update ""
 	assert_success
 	assert_output --partial "stable"
 	assert_output --partial "dev"
@@ -134,13 +134,13 @@ _complete_at() {
 # --- no-arg commands ---
 
 @test "bash completion: reload has no further completions" {
-	run _complete_at gaudi reload ""
+	run _complete_at gshell reload ""
 	assert_success
 	assert_output ""
 }
 
 @test "bash completion: version has no further completions" {
-	run _complete_at gaudi version ""
+	run _complete_at gshell version ""
 	assert_success
 	assert_output ""
 }
