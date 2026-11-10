@@ -14,7 +14,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, ubuntu-22.04, macos-14, macos-15]
+        # macos-14 images were retired; a job on that label never gets a runner
+        os: [ubuntu-24.04, ubuntu-22.04, macos-15, macos-26]
 
     runs-on: ${{ matrix.os }}
 
@@ -46,9 +47,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # No submodules here: bin/bats-* are vendored third-party test tools and
+    # must not be linted or formatted as project code.
     - uses: actions/checkout@v4
-      with:
-        submodules: recursive
 
     - name: Install shellcheck
       run: sudo apt-get update && sudo apt-get install -y shellcheck
@@ -63,8 +64,11 @@ jobs:
         find . -name '*.bash' -o -name '*.sh' -o -name '*.bats' | \
           grep -v '/bin/' | xargs shellcheck --shell=bash || true
 
+    # Same scope as the shfmt hook in .pre-commit-config.yaml, which leaves
+    # adapters/zsh/, components/ and template/ unformatted.
     - name: Run shfmt
-      run: shfmt -d .
+      run: |
+        shfmt -f . | grep -vE '^(adapters/zsh/|components/|template/|bin/)' | xargs shfmt -d
 
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
