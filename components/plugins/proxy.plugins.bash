@@ -2,6 +2,17 @@ cite about-plugin
 about-plugin 'Proxy Tools'
 
 PROXY_DIVIDER=$(printf '%.0s-' {1..30}; echo)
+# sed in-place flags: the framework's own, else the legacy bash-it ones, else by OS
+if ((${#GAUDI_SHELL_SED_I_PARAMETERS[@]} > 0)); then
+	_gaudi_proxy_sed_i=("${GAUDI_SHELL_SED_I_PARAMETERS[@]}")
+elif ((${#BASH_IT_SED_I_PARAMETERS[@]} > 0)); then
+	_gaudi_proxy_sed_i=("${BASH_IT_SED_I_PARAMETERS[@]}")
+else
+	case $OSTYPE in
+		darwin*) _gaudi_proxy_sed_i=(-i "") ;;
+		*) _gaudi_proxy_sed_i=(-i) ;;
+	esac
+fi
 
 disable-proxy () {
 	about 'Disables proxy settings for Bash, npm and SSH'
@@ -26,12 +37,12 @@ enable-proxy () {
 	about 'Enables proxy settings for Bash, npm and SSH'
 	group 'Proxy'
 
-	export http_proxy=$BASH_IT_HTTP_PROXY
-	export https_proxy=$BASH_IT_HTTPS_PROXY
+	export http_proxy=${GAUDI_SHELL_HTTP_PROXY:-${BASH_IT_HTTP_PROXY:-}}
+	export https_proxy=${GAUDI_SHELL_HTTPS_PROXY:-${BASH_IT_HTTPS_PROXY:-}}
 	export HTTP_PROXY=$http_proxy
 	export HTTPS_PROXY=$https_proxy
 	export ALL_PROXY=$http_proxy
-	export no_proxy=$BASH_IT_NO_PROXY
+	export no_proxy=${GAUDI_SHELL_NO_PROXY:-${BASH_IT_NO_PROXY:-}}
 	export NO_PROXY=$no_proxy
 
 	echo "Enabled proxy environment variables"
@@ -45,12 +56,12 @@ enable-proxy-alt () {
 	about 'Enables alternate proxy settings for Bash, npm and SSH'
 	group 'Proxy'
 
-	export http_proxy=$BASH_IT_HTTP_PROXY_ALT
-	export https_proxy=$BASH_IT_HTTPS_PROXY_ALT
+	export http_proxy=${GAUDI_SHELL_HTTP_PROXY_ALT:-${BASH_IT_HTTP_PROXY_ALT:-}}
+	export https_proxy=${GAUDI_SHELL_HTTPS_PROXY_ALT:-${BASH_IT_HTTPS_PROXY_ALT:-}}
 	export HTTP_PROXY=$http_proxy
 	export HTTPS_PROXY=$https_proxy
 	export ALL_PROXY=$http_proxy
-	export no_proxy=$BASH_IT_NO_PROXY
+	export no_proxy=${GAUDI_SHELL_NO_PROXY:-${BASH_IT_NO_PROXY:-}}
 	export NO_PROXY=$no_proxy
 	echo "Enabled alternate proxy environment variables"
 
@@ -64,9 +75,9 @@ show-proxy () {
 	group 'Proxy'
 
   printf "\n${GREEN}%s${NC}\n$PROXY_DIVIDER\n" "Environment Variables"
-	env | grep -i "proxy" | grep -v "BASH_IT"
+	env | grep -i "proxy" | grep -Ev "BASH_IT|GAUDI_SHELL"
 
-	show-proxy
+	gaudi-show-proxy
 	npm-show-proxy
 	git-global-show-proxy
 	svn-show-proxy
@@ -83,10 +94,12 @@ gaudi-shell provides support for enabling/disabling proxy settings for various s
 The following backends are currently supported (in addition to the shell's environment variables): Git, SVN, npm, ssh
 
 gaudi-shell uses the following variables to set the shell's proxy settings when you call 'enable-proxy'.
-These variables are best defined in a custom script in gaudi-shell's custom script folder ('$BASH_IT/custom'),
-e.g. '$BASH_IT/custom/proxy.env.bash'
-* BASH_IT_HTTP_PROXY and BASH_IT_HTTPS_PROXY: Define the proxy URL to be used, e.g. 'http://localhost:1234'
-* BASH_IT_NO_PROXY: A comma-separated list of proxy exclusions, e.g. '127.0.0.1,localhost'
+These variables are best defined in a custom script in gaudi-shell's custom script folder ('$GAUDI_SHELL/components/custom'),
+e.g. '$GAUDI_SHELL/components/custom/proxy.env.bash'
+* GAUDI_SHELL_HTTP_PROXY and GAUDI_SHELL_HTTPS_PROXY: Define the proxy URL to be used, e.g. 'http://localhost:1234'
+* GAUDI_SHELL_HTTP_PROXY_ALT and GAUDI_SHELL_HTTPS_PROXY_ALT: The alternate proxy used by 'enable-proxy-alt'
+* GAUDI_SHELL_NO_PROXY: A comma-separated list of proxy exclusions, e.g. '127.0.0.1,localhost'
+The legacy BASH_IT_* names of these variables still work.
 
 Run 'glossary proxy' to show the available proxy functions with a short description.
 EOF
@@ -94,12 +107,12 @@ EOF
 	show-proxy
 }
 
-show-proxy () {
+gaudi-show-proxy () {
 	about 'Shows the gaudi-shell proxy settings'
 	group 'Proxy'
 
   printf "\n${GREEN}%s${NC}\n%s\n$PROXY_DIVIDER\n" "gaudi-shell Environment Variables" "(These variables will be used to set the proxy when you call 'enable-proxy')"
-	env | grep -e "BASH_IT.*PROXY"
+	env | grep -E "(BASH_IT|GAUDI_SHELL).*PROXY"
 }
 
 npm-show-proxy () {
@@ -130,9 +143,9 @@ npm-enable-proxy () {
 	about 'Enables npm proxy settings'
 	group 'Proxy'
 
-	local my_http_proxy=${1:-$BASH_IT_HTTP_PROXY}
-	local my_https_proxy=${2:-$BASH_IT_HTTPS_PROXY}
-	local my_no_proxy=${3:-$BASH_IT_NO_PROXY}
+	local my_http_proxy=${1:-${GAUDI_SHELL_HTTP_PROXY:-${BASH_IT_HTTP_PROXY:-}}}
+	local my_https_proxy=${2:-${GAUDI_SHELL_HTTPS_PROXY:-${BASH_IT_HTTPS_PROXY:-}}}
+	local my_no_proxy=${3:-${GAUDI_SHELL_NO_PROXY:-${BASH_IT_NO_PROXY:-}}}
 
 	if command -v npm &> /dev/null ; then
 		npm config set proxy $my_http_proxy
@@ -171,8 +184,8 @@ git-global-enable-proxy () {
 	if command -v git &> /dev/null ; then
 		git-global-disable-proxy
 
-		git config --global --add http.proxy $BASH_IT_HTTP_PROXY
-		git config --global --add https.proxy $BASH_IT_HTTPS_PROXY
+		git config --global --add http.proxy ${GAUDI_SHELL_HTTP_PROXY:-${BASH_IT_HTTP_PROXY:-}}
+		git config --global --add https.proxy ${GAUDI_SHELL_HTTPS_PROXY:-${BASH_IT_HTTPS_PROXY:-}}
 		echo "Enabled global Git proxy settings"
 	fi
 }
@@ -206,8 +219,8 @@ git-enable-proxy () {
 	if command -v git &> /dev/null ; then
 		git-disable-proxy
 
-		git config --add http.proxy $BASH_IT_HTTP_PROXY
-		git config --add https.proxy $BASH_IT_HTTPS_PROXY
+		git config --add http.proxy ${GAUDI_SHELL_HTTP_PROXY:-${BASH_IT_HTTP_PROXY:-}}
+		git config --add https.proxy ${GAUDI_SHELL_HTTPS_PROXY:-${BASH_IT_HTTPS_PROXY:-}}
 		echo "Enabled Git project proxy settings"
 	fi
 }
@@ -217,11 +230,11 @@ svn-show-proxy () {
 	about 'Shows SVN proxy settings'
 	group 'Proxy'
 
-	if command -v svn &> /dev/null && command -v python2 &> /dev/null ; then
+	if command -v svn &> /dev/null && command -v python3 &> /dev/null ; then
     printf "\n${GREEN}%s${NC}\n$PROXY_DIVIDER\n" "SVN Proxy Settings"
-		python2 - <<END
-import ConfigParser, os
-config = ConfigParser.ConfigParser()
+		python3 - <<END
+import configparser, os
+config = configparser.RawConfigParser()
 config.read(os.path.expanduser('~/.subversion/servers'))
 if (config.has_section('global')):
 	proxy_host = ''
@@ -233,9 +246,9 @@ if (config.has_section('global')):
 		proxy_port = config.get('global', 'http-proxy-port')
 	if (config.has_option('global', 'http-proxy-exceptions')):
 		proxy_exceptions = config.get('global', 'http-proxy-exceptions')
-	print 'http-proxy-host      : ' + proxy_host
-	print 'http-proxy-port      : ' + proxy_port
-	print 'http-proxy-exceptions: ' + proxy_exceptions
+	print('http-proxy-host      : ' + proxy_host)
+	print('http-proxy-port      : ' + proxy_port)
+	print('http-proxy-exceptions: ' + proxy_exceptions)
 END
 	fi
 }
@@ -244,10 +257,10 @@ svn-disable-proxy () {
 	about 'Disables SVN proxy settings'
 	group 'Proxy'
 
-	if command -v svn &> /dev/null && command -v python2 &> /dev/null ; then
-		python2 - <<END
-import ConfigParser, os
-config = ConfigParser.ConfigParser()
+	if command -v svn &> /dev/null && command -v python3 &> /dev/null ; then
+		python3 - <<END
+import configparser, os
+config = configparser.RawConfigParser()
 config.read(os.path.expanduser('~/.subversion/servers'))
 if config.has_section('global'):
 	changed = False
@@ -261,9 +274,9 @@ if config.has_section('global'):
 		config.remove_option('global', 'http-proxy-exceptions')
 		changed = True
 	if changed:
-		with open(os.path.expanduser('~/.subversion/servers'), 'wb') as configfile:
+		with open(os.path.expanduser('~/.subversion/servers'), 'w') as configfile:
 			config.write(configfile)
-	print 'Disabled SVN proxy settings'
+	print('Disabled SVN proxy settings')
 END
 	fi
 }
@@ -272,16 +285,17 @@ svn-enable-proxy () {
 	about 'Enables SVN proxy settings'
 	group 'Proxy'
 
-	if command -v svn &> /dev/null && command -v python2 &> /dev/null ; then
-		local my_http_proxy=${1:-$BASH_IT_HTTP_PROXY}
+	if command -v svn &> /dev/null && command -v python3 &> /dev/null ; then
+		local my_http_proxy=${1:-${GAUDI_SHELL_HTTP_PROXY:-${BASH_IT_HTTP_PROXY:-}}}
 
-		python2 - "$my_http_proxy" "$BASH_IT_NO_PROXY" <<END
-import ConfigParser, os, sys, urlparse
-pieces = urlparse.urlparse(sys.argv[1])
+		python3 - "$my_http_proxy" "${GAUDI_SHELL_NO_PROXY:-${BASH_IT_NO_PROXY:-}}" <<END
+import configparser, os, sys
+from urllib.parse import urlparse
+pieces = urlparse(sys.argv[1])
 host = pieces.hostname
 port = pieces.port
 exceptions = sys.argv[2]
-config = ConfigParser.ConfigParser()
+config = configparser.RawConfigParser()
 config.read(os.path.expanduser('~/.subversion/servers'))
 if not config.has_section('global'):
 	config.add_section('global')
@@ -290,16 +304,16 @@ if host is not None:
 else:
 	config.remove_option('global', 'http-proxy-host')
 if port is not None:
-	config.set('global', 'http-proxy-port', port)
+	config.set('global', 'http-proxy-port', str(port))
 else:
 	config.remove_option('global', 'http-proxy-port')
-if exceptions is not None:
+if exceptions:
 	config.set('global', 'http-proxy-exceptions', exceptions)
 else:
 	config.remove_option('global', 'http-proxy-exceptions')
-with open(os.path.expanduser('~/.subversion/servers'), 'wb') as configfile:
+with open(os.path.expanduser('~/.subversion/servers'), 'w') as configfile:
 	config.write(configfile)
-print 'Enabled SVN proxy settings'
+print('Enabled SVN proxy settings')
 END
 	fi
 }
@@ -341,8 +355,12 @@ ssh-disable-proxy () {
 	group 'Proxy'
 
 	if [[ -f ~/.ssh/config ]] ; then
-		sed -e's/^.*ProxyCommand/#	ProxyCommand/' "${BASH_IT_SED_I_PARAMETERS[@]}"  ~/.ssh/config
-		echo "Disabled SSH config proxy settings"
+		if grep -q '^[^#]*ProxyCommand' ~/.ssh/config; then
+			sed -e's/^[^#]*ProxyCommand/#	ProxyCommand/' "${_gaudi_proxy_sed_i[@]}" ~/.ssh/config
+			echo "Disabled SSH config proxy settings"
+		else
+			echo "No active SSH ProxyCommand to disable"
+		fi
 	fi
 }
 
@@ -352,7 +370,11 @@ ssh-enable-proxy () {
 	group 'Proxy'
 
 	if [[ -f ~/.ssh/config ]] ; then
-		sed -e's/#	ProxyCommand/	ProxyCommand/' "${BASH_IT_SED_I_PARAMETERS[@]}"  ~/.ssh/config
-		echo "Enabled SSH config proxy settings"
+		if grep -q '^#	ProxyCommand' ~/.ssh/config; then
+			sed -e's/#	ProxyCommand/	ProxyCommand/' "${_gaudi_proxy_sed_i[@]}" ~/.ssh/config
+			echo "Enabled SSH config proxy settings"
+		else
+			echo "No disabled SSH ProxyCommand to enable"
+		fi
 	fi
 }

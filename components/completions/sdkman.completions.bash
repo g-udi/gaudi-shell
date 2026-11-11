@@ -3,6 +3,9 @@
 cite about-completion
 about-completion 'Sdkman bash completions'
 
+# sdk is a shell function defined by the sdkman init script
+declare -F sdk > /dev/null || [[ -d "${SDKMAN_DIR:-$HOME/.sdkman}" ]] || return 0
+
 _sdkman_complete () {
   local CANDIDATES
   local CANDIDATE_VERSIONS

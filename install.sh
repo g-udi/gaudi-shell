@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
-# shellcheck disable=SC2120
 
 GAUDI_SHELL="$HOME/.gaudi-shell"
 
@@ -22,19 +21,27 @@ __install() {
 
 if [[ -d "$GAUDI_SHELL" ]]; then
 	echo "You already have gaudi-shell installed.."
-	unset REPLY
-	while ! [[ $REPLY =~ ^[yY]$ ]] && ! [[ $REPLY =~ ^[nN]$ ]]; do
-		printf "Do you want to set up a fresh installation of gaudi-shell? [Yy/nN] "
-		read -r REPLY
-		if [[ $REPLY =~ ^[yY]$ ]]; then
-			rm -rf "$GAUDI_SHELL"
-			__install "$@"
-		else
-			echo ""
-			printf "\n%s\n" "Running a gaudi-shell update to pull latest changes ..."
-			git -C "$GAUDI_SHELL" pull
-		fi
-	done
+	# Asked once. No answer (end of input) or anything other than y or n stops
+	# here without changing the install.
+	printf "Do you want to set up a fresh installation of gaudi-shell? [y/n] "
+	if ! read -r REPLY; then
+		printf "\n%s\n" "No answer: nothing was changed." >&2
+		exit 1
+	fi
+	case "$REPLY" in
+	[yY])
+		rm -rf "$GAUDI_SHELL"
+		__install "$@"
+		;;
+	[nN])
+		printf "\n%s\n" "Running a gaudi-shell update to pull latest changes ..."
+		git -C "$GAUDI_SHELL" pull
+		;;
+	*)
+		printf "%s\n" "Please answer y or n. Nothing was changed." >&2
+		exit 1
+		;;
+	esac
 else
 	__install "$@"
 fi

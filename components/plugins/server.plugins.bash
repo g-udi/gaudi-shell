@@ -3,9 +3,5 @@
 cite about-plugin
 about-plugin 'Create Simple HTTP Server'
 
-if [[ "$(uname)" = "Linux" ]]
-then
-  alias https='python2 -m SimpleHTTPServer'
-else
-  alias https='python -m SimpleHTTPServer'
-fi
+# Serves the current directory on port 8000 (same as shttp from the python plugin)
+alias https='python3 -m http.server'

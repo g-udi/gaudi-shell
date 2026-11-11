@@ -1,26 +1,28 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 
-_help-aliases() {
-	local __file file
-	for __file in "${GAUDI_SHELL}"/components/enabled/*.aliases.bash; do
+# For every enabled component of type $1 (aliases, plugins), print its name and
+# the lines of its file that match the extended regular expression $2.
+_gaudi-shell-help-components() {
+	local type="$1" pattern="$2" __file name width
+	width="${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}"
+	for __file in "${GAUDI_SHELL}"/components/enabled/*."${type}".bash; do
 		[[ -f "$__file" ]] || continue
-		file=$(basename "$__file" | sed -e 's/[0-9]*[___]*\(.*\)\.aliases\.bash/\1/g')
-		printf '\n\n%b\n' "${GREEN}${file}${NC}"
-		printf '%*s\n' "${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}" '' | tr ' ' -
-		grep "^alias " "$__file" 2>/dev/null | sed "s/$//"
+		name="${__file##*/}"
+		name="${name#*"${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}"}"
+		name="${name%."${type}".bash}"
+		printf '\n\n%s\n' "${GREEN}${name}${NC}"
+		printf '%*s\n' "$width" '' | tr ' ' -
+		grep -E "$pattern" "$__file" 2>/dev/null
 	done
 }
 
+_help-aliases() {
+	_gaudi-shell-help-components aliases '^alias '
+}
+
 _help-plugins() {
-	local __file file
-	for __file in "${GAUDI_SHELL}"/components/enabled/*.plugins.bash; do
-		[[ -f "$__file" ]] || continue
-		file=$(basename "$__file" | sed -e 's/[0-9]*[___]*\(.*\)\.plugins\.bash/\1/g')
-		printf '\n\n%b\n' "${GREEN}${file}${NC}"
-		printf '%*s\n' "${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}" '' | tr ' ' -
-		grep -E '^[a-z_-]+\s*\(\)' "$__file" 2>/dev/null
-	done
+	_gaudi-shell-help-components plugins '^[a-z_-]+\s*\(\)'
 }
 
 _help-completions() {

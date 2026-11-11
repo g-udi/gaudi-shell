@@ -255,3 +255,84 @@ GIT
 	assert_line --index 0 "export KEEP_ME=1"
 	assert_line "source \"\$GAUDI_SHELL/adapters/bash/init.bash\""
 }
+
+# --- running the installer again over an existing install ---
+
+# A home directory with an install already in place, and a fake git that only
+# records how it was called.
+_existing_install() {
+	INSTALL_HOME="$BATS_TEST_TMPDIR/install-home"
+	FAKEBIN="$BATS_TEST_TMPDIR/fakebin"
+	GIT_CALLS="$BATS_TEST_TMPDIR/git-calls"
+
+	mkdir -p "$INSTALL_HOME/.gaudi-shell" "$FAKEBIN"
+	echo "existing" >"$INSTALL_HOME/.gaudi-shell/marker"
+	: >"$GIT_CALLS"
+	cat >"$FAKEBIN/git" <<GIT
+#!/usr/bin/env bash
+echo "\$*" >>"$GIT_CALLS"
+if [[ "\$1" == "clone" ]]; then
+	# Stands in for the clone: an install with a setup script that only reports
+	for destination in "\$@"; do :; done
+	mkdir -p "\$destination"
+	printf '%s\n' '#!/usr/bin/env bash' 'echo "fresh setup ran"' >"\$destination/setup.sh"
+	chmod +x "\$destination/setup.sh"
+fi
+exit 0
+GIT
+	chmod +x "$FAKEBIN/git"
+}
+
+_run_installer() {
+	run env PATH="$FAKEBIN:$PATH" HOME="$INSTALL_HOME" "$GAUDI_SHELL_ORIGIN/install.sh" --silent
+}
+
+@test "gaudi-shell install: over an existing install, no answer stops without pulling or deleting" {
+	_existing_install
+
+	_run_installer </dev/null
+	assert_failure
+	assert_output --partial "nothing was changed"
+
+	run cat "$GIT_CALLS"
+	assert_output ""
+	assert_file_exist "$INSTALL_HOME/.gaudi-shell/marker"
+}
+
+@test "gaudi-shell install: over an existing install, an answer other than y or n aborts" {
+	_existing_install
+
+	_run_installer <<<"maybe"
+	assert_failure
+	assert_output --partial "Please answer y or n"
+	# Asked once only
+	assert_equal "$(grep -o "fresh installation" <<<"$output" | wc -l | tr -d ' ')" "1"
+
+	run cat "$GIT_CALLS"
+	assert_output ""
+	assert_file_exist "$INSTALL_HOME/.gaudi-shell/marker"
+}
+
+@test "gaudi-shell install: over an existing install, n pulls exactly once" {
+	_existing_install
+
+	_run_installer <<<"n"
+	assert_success
+
+	run cat "$GIT_CALLS"
+	assert_output "-C $INSTALL_HOME/.gaudi-shell pull"
+	assert_file_exist "$INSTALL_HOME/.gaudi-shell/marker"
+}
+
+@test "gaudi-shell install: over an existing install, y removes it and clones again" {
+	_existing_install
+
+	_run_installer <<<"y"
+	assert_success
+	assert_output --partial "fresh setup ran"
+
+	run cat "$GIT_CALLS"
+	assert_line --partial "clone --depth=1"
+	refute_line --partial "pull"
+	assert_file_not_exist "$INSTALL_HOME/.gaudi-shell/marker"
+}

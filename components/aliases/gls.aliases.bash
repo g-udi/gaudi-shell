@@ -3,8 +3,15 @@
 cite about-alias
 about-alias 'gls enhanced ls (port from Linux using coreutils)'
 
-# gls ships with GNU coreutils; leave ls/ll/la/l alone when it is not installed
-if _binary_exists gls; then
+# The ls family (ls, ll, la, l, l1, lsd) is owned by the "ls" aliases. GNU ls
+# only takes it over when it is the active choice: coreutils is installed and
+# the "ls" aliases are not enabled.
+_gaudi_ls_owner="gls"
+for _gaudi_ls_file in "${GAUDI_SHELL:-}"/components/enabled/*___ls.aliases.bash; do
+  [[ -e "$_gaudi_ls_file" ]] && _gaudi_ls_owner="ls"
+done
+
+if [[ "$_gaudi_ls_owner" == gls ]] && _binary_exists gls; then
   # List all files colorized in long format
   alias ll="gls -lFX --color"
   # List all files colorized in long format, including dot files
@@ -16,3 +23,4 @@ if _binary_exists gls; then
   alias l='gls -aX'
   alias l1='gls -1X'
 fi
+unset _gaudi_ls_owner _gaudi_ls_file

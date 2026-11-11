@@ -4,13 +4,13 @@
 cite about-completion
 about-completion 'Gem bash completions'
 
+_binary_exists gem || return 0
+
+# gem install completes local .gem files only: listing every remote gem meant a
+# full download of the index on the first TAB
 _installcomp () {
-  if [[ -z "$REMOTE_GEMS" ]]
-  then
-    REMOTE_GEMS=( $(gem list --remote --no-versions | tr '\n' ' ') )
-  fi
   local cur=${COMP_WORDS[COMP_CWORD]}
-  COMPREPLY=( $(compgen -W "${REMOTE_GEMS[*]}" -- $cur) )
+  COMPREPLY=( $(compgen -f -X '!*.gem' -- "$cur") )
 }
 
 _uninstallcomp () {

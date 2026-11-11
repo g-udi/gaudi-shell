@@ -7,17 +7,6 @@ local_setup() {
 	load_gaudi_libs log utils
 }
 
-@test "gaudi-shell helpers: utils: _is_function: should succeed for a defined function" {
-	test_function() { echo "test"; }
-	run _is_function test_function
-	assert_success
-}
-
-@test "gaudi-shell helpers: utils: _is_function: should fail for a non-function" {
-	run _is_function "not_a_function"
-	assert_failure
-}
-
 @test "gaudi-shell helpers: utils: _command_exists: should succeed for ls" {
 	run _command_exists ls
 	assert_success

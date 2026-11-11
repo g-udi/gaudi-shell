@@ -28,11 +28,12 @@ gaudi_vagrant () {
   # Show Vagrant status only for Vagrant-specific folders
   [[ -f Vagrantfile || (-n $VAGRANT_VAGRANTFILE && -f ${VAGRANT_VAGRANTFILE}) ]] || return
 
+  local vagrant_status
   if gaudi::exists jq || 0; then
-    local vagrant_status=$(cat "$HOME/.vagrant.d/data/machine-index/index" |
+    vagrant_status=$(cat "$HOME/.vagrant.d/data/machine-index/index" |
         jq -r --arg dir "$PWD" '.machines[] | select(.vagrantfile_path == $dir).state')
   else
-    local vagrant_status=$(cat ${HOME}/.vagrant.d/data/machine-index/index | python -c 'import sys, os, json;
+    vagrant_status=$(cat "${HOME}/.vagrant.d/data/machine-index/index" | python -c 'import sys, os, json;
         json_file = json.load(sys.stdin)["machines"]
         for box in json_file:
         if (json_file[box]["vagrantfile_path"] == os.getcwd()):

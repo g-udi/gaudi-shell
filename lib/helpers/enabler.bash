@@ -19,29 +19,22 @@ _gaudi-shell-enable() {
 	component="$2"
 	eval "load_priority=\${${_load_priority}}"
 
-	# Enable all
-	if [[ "$type" = "alls" ]] && [[ -z "$component" ]]; then
-		_read_input "This will enable all components. Are you sure? [yY/nN]"
-		if [[ $REPLY =~ ^[yY]$ ]]; then
-			for file_type in "aliases" "plugins" "completions"; do
-				_gaudi-shell-enable "$file_type" "all"
-			done
-		fi
-		return 0
-	fi
-
 	[[ -z "$component" ]] && printf "${RED}%s${NC}\n" "Please enter a valid $type_singular(s) to enable" && return 1
 
 	if [[ "$component" = "all" ]]; then
-		for _component in "${GAUDI_SHELL}/components/$type/"*.bash; do
-			_gaudi-shell-enable "$type" "$(basename "$_component" ."$type".bash)"
+		local _file
+		for _file in "${GAUDI_SHELL}/components/$type/"*."$type".bash; do
+			[[ -e "$_file" ]] || continue
+			_file="${_file##*/}"
+			_gaudi-shell-enable "$type" "${_file%."$type".bash}"
 		done
 	else
-		local _component
-		_component=$(command ls "${GAUDI_SHELL}/components/$type/$component".*bash 2>/dev/null | head -1)
+		local _component="${component}.${type}.bash"
 
-		[[ -z "$_component" ]] && printf "${CYAN}$component ${RED}%s ${GREEN}$type_singular${NC}\n" "does not appear to be an available" && return 1
-		_component=$(basename "$_component")
+		if [[ ! -e "${GAUDI_SHELL}/components/$type/$_component" ]]; then
+			printf "${CYAN}$component ${RED}%s ${GREEN}$type_singular${NC}\n" "does not appear to be an available"
+			return 1
+		fi
 
 		# A link whose target is gone (for example after the install directory
 		# moved) is not "enabled": drop it so the component can be linked again.

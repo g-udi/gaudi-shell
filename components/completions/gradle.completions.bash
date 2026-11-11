@@ -3,10 +3,6 @@
 cite about-completion
 about-completion 'Gradle bash completions'
 
-# Bash breaks words on : by default. Subproject tasks have ':'
-# Avoid inaccurate completions for subproject tasks
-COMP_WORDBREAKS=$(echo "$COMP_WORDBREAKS" | sed -e 's/://g')
-
 __gradle-set-project-root-dir () {
     local dir=`pwd`
     project_root_dir=`pwd`
@@ -231,7 +227,14 @@ __gradle-completion-init () {
 
 _gradle () {
     local cache_dir cache_name gradle_build_file gradle_files_checksum project_root_dir
-    local cur=${COMP_WORDS[COMP_CWORD]}
+    # Bash breaks words on : by default and subproject tasks have ':'. Take the
+    # current word with ":" kept, instead of removing ":" from the global COMP_WORDBREAKS
+    local cur
+    if declare -F _get_comp_words_by_ref > /dev/null; then
+        _get_comp_words_by_ref -n : cur
+    else
+        cur=${COMP_WORDS[COMP_CWORD]}
+    fi
     # Set bash internal field separator to '\n'
     # This allows us to provide descriptions for options and tasks
     local OLDIFS="$IFS"
@@ -295,6 +298,7 @@ wrapper              - Generates Gradle wrapper files."
         COMPREPLY=( ${COMPREPLY[0]%%  *} )
     fi
 
+    declare -F __ltrim_colon_completions > /dev/null && __ltrim_colon_completions "$cur"
     return 0
 }
 complete -F _gradle gradle

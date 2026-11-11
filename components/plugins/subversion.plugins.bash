@@ -5,7 +5,7 @@ about-plugin 'SVN helper functions'
 
 rm_svn () {
   about 'Remove ".svn" files from directory'
-  group 'SVN'
+  group 'subversion'
 
   if [[ -z "$1" ]]; then
       reference rm_svn
@@ -16,7 +16,7 @@ rm_svn () {
 
 svn_add () {
     about 'Add to svn repo'
-    group 'SVN'
+    group 'subversion'
 
     svn status | grep '^\?' | sed -e 's/? *//' | sed -e 's/ /\ /g' | xargs svn add
 }

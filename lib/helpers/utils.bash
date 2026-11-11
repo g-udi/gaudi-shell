@@ -1,10 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 
-_is_function() {
-	declare -F "$1" &>/dev/null
-}
-
 _command_exists() {
 	local msg="${2:-"command $1 does not exist!"}"
 	type "$1" &>/dev/null || {
@@ -19,16 +15,6 @@ _binary_exists() {
 		return 0
 	else
 		_log_debug "$msg"
-		return 1
-	fi
-}
-
-_completion_exists() {
-	local msg="${2:-Completion for $1 already exists}"
-	if complete -p "$1" &>/dev/null; then
-		_log_debug "$msg"
-		return 0
-	else
 		return 1
 	fi
 }

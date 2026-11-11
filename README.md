@@ -20,7 +20,7 @@ gaudi-shell closes that gap. **One framework, one CLI, one set of components —
 
 What makes it different:
 
-- **Cross-shell by design**: aliases and plugins are plain bash scripts that work in both shells. Only completions and themes need shell-specific versions. No duplication, no maintaining parallel configs.
+- **Cross-shell by design**: aliases and plugins are plain bash scripts, and the zsh adapter supplies what they need to load in zsh too. The aliases and most plugins work in both shells; a plugin that depends on a bash-only feature (`PROMPT_COMMAND`, readline bindings, bash completion) works in bash only. Only completions and themes need shell-specific versions.
 - **Intuitive component management**: `gshell enable plugin fzf` works the same in bash and zsh. No editing config files, no sourcing order puzzles, no plugin spec syntax to learn.
 - **Batteries included**: ships with 71 plugins, 39 alias sets, and 62 completions — curated and ready to use. No need to find and wire up third-party repositories.
 - **Profiles**: save your entire setup as a named profile (`gshell profile save work`), switch between configurations (`gshell profile load minimal`), share them across machines.
@@ -63,6 +63,14 @@ export GAUDI_SHELL="$HOME/.gaudi-shell"
 source "$GAUDI_SHELL/adapters/zsh/init.zsh"
 ```
 
+### Uninstalling
+
+```bash
+~/.gaudi-shell/uninstall.sh
+```
+
+The uninstall script takes the gaudi-shell lines (the `# gaudi-shell` marker, the `export GAUDI_SHELL=...` line and the line that sources the adapter) out of your shell config and deletes the install directory. The rest of the config file is kept as it is, including everything you changed since installing; a copy of the file as it was is left next to it (`.before-gaudi-uninstall`). It looks at the file named by `GAUDI_SHELL_PROFILE` (set in a running gaudi-shell session), otherwise at `~/.zshrc`, `~/.bash_profile` and `~/.bashrc`. If none of them loads gaudi-shell it stops without changing anything.
+
 ## Quick Start
 
 ```bash
@@ -78,7 +86,7 @@ gshell reload                     # reload your shell to apply changes
 
 `g` is a shortcut for `gshell` — use `g show`, `g enable alias git`, etc.
 
-Tab completion for `gshell` (and `g`) works in both bash and zsh for all commands and component names.
+Tab completion for `gshell` (and `g`) works in both bash and zsh for all commands, their arguments (`gshell show aliases enabled`), component and profile names, and the `gshell search` flags. Every command returns a non-zero status when it fails, an unknown command included.
 
 ## Architecture
 
@@ -105,13 +113,13 @@ gaudi-shell/
       help.bash            # Help display for components
       profile.bash         # Profile save/load/list/rm
       updater.bash         # Git-based update (stable/dev modes)
-      utils.bash           # General utilities (_command_exists, _is_function, etc.)
+      utils.bash           # General utilities (_command_exists, _read_input, etc.)
   adapters/
     bash/init.bash         # Bash adapter — sources gaudi_shell.sh directly
     zsh/init.zsh           # Zsh adapter — sets up compatibility, then sources gaudi_shell.sh
   components/
-    aliases/               # Alias definitions (work in both bash and zsh)
-    plugins/               # Plugin definitions (work in both bash and zsh)
+    aliases/               # Alias definitions (bash scripts, also loaded by zsh)
+    plugins/               # Plugin definitions (bash scripts; most also work in zsh)
     completions/           # Bash completions (.completions.bash) + zsh completion for gshell (.zsh)
     themes/                # Prompt themes, per shell (ships bash/gaudi, which also runs in zsh)
     enabled/               # Symlinks to enabled components (runtime state)
@@ -125,7 +133,7 @@ The core engine loads libraries from `lib/`, then the loader walks `components/e
 
 ### Design Principles
 
-- **Cross-shell**: aliases and plugins are bash scripts that work in both bash and zsh. Only completions and themes need shell-specific implementations.
+- **Cross-shell**: aliases and plugins are bash scripts that zsh loads through the adapter; plugins built on bash-only features stay bash-only. Only completions and themes need shell-specific implementations.
 - **Symlink-based**: enabling a component creates a symlink; disabling removes it. No config files to edit.
 - **Priority-sorted**: components load in numeric order (aliases at 150, plugins at 250, completions at 350) so aliases are available when plugins run.
 - **Zero dependencies**: pure bash/zsh — nothing to install beyond git and the standard Unix tools.
@@ -189,8 +197,8 @@ gshell profile load minimal          # disable everything, then enable from "min
 gshell profile list                  # list saved profiles
 gshell profile rm old-setup          # delete a saved profile
 
-gshell backup                        # back up enabled components to a file
-gshell restore                       # re-enable components from backup (also reads older `gaudi enable ...` backups)
+gshell backup                        # record the enabled components (as the profile "backup")
+gshell restore                       # re-enable the components of the backup, without disabling anything
 
 gshell doctor                        # diagnostic reload with logging (shows all levels)
 gshell doctor errors                 # show only error-level logs
@@ -253,10 +261,10 @@ Shortcut aliases for frequently used commands:
 
 ### Completions
 
-Tab-completion for 62 tools including:
+Tab-completion for 61 tools including:
 
-- **git** / **git_flow** / **github-cli** / **hub** -- Git ecosystem
-- **docker** / **docker-compose** / **docker-machine** -- Docker
+- **git** / **git_flow** / **github-cli** -- Git ecosystem
+- **docker** / **docker-compose** -- Docker
 - **kubectl** / **helm** / **kind** / **minikube** -- Kubernetes
 - **terraform** / **vault** / **consul** -- HashiCorp tools
 - **cargo** / **rustup** -- Rust toolchain
@@ -290,7 +298,7 @@ completion git
 completion docker
 ```
 
-The `load` command validates the profile before applying changes.
+The `load` command checks the profile before it changes anything: every line must be well formed and name a component that exists. If not, it says what is wrong and nothing is disabled or enabled.
 
 ## Command Duration
 
@@ -300,12 +308,22 @@ The `duration` segment of the gaudi theme displays how long the last command too
 export GAUDI_SHELL_COMMAND_DURATION=true
 ```
 
-Set it before the line that sources the gaudi-shell adapter. The timer starts when a command is run and is reset once the prompt has been drawn: zsh uses its own `preexec`/`precmd` hooks, bash uses [bash-preexec](https://github.com/rcaloras/bash-preexec) when it is loaded and a `DEBUG` trap plus `PROMPT_COMMAND` otherwise. In bash, a `DEBUG` trap that is already set is left alone, and one set later (by a plugin such as `cmd-returned-notify`, for example) replaces the timer's.
+Set it before the line that sources the gaudi-shell adapter. The timer starts when a command is run and is reset once the prompt has been drawn: zsh uses its own `preexec`/`precmd` hooks, bash uses [bash-preexec](https://github.com/rcaloras/bash-preexec) when it is loaded and a `DEBUG` trap plus `PROMPT_COMMAND` otherwise. In plain bash the `DEBUG` trap is installed when gaudi-shell is sourced, so the variable has to be set by then; it replaces a `DEBUG` trap set earlier, and one set later (by a plugin such as `cmd-returned-notify`, for example) replaces the timer's. `gshell doctor` logs whether commands are being timed. The first prompt of a new shell shows no duration.
 
 | Variable | Default | Description |
 |---|---|---|
 | `COMMAND_DURATION_MIN_SECONDS` | `1` | Minimum seconds before elapsed time is shown |
 | `COMMAND_DURATION_PRECISION` | `1` | Decimal digits for sub-second display |
+
+## History
+
+`lib/history.bash` turns on appending to the history file and sets defaults without overriding yours:
+
+- `HISTCONTROL` is set to `ignoredups:ignorespace` only when it is not set already.
+- `HISTSIZE` is raised to 10000, and `HISTFILESIZE` (bash) or `SAVEHIST` (zsh) to 20000, when they are lower. Larger values, and unlimited history in bash (a negative value), are kept.
+- In zsh, `HISTFILE` is set to `~/.zsh_history` when it is not set, since zsh saves no history without it.
+
+Set your own values before the line that sources the gaudi-shell adapter, or after it.
 
 ## Search
 
@@ -346,11 +364,13 @@ Lower numbers load first. This ensures aliases are available when plugins run, a
 Quick one-off backups:
 
 ```bash
-gshell backup    # writes to $GAUDI_SHELL/tmp/enabled.gaudi-shell.backup
-gshell restore   # re-enables from the backup file (validates entries)
+gshell backup    # writes the profile "backup": $GAUDI_SHELL/profiles/backup.gaudi-shell
+gshell restore   # enables every component listed in it (invalid lines are skipped)
 ```
 
-The backup is a list of `gshell enable <type> <name>` lines. `gshell restore` also accepts backups written before the command was renamed, which used `gaudi enable ...` lines.
+The backup is a profile under a reserved name, in the profile format (one `<type> <name>` per line), so `gshell profile list` shows it and `gshell profile save backup` is refused. The difference with a profile is in how it is applied: `gshell restore` only enables what the backup lists, while `gshell profile load backup` first disables everything else.
+
+`gshell restore` still reads a backup written by an older version (`$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup`, with `gshell enable <type> <name>` or `gaudi enable ...` lines) when there is no backup profile yet. It fails when there is no backup at all.
 
 For named, reusable configurations, use profiles instead.
 

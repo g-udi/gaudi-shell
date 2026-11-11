@@ -4,6 +4,9 @@ cite about-plugin
 about-plugin 'Add a gw command to use gradle wrapper if present, else use system gradle'
 
 gw () {
+  about 'Runs the gradle wrapper found in this or a parent directory, else the system gradle'
+  group 'gradle'
+
   local file="gradlew"
   local curr_path="${PWD}"
   local result="gradle"

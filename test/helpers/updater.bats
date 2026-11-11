@@ -154,6 +154,8 @@ _directory_stack_depth() {
 		git init -q .
 		git add -A
 		_commit_dated 2020-01-01 -m "one"
+		git clone -q --bare . "$BATS_TEST_TMPDIR/remote.git"
+		git remote add origin "$BATS_TEST_TMPDIR/remote.git"
 	) >/dev/null 2>&1
 	cd "$ELSEWHERE"
 
@@ -162,6 +164,23 @@ _directory_stack_depth() {
 
 	run cat "$BATS_TEST_TMPDIR/out"
 	assert_output --partial "Can not find tags"
+	assert_equal "$status_code" "1"
+	assert_equal "$PWD" "$ELSEWHERE"
+	assert_equal "$(_directory_stack_depth)" "1"
+}
+
+@test "gaudi-shell helpers: update: a failed fetch fails and pops the directory" {
+	_make_install_a_checkout
+	# The remote is gone: nothing can be fetched
+	git -C "$GAUDI_SHELL" remote set-url origin "$BATS_TEST_TMPDIR/no-such-remote.git"
+	cd "$ELSEWHERE"
+
+	local status_code=0
+	_gaudi-shell-update --silent >"$BATS_TEST_TMPDIR/out" 2>&1 </dev/null || status_code=$?
+
+	run cat "$BATS_TEST_TMPDIR/out"
+	assert_output --partial "Could not fetch from 'origin'"
+	refute_output --partial "RESTART"
 	assert_equal "$status_code" "1"
 	assert_equal "$PWD" "$ELSEWHERE"
 	assert_equal "$(_directory_stack_depth)" "1"

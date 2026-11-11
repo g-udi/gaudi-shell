@@ -4,7 +4,7 @@
 load "$GAUDI_TEST_DIRECTORY"/helper.bash
 
 local_setup() {
-	load_gaudi_libs gaudi-shell help
+	load_gaudi_libs composure gaudi-shell help search
 }
 
 @test "gaudi-shell-helpers: help: should show usage when no valid argument passed" {
@@ -24,14 +24,32 @@ local_setup() {
 	refute_output --partial "Run 'gshell help'"
 }
 
-@test "gaudi-shell-helpers: help: usage lists every command the dispatcher accepts" {
+@test "gaudi-shell-helpers: help: usage, dispatcher and handlers all come from the one command table" {
 	local verbs verb
-	verbs="$(sed -n '/^gshell() {/,/^}/p' "$GAUDI_SHELL/lib/gaudi-shell.bash" | sed -n 's/^	\([a-z]*\)).*/\1/p')"
+	verbs="$(_gaudi-shell-verb-names)"
 	[[ -n "$verbs" ]]
 	run _gaudi-shell-usage
 	for verb in $verbs; do
-		assert_line --regexp "^  ${verb} "
+		# Listed in the usage text
+		assert_line --regexp "^  ${verb}( |$)"
+		# Has a handler the dispatcher can call
+		declare -F "_gaudi-shell-${verb}" >/dev/null
 	done
+	# 13 commands, and nothing else is dispatched
+	assert_equal "$(wc -w <<<"$verbs" | tr -d ' ')" "13"
+}
+
+@test "gaudi-shell-helpers: help: the command table gives the words each command completes" {
+	run _gaudi-shell-verb-field show 4
+	assert_output "aliases plugins completions"
+	run _gaudi-shell-verb-field show 5
+	assert_output "enabled"
+	run _gaudi-shell-verb-field doctor 4
+	assert_output "errors warnings all"
+	run _gaudi-shell-verb-field reload 4
+	assert_output ""
+	run _gaudi-shell-verb-field nonsense 1
+	assert_failure
 }
 
 @test "gaudi-shell-helpers: help: _gaudi-shell-help aliases without any enabled" {

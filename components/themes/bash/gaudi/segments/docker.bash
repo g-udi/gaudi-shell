@@ -32,10 +32,17 @@ gaudi_docker () {
     # Use COMPOSE_PATH_SEPARATOR or colon as default
     local separator=${COMPOSE_PATH_SEPARATOR:-":"}
 
-    # COMPOSE_FILE may have several filenames separated by colon, test all of them
-    local filenames=("${@ps/$separator/COMPOSE_FILE}")
-
-    for filename in "${filenames[@]}"; do
+    # COMPOSE_FILE may have several filenames separated by colon, test all of them.
+    # Split with parameter expansion only, so it is the same in bash and zsh.
+    local filename rest="$COMPOSE_FILE"
+    while [[ -n "$rest" ]]; do
+      filename="${rest%%"$separator"*}"
+      if [[ "$rest" == *"$separator"* ]]; then
+        rest="${rest#*"$separator"}"
+      else
+        rest=""
+      fi
+      [[ -n "$filename" ]] || continue
       if [[ ! -f $filename ]]; then
         compose_exists=false
         break
@@ -48,9 +55,8 @@ gaudi_docker () {
   fi
 
   # Show Docker status only for Docker-specific folders
-  [[ "$compose_exists" == true || -f Dockerfile || -f docker-compose.yml || -f /.dockerenv ||
-    -n $(find . -not -path '*/\.*' -maxdepth 1 -name "*.Dockerfile")
-  ]] || return
+  [[ "$compose_exists" == true || -f Dockerfile || -f docker-compose.yml || -f /.dockerenv ]] ||
+    gaudi::has_files Dockerfile || return
 
   # if docker daemon isn't running you'll get an error saying it can't connect
   docker_version=$(docker version -f "{{.Server.Version}}" 2>/dev/null | cut -f1 -d"-")

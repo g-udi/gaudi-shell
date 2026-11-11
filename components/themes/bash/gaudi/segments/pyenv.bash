@@ -24,7 +24,7 @@ gaudi_pyenv () {
   [[ $GAUDI_PYENV_SHOW == false ]] && return
 
   # Show pyenv python version only for Python-specific folders
-  [[ -f requirements.txt ]] || [[ -f Pipfile ]] || [[ -f pyproject.toml ]] || [[ -n $(find . -not -path '*/\.*' -maxdepth 1 -name "*.py") ]] || return
+  [[ -f requirements.txt ]] || [[ -f Pipfile ]] || [[ -f pyproject.toml ]] || gaudi::has_files py || return
 
   local 'pyenv_version'
 

@@ -14,7 +14,9 @@ _command_duration_current_time() {
 	echo "$current_time"
 }
 
-: "${COMMAND_DURATION_START_SECONDS:=$(_command_duration_current_time)}"
+# Empty until a command is started from the prompt, so the first prompt of a
+# shell shows nothing (it used to show how long the shell took to start).
+COMMAND_DURATION_START_SECONDS=""
 : "${COMMAND_DURATION_MIN_SECONDS:=1}"
 : "${COMMAND_DURATION_PRECISION:=1}"
 
@@ -31,12 +33,38 @@ _command_duration_pre_cmd() {
 	_COMMAND_DURATION_AT_PROMPT=1
 }
 
+# True when "$1" is, as a whole, one of the commands in PROMPT_COMMAND (which
+# may be an array, and whose entries may hold several commands separated by
+# ";" or newlines). Whole commands are compared: a substring test would also
+# hide short commands such as ":" or "history" typed at the prompt.
+_command_duration_is_prompt_command() {
+	local _entry _rest _command
+	[[ -n "$1" ]] || return 1
+	for _entry in "${PROMPT_COMMAND[@]:-}"; do
+		_rest="${_entry//$'\n'/;}"
+		while [[ -n "$_rest" ]]; do
+			_command="${_rest%%;*}"
+			if [[ "$_rest" == *";"* ]]; then
+				_rest="${_rest#*;}"
+			else
+				_rest=""
+			fi
+			# Trim the blanks around the command
+			_command="${_command#"${_command%%[![:space:]]*}"}"
+			_command="${_command%"${_command##*[![:space:]]}"}"
+			[[ "$_command" == "$1" ]] && return 0
+		done
+	done
+	return 1
+}
+
 # bash DEBUG trap, used when bash-preexec is not loaded. It fires before every
 # top-level command; only the first one after a prompt starts the timer, and
 # commands that belong to PROMPT_COMMAND are ignored. "$1" is the previous
 # "$_", passed through so the trap leaves it unchanged.
 _command_duration_debug_trap() {
-	if [[ -n "${_COMMAND_DURATION_AT_PROMPT:-}" && -z "${COMP_LINE:-}" && "${PROMPT_COMMAND[*]:-}" != *"${BASH_COMMAND:-}"* ]]; then
+	if [[ -n "${_COMMAND_DURATION_AT_PROMPT:-}" && -z "${COMP_LINE:-}" ]] &&
+		! _command_duration_is_prompt_command "${BASH_COMMAND:-}"; then
 		_COMMAND_DURATION_AT_PROMPT=""
 		_command_duration_pre_exec
 	fi
@@ -74,14 +102,22 @@ _command_duration_register_hooks() {
 GAUDI_SHELL_FINALIZE_HOOKS+=(_command_duration_register_hooks)
 
 # Plain bash (no bash-preexec) has no preexec hook, so use a DEBUG trap. It is
-# set here, outside any function, and only when duration tracking is enabled:
-# a DEBUG trap that is already set is left alone, and one set later (a plugin,
-# bash-preexec) simply replaces it.
-if [[ -n "${BASH_VERSION:-}" && -n "${GAUDI_SHELL_COMMAND_DURATION:-}" && $- == *i* ]] &&
-	! type -t __bp_precmd_invoke_cmd &>/dev/null; then
-	case "$(trap -p DEBUG)" in
-	"" | *_command_duration_debug_trap*) trap '_command_duration_debug_trap "$_"' DEBUG ;;
-	esac
+# set here, outside any function, and only when duration tracking is enabled.
+#
+# bash hides the DEBUG trap from sourced files (unless functrace is on), so a
+# DEBUG trap set before this file is sourced cannot be seen from here: it is
+# replaced, and one set later (a plugin, bash-preexec) replaces this one. What
+# was decided is logged, so "gshell doctor" shows why commands are not timed.
+if [[ -n "${BASH_VERSION:-}" && $- == *i* ]] && ! type -t __bp_precmd_invoke_cmd &>/dev/null; then
+	if [[ -n "${GAUDI_SHELL_COMMAND_DURATION:-}" ]]; then
+		trap '_command_duration_debug_trap "$_"' DEBUG
+		type _log_debug &>/dev/null &&
+			_log_debug "command duration: commands are timed with a DEBUG trap (it replaces one set earlier, and one set later replaces it)"
+	else
+		# Setting the variable later in the session has no effect in plain bash.
+		type _log_debug &>/dev/null &&
+			_log_debug "command duration is off: set GAUDI_SHELL_COMMAND_DURATION=true before gaudi-shell is sourced to time commands"
+	fi
 fi
 
 _command_duration() {

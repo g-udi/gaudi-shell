@@ -41,30 +41,69 @@ _gaudi-shell-restart() {
 	exec "${GAUDI_SHELL_CURRENT}" --login
 }
 
-_gaudi-shell-usage() {
-	cat <<'EOF'
-Usage: gshell <command> [args]  (short alias: g)
+# The one table of gshell commands. Usage, the dispatcher and both shell
+# completions read it, so a command is added or renamed here only.
+# One line per command, fields separated by ";":
+#   name ; arguments (for usage) ; description ; words completed as first argument ; words completed as second argument
+# The handler of a command is the function _gaudi-shell-<name>.
+_gaudi-shell-verbs() {
+	printf '%s\n' \
+		"show;[aliases|plugins|completions] [enabled];list components (no type: everything enabled);aliases plugins completions;enabled" \
+		"enable;<alias|plugin|completion> <name>...|all;enable components;alias plugin completion;" \
+		"disable;<alias|plugin|completion> <name>...|all;disable components;alias plugin completion;" \
+		"search;<term>... [--enable|--disable];find components ('gshell search --help' for details);--enable --disable --plugin --alias --completion --no-color --refresh --help;--enable --disable --plugin --alias --completion --no-color --refresh --help" \
+		"help;[aliases|plugins|completions];this usage, or what the enabled components of a type provide;aliases plugins completions;" \
+		"profile;<save|load|list|rm> [name];save and switch sets of enabled components;save load list rm;" \
+		"backup;;record the enabled components;;" \
+		"restore;;re-enable the components recorded by 'backup';;" \
+		"update;[stable|dev];update to the latest tag (stable, default) or the development branch;stable dev;" \
+		"doctor;[errors|warnings|all];reload with logging at the given level;errors warnings all;" \
+		"reload;;re-source your shell profile;;" \
+		"restart;;re-exec the shell;;" \
+		"version;;show version, git SHA and shell;;"
+}
 
-Commands:
-  show [aliases|plugins|completions] [enabled]       list components (no type: everything enabled)
-  enable <alias|plugin|completion> <name>...|all     enable components
-  disable <alias|plugin|completion> <name>...|all    disable components
-  search <term>... [--enable|--disable]              find components ('gshell search --help' for details)
-  help [aliases|plugins|completions]                 this usage, or what the enabled components of a type provide
-  profile <save|load|list|rm> [name]                 save and switch sets of enabled components
-  backup                                             record the enabled components
-  restore                                            re-enable the components recorded by 'backup'
-  update [stable|dev]                                update to the latest tag (stable, default) or the development branch
-  doctor [errors|warnings|all]                       reload with logging at the given level
-  reload                                             re-source your shell profile
-  restart                                            re-exec the shell
-  version                                            show version, git SHA and shell
-EOF
+# Print field number $2 (1 to 5, see _gaudi-shell-verbs) of the command $1.
+# Returns non-zero when there is no such command.
+_gaudi-shell-verb-field() {
+	local _entry _field _n
+	while IFS= read -r _entry; do
+		[[ "${_entry%%;*}" == "$1" ]] || continue
+		_n=1
+		while [[ $_n -lt $2 ]]; do
+			_entry="${_entry#*;}"
+			_n=$((_n + 1))
+		done
+		printf '%s\n' "${_entry%%;*}"
+		return 0
+	done < <(_gaudi-shell-verbs)
+	return 1
+}
+
+# Print the command names, separated by spaces.
+_gaudi-shell-verb-names() {
+	local _entry _names=""
+	while IFS= read -r _entry; do
+		_names="${_names:+$_names }${_entry%%;*}"
+	done < <(_gaudi-shell-verbs)
+	printf '%s\n' "$_names"
+}
+
+_gaudi-shell-usage() {
+	local _entry _name _arguments
+	printf '%s\n\n%s\n' "Usage: gshell <command> [args]  (short alias: g)" "Commands:"
+	while IFS= read -r _entry; do
+		_name="${_entry%%;*}"
+		_entry="${_entry#*;}"
+		_arguments="${_entry%%;*}"
+		_entry="${_entry#*;}"
+		printf '  %-51s%s\n' "${_name}${_arguments:+ $_arguments}" "${_entry%%;*}"
+	done < <(_gaudi-shell-verbs)
 }
 
 _gaudi-shell-help() {
 	! __check-function-parameters "$1" && _gaudi-shell-usage && return 0
-	local type component
+	local type
 	type="$(_gaudi-shell-pluralize-component "$1")"
 	_command_exists _help-"${type}" && _help-"${type}" "$2"
 }
@@ -75,6 +114,7 @@ _gaudi-shell-show() {
 		_gaudi-shell-show-usage "$1"
 		return 0
 	else
+		local file_type
 		for file_type in "aliases" "plugins" "completions"; do
 			_gaudi-shell-describe "$file_type" "enabled" || return $?
 		done
@@ -95,82 +135,63 @@ _gaudi-shell-show-usage() {
 	printf "gshell disable %s%s%s <%s name> [%s name]... -or- \$ gshell disable %s%s%s all\n" "$_green" "$type" "$_nc" "$type" "$type" "$_green" "$type_plural" "$_nc"
 }
 
+# backup and restore are a profile under a reserved name (see
+# lib/helpers/profile.bash): "backup" saves it, "restore" enables what it
+# lists without disabling anything else.
 _gaudi-shell-backup() {
-	mkdir -p "${GAUDI_SHELL}/tmp"
-	echo -n "" >"${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
-	# Declared once, outside the loop: zsh prints "name=value" when an already
-	# set variable is re-declared with a bare `local`.
-	local _file _component _type
-	for _file in "${GAUDI_SHELL}"/components/enabled/*.bash; do
-		[[ ! -e "$_file" ]] && continue
-		_component="${_file##*"$GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR"}"
-		_component="${_component%.bash}"
-		_type=$(_gaudi-shell-singularize-component "${_component##*.}")
-		_component=${_component%%.*}
-		echo "Backing up $_type: ${_component}"
-		printf "%s\n" "gshell enable ${_type} ${_component}" >>"${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
-	done
+	local _backup _line
+	_backup="$(_gaudi-shell-profile-file "$GAUDI_SHELL_BACKUP_PROFILE")"
+	mkdir -p "${_backup%/*}" || return 1
+	_gaudi-shell-enabled-entries >"$_backup" || return 1
+
+	while IFS= read -r _line; do
+		echo "Backing up ${_line%% *}: ${_line#* }"
+	done <"$_backup"
+
+	# The backup written before backups became a profile is now out of date.
+	rm -f "${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
 }
 
 _gaudi-shell-restore() {
-	! [[ -f "${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup" ]] && echo -e "${RED}No valid backup file found :(${NC}" && return
-	while IFS= read -r line; do
-		# Backups written before the command was renamed use the "gaudi" prefix; accept both.
-		if [[ "$line" =~ ^(gshell|gaudi)\ enable\ (alias|plugin|completion)\ [a-zA-Z0-9_-]+$ ]]; then
-			# shellcheck disable=SC2086
-			gshell ${line#* }
-		else
-			_log_warning "Skipping invalid backup entry: $line"
-		fi
-	done <"${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
+	local _backup
+	_backup="$(_gaudi-shell-profile-file "$GAUDI_SHELL_BACKUP_PROFILE")"
+	# Older versions kept the backup here, as "gshell enable <type> <name>" lines.
+	[[ -f "$_backup" ]] || _backup="${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
+
+	if [[ ! -f "$_backup" ]]; then
+		echo -e "${RED}No valid backup file found :(${NC}"
+		return 1
+	fi
+	_gaudi-shell-profile-apply "$_backup"
 }
 
 gshell() {
-	local verb=${1:-}
-	shift 2>/dev/null || true
-	local component=${1:-}
-	shift 2>/dev/null || true
-	local func
+	local verb="${1:-}"
+	[[ $# -gt 0 ]] && shift
 
-	case $verb in
-	show) func=_gaudi-shell-show ;;
-	enable) func=_gaudi-shell-enable ;;
-	disable) func=_gaudi-shell-disable ;;
-	help)
-		_gaudi-shell-help "$component" "$@"
-		return
-		;;
-	doctor) func=_gaudi-shell-doctor ;;
-	update)
-		_gaudi-shell-update "$component" "$@"
-		return
-		;;
-	version) func=_gaudi-shell-version ;;
-	backup) func=_gaudi-shell-backup ;;
-	restore) func=_gaudi-shell-restore ;;
-	profile)
-		_gaudi-shell-profile "$component" "$@"
-		return
-		;;
-	reload) func=_gaudi-shell-reload ;;
-	restart) func=_gaudi-shell-restart ;;
-	search)
-		_gaudi-shell-search "$component" "$@"
-		return
+	if [[ -z "$verb" ]] || ! _gaudi-shell-verb-field "$verb" 1 >/dev/null; then
+		[[ -n "$verb" ]] && echo "gshell: unknown command '$verb'" >&2
+		echo "Usage: gshell <command> [args]. Run 'gshell help' for details."
+		return 1
+	fi
+
+	case "$verb" in
+	enable | disable)
+		local type="${1:-}" name rc=0
+		[[ $# -gt 0 ]] && shift
+		if [[ $# -eq 0 ]]; then
+			"_gaudi-shell-${verb}" "$type"
+			return
+		fi
+		for name in "$@"; do
+			"_gaudi-shell-${verb}" "$type" "$name" || rc=$?
+		done
+		return "$rc"
 		;;
 	*)
-		echo "Usage: gshell <command> [args]. Run 'gshell help' for details."
-		return
+		"_gaudi-shell-${verb}" "$@"
 		;;
 	esac
-
-	if [[ "$verb" == "enable" || "$verb" == "disable" ]] && [[ ${#@} != 0 ]]; then
-		for arg in "$@"; do
-			$func "$(_gaudi-shell-pluralize-component "$component")" "$arg"
-		done
-	else
-		$func "$(_gaudi-shell-pluralize-component "$component")" "$@"
-	fi
 }
 
 # Short alias

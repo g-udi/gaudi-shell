@@ -28,9 +28,7 @@ gaudi_node () {
   [[ $GAUDI_NODE_SHOW == false ]] && return
 
   # Show NODE status only for JS-specific folders
-  [[ -f package.json || -d node_modules ||
-     -n $(find . -not -path '*/\.*' -maxdepth 1 -name "*.js")
-  ]] || return
+  [[ -f package.json || -d node_modules ]] || gaudi::has_files js || return
 
   local 'node_version'
 
@@ -46,6 +44,8 @@ gaudi_node () {
     return
   fi
 
+  # Unquoted on purpose: the default version may be a pattern such as "v20*"
+  # shellcheck disable=SC2053
   [[ $node_version == $GAUDI_NODE_DEFAULT_VERSION ]] && return
 
   gaudi::section \

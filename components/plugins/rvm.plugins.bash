@@ -13,6 +13,10 @@ then
     [[ -r $rvm_path/scripts/completion ]] && . $rvm_path/scripts/completion
 
     switch () {
+      about 'Switches to a Ruby version and reports it'
+      param '1: Ruby version'
+      group 'rvm'
+
       rvm $1
       local v
       v=$(rvm_version)
@@ -21,11 +25,18 @@ then
     }
 
     rvm_default () {
+      about 'Sets the default Ruby version'
+      param '1: Ruby version'
+      group 'rvm'
+
       rvm --default $1
       rvm wrapper $1 textmate
     }
 
     rvm_version () {
+      about 'Shows the active Ruby version'
+      group 'rvm'
+
       ruby --version
     }
 

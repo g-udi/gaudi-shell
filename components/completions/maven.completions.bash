@@ -4,16 +4,15 @@
 cite about-completion
 about-completion 'Maven bash completions'
 
+_binary_exists mvn || return 0
+
 _mvn () {
    local cmds cur colonprefixes
    cmds="clean validate compile test package integration-test   \
       verify install deploy test-compile site generate-sources  \
       process-sources generate-resources process-resources      \
-      eclipse:eclipse eclipse:add-maven-repo eclipse:clean      \
-      idea:idea -DartifactId= -DgroupId= -Dmaven.test.skip=true \
-      -Declipse.workspace= -DarchetypeArtifactId=               \
-      netbeans-freeform:generate-netbeans-project               \
-      tomcat:run tomcat:run-war tomcat:deploy jboss-as:deploy   \
+      -DartifactId= -DgroupId= -Dmaven.test.skip=true           \
+      -DskipTests -DarchetypeArtifactId= archetype:generate     \
       versions:display-dependency-updates                       \
       versions:display-plugin-updates dependency:analyze        \
       dependency:analyze-dep-mgt dependency:resolve             \

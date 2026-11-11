@@ -1,9 +1,9 @@
 # shellcheck shell=bash
 
 cite about-alias
-about-alias 'docker-compose abbreviations'
+about-alias 'docker compose abbreviations'
 
-alias dco="docker-compose"
+alias dco="docker compose"
 alias dcofresh="docker-compose-fresh"
-alias dcol="docker-compose logs -f --tail 100"
-alias dcou="docker-compose up"
+alias dcol="docker compose logs -f --tail 100"
+alias dcou="docker compose up"

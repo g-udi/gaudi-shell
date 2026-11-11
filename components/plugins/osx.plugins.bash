@@ -3,8 +3,11 @@
 cite about-plugin
 about-plugin 'OSX specific functions'
 
+# Everything here is macOS only
+[[ "$OSTYPE" == darwin* ]] || return 0
+
 # OS X: Open new tabs in same directory
-if [[ $(uname) = "Darwin" ]]; then
+if [[ "$OSTYPE" == darwin* ]]; then
   if type update_terminal_cwd > /dev/null 2>&1 ; then
     if ! [[ $PROMPT_COMMAND =~ (^|;)update_terminal_cwd($|;) ]] ; then
       PROMPT_COMMAND="${PROMPT_COMMAND:+${PROMPT_COMMAND%;};}update_terminal_cwd"
@@ -32,39 +35,20 @@ EOF
 
 # renames the current os x terminal tab title
 tabname () {
+  about 'Renames the current terminal tab'
+  param '1: title'
+  group 'OSX'
+
   printf "\e]1;$1\a"
 }
 
 # renames the current os x terminal window title
 winname () {
+  about 'Renames the current terminal window'
+  param '1: title'
+  group 'OSX'
+
   printf "\e]2;$1\a"
-}
-
-# this one switches your os x dock between 2d and 3d
-# thanks to savier.zwetschge.org
-dock-switch () {
-    about 'Switch dock between 2d and 3d'
-    example '$ dock-switch 2d'
-    group 'OSX'
-
-    if [[ $(uname) = "Darwin" ]]; then
-
-        if [[ $1 = 3d ]] ; then
-            defaults write com.apple.dock no-glass -boolean NO
-            killall Dock
-
-        elif [[ $1 = 2d ]] ; then
-            defaults write com.apple.dock no-glass -boolean YES
-            killall Dock
-
-        else
-            echo "usage:"
-            echo "dock-switch 2d"
-            echo "dock-switch 3d."
-        fi
-    else
-        echo "Sorry, this only works on Mac OS X"
-    fi
 }
 
 pman () {
@@ -108,14 +92,27 @@ refresh-launchpad () {
   fi
 }
 
+# Fills JVMS_DIR and JVMS, which the caller declares local
+_osx-jvms-scan () {
+  JVMS_DIR="/Library/Java/JavaVirtualMachines"
+  JVMS=()
+
+  if [[ ! -d "$JVMS_DIR" ]]; then
+    echo "No JVM directory found at $JVMS_DIR" >&2
+    return 1
+  fi
+
+  JVMS=( $(ls "${JVMS_DIR}") )
+}
+
 list-jvms () {
   about 'List java virtual machines and their states in macOS'
   example 'list-jvms'
   group 'OSX'
 
-  JVMS_DIR="/Library/Java/JavaVirtualMachines"
-  JVMS=( $(ls ${JVMS_DIR}) )
-  JVMS_STATES=()
+  local JVMS_DIR i
+  local -a JVMS JVMS_STATES
+  _osx-jvms-scan || return 1
 
   # Map state of JVM
   for (( i = 0; i < ${#JVMS[@]}; i++ )); do
@@ -131,14 +128,18 @@ list-jvms () {
 pick-default-jvm () {
   about 'Pick the default Java Virtual Machines in system-wide scope in macOS'
   example 'pick-default-jvm'
-
-  # Call for listing
-  list-jvms
+  group 'OSX'
 
   # Declare variables
+  local JVMS_DIR i
+  local -a JVMS
   local DEFAULT_JVM_DIR=""
   local DEFAULT_JVM=""
   local OPTION=""
+
+  # Call for listing
+  list-jvms
+  _osx-jvms-scan || return 1
 
   # OPTION for default jdk and set variables
   while [[ ! "$OPTION" =~ ^[0-9]+$ || OPTION -ge "${#JVMS[@]}" ]]; do
@@ -154,6 +155,11 @@ pick-default-jvm () {
 
   DEFAULT_JVM_DIR="${JVMS_DIR}/${JVMS[$OPTION]}"
   DEFAULT_JVM="${JVMS[$OPTION]}"
+
+  # The renames below need sudo: say what will happen and ask first
+  echo "This renames Contents/Info.plist of every JVM in ${JVMS_DIR} except ${DEFAULT_JVM} to Info.plist.disable, using sudo."
+  _read_input "Continue? [y/n]"
+  [[ "$REPLY" == [yY] ]] || return 1
 
   # Disable all jdk
   for (( i = 0; i < ${#JVMS[@]}; i++ )); do
@@ -174,5 +180,8 @@ alias pcurl='prevcurl'
 
 # From http://apple.stackexchange.com/questions/110343/copy-last-command-in-terminal
 copyLastCmd () {
+  about 'Copies the last command to the clipboard'
+  group 'OSX'
+
   fc -ln -1 | awk '{$1=$1}1' | pbcopy
 }

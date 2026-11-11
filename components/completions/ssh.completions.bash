@@ -4,10 +4,14 @@
 cite about-completion
 about-completion 'Bash completion support for SSH'
 
-export COMP_WORDBREAKS=${COMP_WORDBREAKS/\:/}
-
 _sshcomplete () {
-    local CURRENT_PROMPT="${COMP_WORDS[COMP_CWORD]}"
+    # Take the current word with ":" kept, instead of removing ":" from the global COMP_WORDBREAKS
+    local CURRENT_PROMPT
+    if declare -F _get_comp_words_by_ref > /dev/null; then
+        _get_comp_words_by_ref -n : -c CURRENT_PROMPT
+    else
+        CURRENT_PROMPT="${COMP_WORDS[COMP_CWORD]}"
+    fi
     if [[ ${CURRENT_PROMPT} == *@*  ]] ; then
       local OPTIONS="-P ${CURRENT_PROMPT/@*/}@ -- ${CURRENT_PROMPT/*@/}"
     else
@@ -37,6 +41,7 @@ _sshcomplete () {
         COMPREPLY=( ${COMPREPLY[@]} $(compgen -W "$( grep -v '^[[:space:]]*$' /etc/hosts | grep -v '^#' | awk '{for (i=2; i<=NF; i++) print $i}' )" ${OPTIONS}) )
     fi
 
+    declare -F __ltrim_colon_completions > /dev/null && __ltrim_colon_completions "$CURRENT_PROMPT"
     return 0
 }
 

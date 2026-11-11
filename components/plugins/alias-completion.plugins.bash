@@ -23,6 +23,7 @@ priority "365"
 # Automatically add completion for all aliases to commands having completion functions
 alias_completion () {
     about 'alias_completion'
+    group 'alias-completion'
 
 	# This plugin uses bash-specific completion internals (complete -p,
 	# COMP_WORDS, read -ra). Skip entirely in zsh.

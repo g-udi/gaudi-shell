@@ -206,7 +206,7 @@ function testsite() {
 	fi
 
 	pushd "${SITE}" > /dev/null || return
-	jekyll --server --auto
+	jekyll serve --watch
 	ret="$?"
 	popd > /dev/null || return "$ret"
 	return "$ret"
@@ -238,7 +238,7 @@ function buildsite() {
 
 	pushd "${SITE}" > /dev/null || return
 	rm -rf _site
-	jekyll --no-server
+	jekyll build
 	ret="$?"
 	popd > /dev/null || return "$ret"
 	return "$ret"

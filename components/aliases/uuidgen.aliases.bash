@@ -1,6 +1,6 @@
 # shellcheck shell=bash
 
-cite 'uuid-alias'
+cite about-alias
 about-alias 'uuidgen aliases'
 
 # Linux

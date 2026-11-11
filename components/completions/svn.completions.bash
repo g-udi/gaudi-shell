@@ -3,6 +3,9 @@
 cite about-completion
 about-completion 'SVN bash completions'
 
+# extglob is only needed while the functions below are parsed ([[ == @(...) ]]
+# always matches extended patterns at run time): it is restored at the end of the file
+shopt -q extglob && _svn_extglob_was_set=1
 shopt -s extglob
 
 # Tree helper functions which only use bash, to ease readability.
@@ -1478,3 +1481,6 @@ _svnversion () {
 }
 # -X option does not seem to work?
 complete -F _svnversion -o dirnames -X '*.svn*' svnversion
+
+[[ -n "${_svn_extglob_was_set:-}" ]] || shopt -u extglob
+unset _svn_extglob_was_set

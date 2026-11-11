@@ -26,7 +26,7 @@ docker-remove-stale-assets () {
 }
 
 docker-enter () {
-  about 'Anter the specified docker container using bash'
+  about 'Enter the specified docker container using bash'
   group 'docker'
   example 'docker-enter oracle-xe'
 
