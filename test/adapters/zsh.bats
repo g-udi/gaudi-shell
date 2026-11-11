@@ -531,3 +531,30 @@ SCRIPT
 	assert_line "empty: no"
 	assert_line "symbols=[>>] continuation-set=1"
 }
+
+@test "zsh adapter: _binary_exists only accepts programs on PATH" {
+	_write_zsh_script <<'SCRIPT'
+zsh_smoke_function() { :; }
+alias zsh_smoke_alias_only='ls'
+_binary_exists ls && print -r -- "ls=binary"
+_binary_exists zsh_smoke_function || print -r -- "function=no"
+_binary_exists zsh_smoke_alias_only || print -r -- "alias=no"
+_command_exists zsh_smoke_function && print -r -- "function=command"
+print -r -- "host=$GAUDI_HOST_NAME/$GAUDI_HOST_COMMAND"
+GAUDI_SHELL_NO_PROXY="localhost"
+print -r -- "setting=$(_gaudi_host_setting NO_PROXY)"
+SCRIPT
+
+	_run_zsh_script </dev/null
+
+	run cat "$ZSH_ERR"
+	assert_output ""
+
+	run cat "$ZSH_OUT"
+	assert_line "ls=binary"
+	assert_line "function=no"
+	assert_line "alias=no"
+	assert_line "function=command"
+	assert_line "host=gaudi-shell/gshell"
+	assert_line "setting=localhost"
+}

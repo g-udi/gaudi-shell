@@ -3,4 +3,7 @@
 cite about-completion
 about-completion 'Bash completion support for RVM'
 
-[[ -r $rvm_path/scripts/completion ]] && . $rvm_path/scripts/completion
+if [[ -r "${rvm_path:-}/scripts/completion" ]]; then
+  # shellcheck source=/dev/null
+  . "${rvm_path}/scripts/completion"
+fi

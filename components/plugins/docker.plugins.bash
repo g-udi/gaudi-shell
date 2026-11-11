@@ -61,7 +61,7 @@ docker-archive-content () {
   example 'docker-archive-content images.tar.gz'
 
   if [[ -n "$1" ]]; then
-    tar -xzOf $1 manifest.json | jq '[.[] | .RepoTags] | add'
+    tar -xzOf "$1" manifest.json | jq '[.[] | .RepoTags] | add'
   fi
 }
 

@@ -4,7 +4,7 @@ cite about-plugin
 about-plugin 'Manage your nginx service'
 
 export NGINX_PATH='/opt/nginx'
-pathmunge $NGINX_PATH/sbin after
+pathmunge "$NGINX_PATH/sbin" after
 
 # Print the pid from the nginx pid file, or fail when it is missing or not a number
 _nginx_pid () {

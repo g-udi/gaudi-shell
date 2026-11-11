@@ -7,7 +7,7 @@ about-alias 'gls enhanced ls (port from Linux using coreutils)'
 # only takes it over when it is the active choice: coreutils is installed and
 # the "ls" aliases are not enabled.
 _gaudi_ls_owner="gls"
-for _gaudi_ls_file in "${GAUDI_SHELL:-}"/components/enabled/*___ls.aliases.bash; do
+for _gaudi_ls_file in "${GAUDI_HOST_HOME:-}"/components/enabled/*___ls.aliases.bash; do
   [[ -e "$_gaudi_ls_file" ]] && _gaudi_ls_owner="ls"
 done
 

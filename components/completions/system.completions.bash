@@ -12,10 +12,10 @@ priority "325"
 
 # Bash-completion is too large and complex to expect to handle unbound variables throughout the whole codebase.
 if shopt -qo nounset; then
-	__gaudi_bash_restore_nounset=true
+	__gaudi_restore_nounset=true
 	shopt -uo nounset
 else
-	__gaudi_bash_restore_nounset=false
+	__gaudi_restore_nounset=false
 fi
 
 if [[ -r "${BASH_COMPLETION:-}" ]]; then
@@ -26,14 +26,14 @@ elif [[ -r /etc/bash_completion ]]; then
 elif [[ -r /etc/profile.d/bash_completion.sh ]]; then
 	source /etc/profile.d/bash_completion.sh
 elif _homebrew-check; then
-	: "${BASH_COMPLETION_COMPAT_DIR:=${GAUDI_SHELL_HOMEBREW_PREFIX}/etc/bash_completion.d}"
+	: "${BASH_COMPLETION_COMPAT_DIR:=${GAUDI_HOST_HOMEBREW_PREFIX}/etc/bash_completion.d}"
 	case "${BASH_VERSION}" in
 		1* | 2* | 3.0* | 3.1*)
 			_log_warning "Cannot load completion due to version of shell. Are you using Bash 3.2+?"
 			;;
 		3.2* | 4.0* | 4.1*)
 			# Import version 1.x of bash-completion, if installed.
-			BASH_COMPLETION="${GAUDI_SHELL_HOMEBREW_PREFIX}/opt/bash-completion@1/etc/bash_completion"
+			BASH_COMPLETION="${GAUDI_HOST_HOMEBREW_PREFIX}/opt/bash-completion@1/etc/bash_completion"
 			if [[ -r "$BASH_COMPLETION" ]]; then
 				source "$BASH_COMPLETION"
 			else
@@ -42,14 +42,14 @@ elif _homebrew-check; then
 			;;
 		4.2* | 5* | *)
 			# homebrew/versions/bash-completion2 (required for projects.completion.bash) is installed to this path
-			if [[ -r "${GAUDI_SHELL_HOMEBREW_PREFIX}/opt/bash-completion@2/etc/profile.d/bash_completion.sh" ]]; then
-				source "${GAUDI_SHELL_HOMEBREW_PREFIX}/opt/bash-completion@2/etc/profile.d/bash_completion.sh"
+			if [[ -r "${GAUDI_HOST_HOMEBREW_PREFIX}/opt/bash-completion@2/etc/profile.d/bash_completion.sh" ]]; then
+				source "${GAUDI_HOST_HOMEBREW_PREFIX}/opt/bash-completion@2/etc/profile.d/bash_completion.sh"
 			fi
 			;;
 	esac
 fi
 
-if [[ ${__gaudi_bash_restore_nounset:-false} == "true" ]]; then
+if [[ ${__gaudi_restore_nounset:-false} == "true" ]]; then
 	shopt -so nounset
 fi
-unset __gaudi_bash_restore_nounset
+unset __gaudi_restore_nounset

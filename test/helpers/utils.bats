@@ -80,3 +80,106 @@ local_setup() {
 	assert_equal "$status_code" 2
 	assert_equal "$REPLY" ""
 }
+
+@test "gaudi-shell helpers: utils: _binary_exists: should succeed for a program on PATH" {
+	run _binary_exists ls
+	assert_success
+}
+
+@test "gaudi-shell helpers: utils: _binary_exists: should fail for a missing program" {
+	run _binary_exists __nonexistent_command_xyz
+	assert_failure
+}
+
+@test "gaudi-shell helpers: utils: _binary_exists: a function or an alias is not a binary" {
+	__gaudi_test_only_function() { :; }
+	alias __gaudi_test_only_alias='ls'
+
+	run _binary_exists __gaudi_test_only_function
+	assert_failure
+	run _binary_exists __gaudi_test_only_alias
+	assert_failure
+	# ...while _command_exists accepts the function
+	run _command_exists __gaudi_test_only_function
+	assert_success
+}
+
+@test "gaudi-shell helpers: utils: host contract: the names components rely on are defined" {
+	assert_equal "$GAUDI_HOST_NAME" "gaudi-shell"
+	assert_equal "$GAUDI_HOST_COMMAND" "gshell"
+	assert_equal "$GAUDI_HOST_HOME" "$GAUDI_SHELL"
+	run type -t _gaudi_host_setting
+	assert_output "function"
+}
+
+@test "gaudi-shell helpers: utils: host contract: the sed in-place arguments follow the framework's" {
+	load_gaudi_libs generic utils
+	assert_equal "${#GAUDI_HOST_SED_I_PARAMETERS[@]}" "${#GAUDI_SHELL_SED_I_PARAMETERS[@]}"
+	assert_equal "${GAUDI_HOST_SED_I_PARAMETERS[0]}" "-i"
+}
+
+@test "gaudi-shell helpers: utils: _gaudi_host_setting: reads GAUDI_<name>, then GAUDI_SHELL_<name>" {
+	unset GAUDI_HTTP_PROXY GAUDI_SHELL_HTTP_PROXY
+	run _gaudi_host_setting HTTP_PROXY
+	assert_success
+	assert_output ""
+
+	# shellcheck disable=SC2034 # read by name inside _gaudi_host_setting
+	GAUDI_SHELL_HTTP_PROXY="http://shell:1"
+	run _gaudi_host_setting HTTP_PROXY
+	assert_output "http://shell:1"
+
+	# shellcheck disable=SC2034
+	GAUDI_HTTP_PROXY="http://neutral:2"
+	run _gaudi_host_setting HTTP_PROXY
+	assert_output "http://neutral:2"
+}
+
+@test "gaudi-shell helpers: utils: _gaudi_host_setting: refuses anything that is not a setting name" {
+	# shellcheck disable=SC2016 # the expansion must reach the function unexpanded
+	run _gaudi_host_setting 'X:-$(echo injected)'
+	assert_failure
+	assert_output ""
+	run _gaudi_host_setting ""
+	assert_failure
+}
+
+@test "gaudi-shell helpers: utils: _homebrew-check: sets the prefix under both names, calling brew once" {
+	mkdir -p "$BATS_TEST_TMPDIR/bin"
+	cat >"$BATS_TEST_TMPDIR/bin/brew" <<BREW
+#!/bin/sh
+echo called >>"$BATS_TEST_TMPDIR/brew.calls"
+echo /fake/homebrew
+BREW
+	chmod +x "$BATS_TEST_TMPDIR/bin/brew"
+	local PATH="$BATS_TEST_TMPDIR/bin:/usr/bin:/bin"
+	unset GAUDI_HOST_HOMEBREW_PREFIX GAUDI_SHELL_HOMEBREW_PREFIX
+
+	_homebrew-check
+	_homebrew-check
+	assert_equal "$GAUDI_HOST_HOMEBREW_PREFIX" "/fake/homebrew"
+	assert_equal "$GAUDI_SHELL_HOMEBREW_PREFIX" "/fake/homebrew"
+	run cat "$BATS_TEST_TMPDIR/brew.calls"
+	assert_output "called"
+}
+
+@test "gaudi-shell helpers: utils: _homebrew-check: fails and clears the prefix without brew" {
+	local PATH="/usr/bin:/bin"
+	GAUDI_HOST_HOMEBREW_PREFIX="/stale"
+	GAUDI_SHELL_HOMEBREW_PREFIX="/stale"
+
+	run _homebrew-check
+	assert_failure
+	_homebrew-check || true
+	assert_equal "$GAUDI_HOST_HOMEBREW_PREFIX" ""
+	assert_equal "$GAUDI_SHELL_HOMEBREW_PREFIX" ""
+}
+
+@test "gaudi-shell helpers: utils: host contract: shared components do not name a framework" {
+	# aliases, completions and plugins are shared with gaudi-bash; only the
+	# framework's own files (gaudi-shell.*) may name it
+	run grep -rlE 'GAUDI_(SHELL|BASH)|gaudi[-_](shell|bash)|\bg(shell|bash)\b' \
+		--include='*.bash' --exclude='gaudi-shell.*' \
+		"$GAUDI_SHELL/components/aliases" "$GAUDI_SHELL/components/completions" "$GAUDI_SHELL/components/plugins"
+	assert_output ""
+}

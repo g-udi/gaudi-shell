@@ -3,22 +3,32 @@
 cite about-alias
 about-alias 'ls aliases to add coloring and extra arguments'
 
-if ls -G -d . &> /dev/null
-then
-  alias ls="ls -G=auto"
-elif ls -G -d . &> /dev/null
-then
-  alias ls='ls -G'
+# ls: always use color output
+# ll: list all files colorized in long format
+# la: the same, including dot files
+# lsd: list only directories
+# llt: long format, newest first
+if command ls --version &> /dev/null; then
+  # GNU ls
+  alias ls='command ls --color=auto'
+  alias ll='ls -lF'
+  alias la='ls -laF'
+  alias lsd="ls -lF | grep --color=never '^d'"
+  alias llt='ls -lFt'
+elif command ls -G -d . &> /dev/null; then
+  # BSD ls (macOS): -G colors the output
+  alias ls="command ls -G"
+  alias ll="ls -lFG"
+  alias la="ls -laFG"
+  alias lsd="ls -lFG | grep --color=never '^d'"
+  alias llt="ls -lFtG"
+else
+  alias ls='command ls'
+  alias ll='ls -lF'
+  alias la='ls -laF'
+  alias lsd="ls -lF | grep '^d'"
+  alias llt='ls -lFt'
 fi
 
-# Always use color output for `ls`
-alias ls="command ls -G"
-# List all files colorized in long format
-alias ll="ls -lFG"
-# List all files colorized in long format, including dot files
-alias la="ls -laFG"
-# List only directories
-alias lsd="ls -lFG | grep --color=never '^d'"
 alias l='ls -a'
 alias l1='ls -1'
-alias llt="ls -lFtG"

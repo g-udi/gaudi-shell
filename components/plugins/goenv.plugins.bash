@@ -8,9 +8,9 @@ about-plugin 'Load Go version management via goenv'
 # - Check if installed manually to $GOENV_ROOT
 # - Check if installed manually to $HOME
 _command_exists goenv ||
-  [[ -n "$GOENV_ROOT" && -x "$GOENV_ROOT/bin/goenv" ]] ||
+  [[ -n "${GOENV_ROOT:-}" && -x "$GOENV_ROOT/bin/goenv" ]] ||
   [[ -x "$HOME/.goenv/bin/goenv" ]] ||
-  return
+  return 0
 
 # Set GOENV_ROOT, if not already set
 export GOENV_ROOT="${GOENV_ROOT:-$HOME/.goenv}"

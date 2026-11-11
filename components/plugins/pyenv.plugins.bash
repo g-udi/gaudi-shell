@@ -28,7 +28,7 @@ _gaudi_pyenv_load() {
 			eval "$(pyenv virtualenv-init - bash)"
 		fi
 	else
-		echo "gaudi-bash: pyenv not found"
+		echo "${GAUDI_HOST_NAME:-gaudi}: pyenv not found"
 		return 1
 	fi
 }

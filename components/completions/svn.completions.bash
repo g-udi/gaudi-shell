@@ -537,7 +537,7 @@ _svn () {
 	    then
 		# only suggest/show possible suffixes
 		local prefix=${cur%:*} suffix=${cur#*:} c=
-		for c in ${allProps[@]} ; do
+		for c in "${allProps[@]}" ; do
 		    [[ $c == $prefix:* ]] && choices="$choices ${c#*:}"
 		done
 		# everything will be appended to the prefix because ':' is
@@ -550,7 +550,7 @@ _svn () {
 
 		# no ':' so only suggest prefixes?
 		local seen= n=0 last= c=
-		for c in ${allProps[@]%:*} ; do
+		for c in "${allProps[@]%:*}" ; do
 		    # do not put the same prefix twice...
 		    if [[ $c == $cur* && ( ! $seen || $c != @($seen) ) ]]
 		    then
@@ -1407,7 +1407,7 @@ _svnversion () {
 
 	# parse current options
 	local options= wcpath= trailurl= last='none' stat= opt= i=-1 isCur=
-	for opt in ${COMP_WORDS[@]}
+	for opt in "${COMP_WORDS[@]}"
 	do
 		[[ $i -eq $COMP_CWORD ]] && stat=$last
 		let i++

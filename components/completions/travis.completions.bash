@@ -3,8 +3,11 @@
 cite about-completion
 about-completion 'Travis bash completions'
 
-if [[ -x "$(which travis)" ]]; then
+if command -v travis > /dev/null 2>&1; then
   __TRAVIS_COMPLETION_SCRIPT="${TRAVIS_CONFIG_PATH:-${HOME}/.travis}/travis.sh"
-  [[ -f "${__TRAVIS_COMPLETION_SCRIPT}" ]] && source "${__TRAVIS_COMPLETION_SCRIPT}"
+  if [[ -f "${__TRAVIS_COMPLETION_SCRIPT}" ]]; then
+    # shellcheck source=/dev/null
+    source "${__TRAVIS_COMPLETION_SCRIPT}"
+  fi
   unset __TRAVIS_COMPLETION_SCRIPT
 fi

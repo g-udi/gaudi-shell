@@ -40,24 +40,51 @@ __awskeys_help () {
 }
 
 __awskeys_get () {
-    local ln
+    local profile="$1"
 
-    ln=$(grep -n "\[[ *$1 *\]" "${AWS_SHARED_CREDENTIALS_FILE}" | cut -d ":" -f 1)
-    if [[ -n "${ln}" ]]; then
-        tail -n +${ln} "${AWS_SHARED_CREDENTIALS_FILE}" | egrep -m 2 "aws_access_key_id|aws_secret_access_key"
-        tail -n +${ln} "${AWS_SHARED_CREDENTIALS_FILE}" | egrep -m 1 "aws_session_token"
-    fi
+    awk -v wanted="$profile" '
+        /^\[[^]]+\]$/ {
+            section = $0
+            gsub(/^\[[[:space:]]*|[[:space:]]*\]$/, "", section)
+            in_section = (section == wanted)
+            next
+        }
+        in_section && /^[[:space:]]*(aws_access_key_id|aws_secret_access_key|aws_session_token)[[:space:]]*=/ {
+            print
+        }
+    ' "${AWS_SHARED_CREDENTIALS_FILE}"
+}
+
+__awskeys_profiles () {
+    {
+        if [[ -f "${AWS_SHARED_CREDENTIALS_FILE}" ]]; then
+            sed -nE 's/^\[[[:space:]]*([^]]+)[[:space:]]*\]$/\1/p' "${AWS_SHARED_CREDENTIALS_FILE}"
+        fi
+        if [[ -f "${AWS_CONFIG_FILE}" ]]; then
+            sed -nE 's/^\[[[:space:]]*profile[[:space:]]+([^]]+)[[:space:]]*\]$/\1/p' "${AWS_CONFIG_FILE}"
+        fi
+    } | sort -u
+}
+
+__awskeys_profile_exists () {
+    local profile
+
+    while IFS= read -r profile; do
+        [[ "$profile" == "$1" ]] && return 0
+    done < <(__awskeys_profiles)
+
+    return 1
 }
 
 __awskeys_list () {
     local credentials_list
 
-    credentials_list="$( (egrep '^\[[ *[a-zA-Z0-9_-]+ *\]$' "${AWS_SHARED_CREDENTIALS_FILE}"; grep "\[profile" "${AWS_CONFIG_FILE}" | sed "s|\[profile |\[|g") | sort | uniq)"
+    credentials_list="$(__awskeys_profiles)"
     if [[ -n "${credentials_list}" ]]; then
         echo -e "Available credentials profiles:\n"
-        for profile in ${credentials_list}; do
-            echo "    $(echo ${profile} | tr -d "[]")"
-        done
+        while IFS= read -r profile; do
+            echo "    ${profile}"
+        done <<< "${credentials_list}"
         echo
     else
         echo "No profiles found in credentials file"
@@ -67,7 +94,7 @@ __awskeys_list () {
 __awskeys_show () {
     local p_keys
 
-    p_keys="$(__awskeys_get $1)"
+    p_keys="$(__awskeys_get "$1")"
     if [[ -n "${p_keys}" ]]; then
         echo "${p_keys}"
     else
@@ -76,14 +103,14 @@ __awskeys_show () {
 }
 
 __awskeys_export () {
-    if [[ $(__awskeys_list) == *"$1"* ]]; then
-        local p_keys=( "$(__awskeys_get $1 | tr -d " ")" )
-        if [[ -n "${p_keys[*]}" ]]; then
-            for p_key in "${p_keys[@]}"; do
-                local key="${p_key%=*}"
-                export "$(echo ${key} | tr "[:lower:]" "[:upper:]")=${p_key#*=}"
-            done
-        fi
+    if __awskeys_profile_exists "$1"; then
+        local key value
+        while IFS='=' read -r key value; do
+            key="${key//[[:space:]]/}"
+            value="${value#"${value%%[![:space:]]*}"}"
+            [[ -n "$key" && -n "$value" ]] || continue
+            export "$(echo "${key}" | tr "[:lower:]" "[:upper:]")=$value"
+        done < <(__awskeys_get "$1")
         export AWS_PROFILE="$1"
     else
         echo "Profile $1 not found in credentials file"
@@ -110,13 +137,16 @@ __awskeys_comp () {
         show|export)
             local profile_list
 
-            profile_list="$(__awskeys_list | grep "    ")"
-            COMPREPLY=( "$(compgen -W "${profile_list}" -- ${cur})" )
+            profile_list="$(__awskeys_profiles)"
+            # No mapfile: this file also loads in bash 3.2
+            # shellcheck disable=SC2207
+            COMPREPLY=($(compgen -W "${profile_list}" -- "${cur}"))
             return 0
             ;;
     esac
 
-    COMPREPLY=( "$(compgen -W "${opts}" -- ${cur})" )
+    # shellcheck disable=SC2207
+    COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
 
     return 0
 }

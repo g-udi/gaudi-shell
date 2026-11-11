@@ -10,7 +10,7 @@ _binary_exists gcloud || return 0
 complete -p gcloud &> /dev/null && return 0
 
 # Source the completion that ships with the Google Cloud SDK, when it can be found
-_gaudi_gcloud_brew="${GAUDI_SHELL_HOMEBREW_PREFIX:-${HOMEBREW_PREFIX:-}}"
+_gaudi_gcloud_brew="${GAUDI_HOST_HOMEBREW_PREFIX:-${HOMEBREW_PREFIX:-}}"
 for _gaudi_gcloud_root in "${CLOUDSDK_ROOT_DIR:-}" "${GOOGLE_SDK_ROOT:-}" \
   "${_gaudi_gcloud_brew:+${_gaudi_gcloud_brew}/share/google-cloud-sdk}" \
   "${_gaudi_gcloud_brew:+${_gaudi_gcloud_brew}/Caskroom/google-cloud-sdk/latest/google-cloud-sdk}" \

@@ -280,5 +280,6 @@ function deploysite() {
 
 # Load the Jekyll config
 if [[ -s "$HOME/.jekyllconfig" ]]; then
+	# shellcheck source=/dev/null
 	source "$HOME/.jekyllconfig"
 fi

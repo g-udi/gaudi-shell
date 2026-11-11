@@ -3,11 +3,11 @@
 cite about-completion
 about-completion 'Vue.js completions'
 
-if command -v vue > /dev/null; then
+if _command_exists vue; then
     __vuejs_completion()  {
-        local OPTS=("--version --help create add invoke inspect serve build ui init config upgrade info")
+        local opts=(--version --help create add invoke inspect serve build ui init config upgrade info)
         COMPREPLY=()
-        for _opt_ in "${OPTS[@]}"; do
+        for _opt_ in "${opts[@]}"; do
             if [[ "$_opt_" == "$2"* ]]; then
                 COMPREPLY+=("$_opt_")
             fi

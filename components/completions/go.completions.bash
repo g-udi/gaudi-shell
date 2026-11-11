@@ -7,6 +7,7 @@ about-completion 'Go bash completions'
 # go install github.com/posener/complete/gocomplete@latest
 # gocomplete -install
 
-if _command_exists gocomplete && _command_exists go ; then
-  complete -C "${GOBIN}"/gocomplete go
+if gocomplete_bin=$(command -v gocomplete) && _command_exists go ; then
+  complete -C "$gocomplete_bin" go
 fi
+unset gocomplete_bin

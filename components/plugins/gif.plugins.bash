@@ -19,7 +19,7 @@ about-plugin 'Video to gif, gif to WebM helper functions'
 _gif_gnu_getopt () {
   local prefix
   if [[ "$OSTYPE" == "darwin"* ]] ; then
-    for prefix in "${GAUDI_SHELL_HOMEBREW_PREFIX:-}" "${HOMEBREW_PREFIX:-}" /opt/homebrew /usr/local; do
+    for prefix in "${GAUDI_HOST_HOMEBREW_PREFIX:-}" "${HOMEBREW_PREFIX:-}" /opt/homebrew /usr/local; do
       if [[ -n "$prefix" && -x "${prefix}/opt/gnu-getopt/bin/getopt" ]]; then
         echo "${prefix}/opt/gnu-getopt/bin/getopt"
         return 0
@@ -58,9 +58,7 @@ v2gif () {
 
   local args
 
-  args=$($getopt -l "alert:" -l "lossy:" -l "width:" -l del,delete -l high -l tag -l "fps:" -l webm -o "a:l:w:f:dhmt" -- "$@")
-
-  if [[ $? -ne 0 ]]; then
+  if ! args=$($getopt -l "alert:" -l "lossy:" -l "width:" -l del,delete -l high -l tag -l "fps:" -l webm -o "a:l:w:f:dhmt" -- "$@"); then
     echo 'Terminating...' >&2
     return 2
   fi
@@ -68,9 +66,9 @@ v2gif () {
   eval set -- "$args"
   local use_gifski=""
   local opt_del_after=""
-  local maxsize=""
+  local -a maxsize=()
   local lossiness=""
-  local maxwidthski=""
+  local -a maxwidthski=()
   local giftagopt=""
   local giftag=""
   local defaultfps=10
@@ -100,8 +98,8 @@ v2gif () {
         shift
         ;;
       -w|--width)
-        maxsize="-vf scale=$2:-1"
-        maxwidthski="-W $2"
+        maxsize=(-vf "scale=$2:-1")
+        maxwidthski=(-W "$2")
         giftag="${giftag}-w$2"
         shift 2
         ;;
@@ -178,12 +176,12 @@ v2gif () {
 
     if [[ "$use_gifski" = "true" ]] ; then
       # I trust @pornel to do his own resizing optimization choices
-      $ffmpeg -loglevel panic -i "$file" -r $fps -vcodec png v2gif-tmp-%05d.png && \
-        $gifski $maxwidthski --fps "$(printf "%.0f" $fps)" -o "$output_file" v2gif-tmp-*.png || return 2
+      $ffmpeg -loglevel panic -i "$file" -r "$fps" -vcodec png v2gif-tmp-%05d.png && \
+        $gifski "${maxwidthski[@]}" --fps "$(printf "%.0f" "$fps")" -o "$output_file" v2gif-tmp-*.png || return 2
     else
-      $ffmpeg -loglevel panic -i "$file" $maxsize -r $fps -vcodec png v2gif-tmp-%05d.png && \
+      $ffmpeg -loglevel panic -i "$file" "${maxsize[@]}" -r "$fps" -vcodec png v2gif-tmp-%05d.png && \
         $convert +dither -layers Optimize v2gif-tmp-*.png GIF:- | \
-        $gifsicle $lossiness --no-warnings --colors 256 --delay="$(echo "100/$fps"|bc)" --loop --optimize=3 --multifile - > "$output_file" || return 2
+        $gifsicle ${lossiness:+"$lossiness"} --no-warnings --colors 256 --delay="$(echo "100/$fps"|bc)" --loop --optimize=3 --multifile - > "$output_file" || return 2
     fi
 
     rm v2gif-tmp-*.png
@@ -228,20 +226,18 @@ any2webm () {
   # Parse the options
   local args
 
-  args=$($getopt -l alert -l "bandwidth:" -l "width:" -l del,delete -l tag -l "fps:" -l webm -o "a:b:w:f:dt" -- "$@")
-
-  if [[ $? -ne 0 ]]; then
+  if ! args=$($getopt -l alert -l "bandwidth:" -l "width:" -l del,delete -l tag -l "fps:" -l webm -o "a:b:w:f:dt" -- "$@"); then
     echo 'Terminating...' >&2
     return 2
   fi
 
   eval set -- "$args"
   local opt_del_after=""
-  local size=""
+  local -a size=()
   local webmtagopt=""
   local webmtag=""
   local defaultfps=10
-  local fps=""
+  local -a fps=()
   local bandwidth="2M"
   local alert=5000
   while [[ $# -ge 1 ]]; do
@@ -257,7 +253,7 @@ any2webm () {
         shift
         ;;
       -s|--size)
-        size="-s $2"
+        size=(-s "$2")
         webmtag="${webmtag}-s$2"
         shift 2
         ;;
@@ -268,7 +264,7 @@ any2webm () {
         ;;
       -f|--fps)
         # select fps
-        fps="-r $2"
+        fps=(-r "$2")
         webmtag="${webmtag}-f$2"
         shift 2
         ;;
@@ -303,8 +299,8 @@ any2webm () {
     echo "$(tput setaf 2)Creating '$output_file' ...$(tput sgr 0)"
 
     $ffmpeg -loglevel panic -i "$file" \
-      -c:v libvpx -crf 4 -threads 0 -an -b:v $bandwidth -auto-alt-ref 0 \
-      -quality best $fps $size -loop 0 -pix_fmt yuva420p "$output_file" || return 2
+      -c:v libvpx -crf 4 -threads 0 -an -b:v "$bandwidth" -auto-alt-ref 0 \
+      -quality best "${fps[@]}" "${size[@]}" -loop 0 -pix_fmt yuva420p "$output_file" || return 2
 
     # Checking if the file is bigger than Twitter likes and warn
     if [[ $alert -gt 0 ]] ; then

@@ -6,7 +6,9 @@ cite about-completion
 about-completion 'Git bash completions'
 
 # Make sure git is installed
-_command_exists git || return
+_command_exists git || return 0
+
+GIT_EXE="${GIT_EXE:-$(command -v git)}"
 
 # Don't handle completion if it's already managed
 if complete -p git &> /dev/null; then

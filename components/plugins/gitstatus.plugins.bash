@@ -12,13 +12,14 @@ gitstatus_on_disable () {
 }
 
 # No scm-check
-[[ $SCM_CHECK == "true" ]] || return
+[[ ${SCM_CHECK:-true} == "true" ]] || return 0
 
 # non-interactive shell
-[[ $- == *i* ]] || return
+[[ $- == *i* ]] || return 0
 
 : "${SCM_GIT_GITSTATUS_DIR:="$HOME/gitstatus"}"
 if [[ -d ${SCM_GIT_GITSTATUS_DIR} ]]; then
+  # shellcheck source=/dev/null
   source "${SCM_GIT_GITSTATUS_DIR}/gitstatus.plugin.sh"
   # Start the actual gitstatus binary
   gitstatus_stop && gitstatus_start -s -1 -u -1 -c -1 -d -1
