@@ -10,3 +10,12 @@
 [submodule "bin/bats-file"]
 	path = bin/bats-file
 	url = https://github.com/bats-core/bats-file.git
+[submodule "components/aliases"]
+	path = components/aliases
+	url = https://github.com/g-udi/gaudi-bash-aliases
+[submodule "components/completions"]
+	path = components/completions
+	url = https://github.com/g-udi/gaudi-bash-completions
+[submodule "components/plugins"]
+	path = components/plugins
+	url = https://github.com/g-udi/gaudi-bash-plugins

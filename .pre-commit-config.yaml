@@ -19,9 +19,9 @@ repos:
       - id: git-check  # Configure in .gitattributes
         exclude: ^(components/|template/)
       - id: shellcheck
-        exclude: ^(adapters/zsh/|components/|template/)
+        exclude: ^(adapters/zsh/|components/(aliases|completions|plugins|themes)/|components/host/.*\.zsh$|template/)
       - id: shfmt
-        exclude: ^(adapters/zsh/|components/|template/)
+        exclude: ^(adapters/zsh/|components/(aliases|completions|plugins|themes)/|components/host/.*\.zsh$|template/)
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.1.7
     hooks:

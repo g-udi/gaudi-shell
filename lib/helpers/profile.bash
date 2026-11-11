@@ -45,7 +45,7 @@ _gaudi-shell-profile-parse() {
 # Check every line of the profile file $1: it must be well formed and name a
 # component that exists. Prints what is wrong; returns non-zero if anything is.
 _gaudi-shell-profile-check() {
-	local _line _line_num=0 _errors=0 _profile_type _profile_component _types
+	local _line _line_num=0 _errors=0 _profile_type _profile_component
 	while IFS= read -r _line || [[ -n "$_line" ]]; do
 		_line_num=$((_line_num + 1))
 		[[ -z "$_line" ]] && continue
@@ -54,8 +54,7 @@ _gaudi-shell-profile-check() {
 			_errors=$((_errors + 1))
 			continue
 		fi
-		_types="$(_gaudi-shell-pluralize-component "$_profile_type")"
-		if [[ ! -e "${GAUDI_SHELL}/components/${_types}/${_profile_component}.${_types}.bash" ]]; then
+		if ! _gaudi-shell-component-file "$_profile_type" "$_profile_component" >/dev/null; then
 			printf "${RED}%s${NC} %s: %s\n" "Unknown ${_profile_type}" "line ${_line_num}" "${_profile_component}"
 			_errors=$((_errors + 1))
 		fi

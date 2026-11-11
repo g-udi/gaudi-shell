@@ -29,7 +29,7 @@ local_setup() {
 }
 
 @test "gaudi-shell helpers: enable: should report already enabled" {
-	ln -s "$GAUDI_SHELL/components/plugins/base.plugins.bash" "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
+	ln -s "$GAUDI_SHELL/components/plugins/lib/base.plugins.bash" "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
 
 	run _gaudi-shell-enable plugins base
 	assert_success
@@ -46,7 +46,7 @@ local_setup() {
 }
 
 @test "gaudi-shell helpers: disable: should successfully disable a component" {
-	ln -s "$GAUDI_SHELL/components/plugins/base.plugins.bash" "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
+	ln -s "$GAUDI_SHELL/components/plugins/lib/base.plugins.bash" "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
 
 	run _gaudi-shell-disable plugins base
 	assert_success
@@ -63,7 +63,32 @@ local_setup() {
 	assert_success
 
 	run readlink "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
-	assert_output "../plugins/base.plugins.bash"
+	assert_output "../plugins/lib/base.plugins.bash"
+}
+
+@test "gaudi-shell helpers: enable: the link of a shared component points into its submodule's lib folder" {
+	run _gaudi-shell-enable alias git
+	assert_success
+	run readlink "$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
+	assert_output "../aliases/lib/git.aliases.bash"
+
+	# The priority a component file asks for is still read from the file
+	run _gaudi-shell-enable completion system
+	assert_success
+	run readlink "$GAUDI_SHELL/components/enabled/325___system.completions.bash"
+	assert_output "../completions/lib/system.completions.bash"
+}
+
+@test "gaudi-shell helpers: enable: the link of one of the framework's own files points into components/host" {
+	run _gaudi-shell-enable completion gaudi-shell
+	assert_success
+	run readlink "$GAUDI_SHELL/components/enabled/350___gaudi-shell.completions.bash"
+	assert_output "../host/gaudi-shell.completions.bash"
+
+	run _gaudi-shell-enable alias gaudi-shell
+	assert_success
+	run readlink "$GAUDI_SHELL/components/enabled/150___gaudi-shell.aliases.bash"
+	assert_output "../host/gaudi-shell.aliases.bash"
 }
 
 @test "gaudi-shell helpers: enable: links should survive moving the install directory" {

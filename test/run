@@ -17,6 +17,16 @@ darwin*)
 	;;
 esac
 
+# The tests work on a copy of this checkout, shared components included: the
+# component submodules have to be there (the tests never use the network).
+for submodule in components/aliases components/completions components/plugins; do
+	if [[ ! -d "${GAUDI_SHELL_ORIGIN}/${submodule}/lib" ]]; then
+		echo "The shared components are missing (${submodule}). Fetch them first:" >&2
+		echo "  git submodule update --init components/aliases components/completions components/plugins" >&2
+		exit 1
+	fi
+done
+
 echo -e "\nRunning gaudi-shell tests...\n"
 
 # Find all .bats files (bash 3.x compatible — no globstar or mapfile needed)

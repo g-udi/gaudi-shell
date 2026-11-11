@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 
+# @function     _gaudi-shell-update-components
+# @description  Brings the shared components in line with the framework files
+#               that are checked out: the component submodules at the commits
+#               they pin, then the enabled links repaired if the layout changed
+# @param $1     (optional) "missing": fetch the components only when they are
+#               not there, instead of moving them to the pinned commits
+# @example      ❯ _gaudi-shell-update-components
+function _gaudi-shell-update-components() {
+	# The checkout may have brought a newer version of these helpers: use it.
+	# shellcheck disable=SC1091
+	source "${GAUDI_SHELL}/lib/helpers/components.bash"
+
+	if [[ "${1:-}" != "missing" ]] || ! _gaudi-shell-component-submodules-present; then
+		if ! _gaudi-shell-update-component-submodules "${GAUDI_SHELL}" >/dev/null 2>&1; then
+			echo "Could not update the shared components. Check the network, then run: $(_gaudi-shell-component-submodules-command)"
+		fi
+	fi
+	_gaudi-shell-migrate-enabled-links
+}
+
 # @function     _gaudi-shell_update_and_restart
 # @description  Checks out the wanted version, pops directory and restart
 # @param $1     (optional) Which branch to checkout to
@@ -13,6 +33,7 @@ function _gaudi-shell_update_and_restart() {
 	# Called with the install directory pushed by _gaudi-shell-update: every
 	# path out of here pops it again, so the user is never left in there.
 	if git checkout "$1" &>/dev/null; then
+		_gaudi-shell-update-components
 		echo "gaudi-shell successfully updated."
 		popd &>/dev/null || return
 		_gaudi-shell-restart
@@ -44,7 +65,9 @@ function _gaudi-shell-update() {
 
 	pushd "${GAUDI_SHELL?}" >/dev/null || return
 
-	DIFF=$(git diff --name-status)
+	# A component submodule that sits on another commit than the pinned one is
+	# not a local change: the update moves it to the commit the new version pins.
+	DIFF=$(git diff --name-status --ignore-submodules=all)
 	if [[ -n "$DIFF" ]]; then
 		echo -e "Local changes detected in gaudi-shell directory. Clean '$GAUDI_SHELL' directory to proceed.\n$DIFF"
 		popd >/dev/null || return
@@ -128,6 +151,10 @@ function _gaudi-shell-update() {
 		else
 			echo "gaudi-shell is up to date, nothing to do!"
 		fi
+		# Nothing to check out, but an install that was updated by hand (or by
+		# a version from before the components became submodules) may still
+		# lack the shared components or carry links in the old layout.
+		_gaudi-shell-update-components missing
 	fi
 	popd >/dev/null || return
 }

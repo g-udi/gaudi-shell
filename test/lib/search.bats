@@ -41,7 +41,7 @@ local_setup() {
 	load_gaudi_libs colors
 	# Colours as on a colour terminal, whatever the test runs on
 	GREEN=$'\e[0;32m' CYAN=$'\e[0;36m' YELLOW=$'\e[0;33m' NC=$'\e[0m'
-	ln -s "../aliases/git.aliases.bash" "$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
+	ln -s "../aliases/lib/git.aliases.bash" "$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
 
 	run _gaudi-shell-search git --alias
 	assert_success
@@ -59,7 +59,7 @@ local_setup() {
 }
 
 @test "gaudi-shell search: --no-color prints plain text and marks enabled components" {
-	ln -s "../aliases/git.aliases.bash" "$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
+	ln -s "../aliases/lib/git.aliases.bash" "$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
 
 	run _gaudi-shell-search @git --alias --no-color
 	assert_success

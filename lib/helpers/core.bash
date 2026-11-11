@@ -74,9 +74,9 @@ _gaudi-shell-describe() {
 		local __file enabled_file component_name about_text
 		local -a __files
 		__files=()
-		for __file in "${GAUDI_SHELL}/components/$component/"*.bash; do
-			[[ -e "$__file" ]] && __files+=("$__file")
-		done
+		while IFS= read -r __file; do
+			[[ -n "$__file" ]] && __files+=("$__file")
+		done < <(_gaudi-shell-component-files "$component")
 		[[ ${#__files[@]} -gt 0 ]] || return 0
 
 		for __file in "${__files[@]}"; do

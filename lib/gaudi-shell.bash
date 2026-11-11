@@ -57,6 +57,7 @@ _gaudi-shell-verbs() {
 		"backup;;record the enabled components;;" \
 		"restore;;re-enable the components recorded by 'backup';;" \
 		"update;[stable|dev];update to the latest tag (stable, default) or the development branch;stable dev;" \
+		"migrate;;fetch the shared components if missing and repair enabled links left by an older layout;;" \
 		"doctor;[errors|warnings|all];reload with logging at the given level;errors warnings all;" \
 		"reload;;re-source your shell profile;;" \
 		"restart;;re-exec the shell;;" \
