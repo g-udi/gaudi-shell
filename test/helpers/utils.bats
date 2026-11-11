@@ -124,16 +124,19 @@ local_setup() {
 	assert_success
 	assert_output ""
 
+	# shellcheck disable=SC2034 # read by name inside _gaudi_host_setting
 	GAUDI_SHELL_HTTP_PROXY="http://shell:1"
 	run _gaudi_host_setting HTTP_PROXY
 	assert_output "http://shell:1"
 
+	# shellcheck disable=SC2034
 	GAUDI_HTTP_PROXY="http://neutral:2"
 	run _gaudi_host_setting HTTP_PROXY
 	assert_output "http://neutral:2"
 }
 
 @test "gaudi-shell helpers: utils: _gaudi_host_setting: refuses anything that is not a setting name" {
+	# shellcheck disable=SC2016 # the expansion must reach the function unexpanded
 	run _gaudi_host_setting 'X:-$(echo injected)'
 	assert_failure
 	assert_output ""
