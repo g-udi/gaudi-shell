@@ -10,9 +10,11 @@
 GAUDI_CHAR_PREFIX="${GAUDI_CHAR_PREFIX=""}"
 GAUDI_CHAR_SUFFIX="${GAUDI_CHAR_SUFFIX="$GAUDI_PROMPT_DEFAULT_SUFFIX"}"
 GAUDI_CHAR_SYMBOL="${GAUDI_CHAR_SYMBOL=">>"}"
-GAUDI_CHAR_COLOR_SUCCESS="${GAUDI_CHAR_COLOR_SUCCESS="\\[\${GAUDI_GREEN}\\]"}"
-GAUDI_CHAR_COLOR_FAILURE="${GAUDI_CHAR_COLOR_FAILURE="\\[\${GAUDI_RED}\\]"}"
-GAUDI_CHAR_COLOR_CLEAR="${GAUDI_CHAR_COLOR_CLEAR="\\[\${NC}\\]"}"
+# Plain colour values: segment text is never re-expanded by the shell, so the
+# old "\\[\${GAUDI_GREEN}\\]" form (which relied on PS1 expanding it) is not used.
+GAUDI_CHAR_COLOR_SUCCESS="${GAUDI_CHAR_COLOR_SUCCESS="$GAUDI_GREEN"}"
+GAUDI_CHAR_COLOR_FAILURE="${GAUDI_CHAR_COLOR_FAILURE="$GAUDI_RED"}"
+GAUDI_CHAR_COLOR_CLEAR="${GAUDI_CHAR_COLOR_CLEAR="$NC"}"
 
 # ------------------------------------------------------------------------------
 # Section

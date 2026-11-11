@@ -36,7 +36,7 @@ git clone https://github.com/g-udi/gaudi-shell.git ~/.gaudi-shell
 cd ~/.gaudi-shell && ./setup.sh
 ```
 
-The setup script backs up your existing shell config (to a `.bak` file), appends the gaudi-shell template to it or replaces it (it asks which), and enables a sane set of defaults (general aliases, base plugin, system and `gshell` completions).
+The setup script backs up your existing shell config (to a `.bak` file, or a timestamped `.bak.<date>` file when a backup already exists, so an earlier backup is never overwritten), appends the gaudi-shell template to it or replaces it (it asks which; `--silent` appends), and enables a sane set of defaults (general aliases, base plugin, system and `gshell` completions). Running it again is safe: a config file that already loads gaudi-shell is left unchanged.
 
 Options:
 
@@ -317,7 +317,7 @@ plugins:      chruby  ruby
 
 $ gshell search docker -machine
 aliases:      docker  docker-compose
-plugins:      boot2docker  docker  docker-compose
+plugins:      docker  docker-compose
 completions:  docker  docker-compose
 
 $ gshell search git --enable    # search and enable all matches

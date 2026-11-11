@@ -75,7 +75,10 @@ S () {
 
     [[ $# -eq 1 ]] || { echo "${FUNCNAME[0]} function requires 1 argument"; return 1; }
 
-    sed "/$*/d" ~/.dirs > ~/.dirs1;
+    # delete only the bookmark with this exact name (lines are name="path")
+    local name
+    name=$(printf '%s' "$1" | sed 's|[][\/.*^$]|\\&|g')
+    sed "/^${name}=/d" ~/.dirs > ~/.dirs1;
     \mv ~/.dirs1 ~/.dirs;
     echo "$*"=\""$(pwd)"\" >> ~/.dirs;
     source ~/.dirs ;
@@ -89,7 +92,10 @@ R () {
 
     [[ $# -eq 1 ]] || { echo "${FUNCNAME[0]} function requires 1 argument"; return 1; }
 
-    sed "/$*/d" ~/.dirs > ~/.dirs1;
+    # delete only the bookmark with this exact name (lines are name="path")
+    local name
+    name=$(printf '%s' "$1" | sed 's|[][\/.*^$]|\\&|g')
+    sed "/^${name}=/d" ~/.dirs > ~/.dirs1;
     \mv ~/.dirs1 ~/.dirs;
 }
 

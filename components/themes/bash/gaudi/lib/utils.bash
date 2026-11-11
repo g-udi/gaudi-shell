@@ -66,17 +66,39 @@ gaudi::section () {
 }
 
 # Load a segment definition once per shell session.
+# Must run in the shell that owns the prompt (not inside $(...)) for the
+# "loaded" flag to stick: gaudi::load_segments takes care of that.
 # USAGE:
 #   gaudi::load_segment <segment>
 gaudi::load_segment () {
   local segment="$1"
-  local loaded_var="GAUDI_SEGMENT_LOADED_$(echo "$segment" | tr -c 'a-zA-Z0-9_' '_')"
+  local loaded_var="GAUDI_SEGMENT_LOADED_${segment//[^a-zA-Z0-9_]/_}"
+  local _loaded=0
 
-  eval "local _loaded=\${${loaded_var}:-0}"
+  eval "_loaded=\${${loaded_var}:-0}"
   [[ "$_loaded" == 1 ]] && return 0
 
   source "$GAUDI_ROOT/segments/$segment.bash" || return 1
   eval "${loaded_var}=1"
+}
+
+# Load every segment named in GAUDI_PROMPT_LEFT/RIGHT/ASYNC, once.
+# Called from gaudi::init and at the top of gaudi::prompt; it returns
+# immediately unless the arrays changed since the last call, so the per-prompt
+# path never re-sources segment files.
+# USAGE:
+#   gaudi::load_segments
+gaudi::load_segments () {
+  local _signature="${GAUDI_PROMPT_LEFT[*]:-}|${GAUDI_PROMPT_RIGHT[*]:-}|${GAUDI_PROMPT_ASYNC[*]:-}"
+  [[ "$_signature" == "${_GAUDI_SEGMENTS_SIGNATURE:-}" ]] && return 0
+
+  local _segment
+  for _segment in ${GAUDI_PROMPT_LEFT[@]+"${GAUDI_PROMPT_LEFT[@]}"} \
+    ${GAUDI_PROMPT_RIGHT[@]+"${GAUDI_PROMPT_RIGHT[@]}"} \
+    ${GAUDI_PROMPT_ASYNC[@]+"${GAUDI_PROMPT_ASYNC[@]}"}; do
+    gaudi::load_segment "$_segment"
+  done
+  _GAUDI_SEGMENTS_SIGNATURE="$_signature"
 }
 
 # Render a single segment by name.
@@ -101,11 +123,21 @@ gaudi::render_segment () {
 gaudi::render_prompt () {
   local _prompt=""
   local info=""
+  local segment=""
+  local segment_function=""
+  local GAUDI_SYMBOL_ALT=""
   local _arr_name="${1%"[@]"}"
   eval "local _segments=(\"\${${_arr_name}[@]}\")"
   if [[ -n "${_segments[*]:-}" ]]; then
     for segment in "${_segments[@]}"; do
-      info="$(gaudi::render_segment "$segment")"
+      # Already loaded by gaudi::load_segments; this is only a fallback for
+      # callers that render without going through gaudi::prompt.
+      gaudi::load_segment "$segment" || continue
+      segment_function="gaudi_${segment}"
+      gaudi::defined "$segment_function" || continue
+
+      GAUDI_SYMBOL_ALT="$segment"
+      info="$("$segment_function")"
       [[ -n "${info}" ]] && _prompt+="$info"
     done
     printf "%s" "$_prompt"

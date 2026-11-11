@@ -36,6 +36,10 @@ function setup() {
 	rm -rf "$GAUDI_SHELL/tmp" "$GAUDI_SHELL/components/enabled"
 	mkdir -p "$GAUDI_SHELL/components/enabled"
 
+	# Tests start inside the sandbox copy, so a relative path such as
+	# ./setup.sh can never reach the repository the suite is run from.
+	cd "$GAUDI_SHELL" || return 1
+
 	local_setup
 }
 

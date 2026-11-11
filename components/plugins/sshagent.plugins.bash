@@ -14,33 +14,14 @@ _get_sshagent_pid_from_env_file () {
   | cut -d';' -f1
 }
 
-_get_process_status_field () {
-  # uses /proc filesystem
-  local \
-    pid \
-    status_file \
-    field
-  pid="${1}"
-  field="${2}"
-  status_file="/proc/${pid}/status"
-  if ! ([[ -d "${status_file%/*}" ]] \
-    && [[ -r "${status_file}" ]]); then
-    echo ""; return;
-  fi
-  grep "${field}:" "${status_file}" \
-  | cut -d':' -f2 \
-  | sed -e 's/[[:space:]]\+//g' \
-  | cut -d'(' -f1
-}
-
 _is_item_in_list () {
   local item
-  for item in "${@:1}"; do
+  for item in "${@:2}"; do
     if [[ "${item}" == "${1}" ]]; then
-      return 1
+      return 0
     fi
   done
-  return 0
+  return 1
 }
 
 
@@ -52,11 +33,15 @@ _is_proc_alive_at_pid () {
     actual_state
   pid="${1?}"
   expected_name="ssh-agent"
+  # kill -0 and ps work on both Linux and macOS (there is no /proc on macOS)
+  kill -0 "${pid}" 2> /dev/null || return 1
+  # the pid may have been reused: make sure it still is an ssh-agent
+  actual_name=$(ps -p "${pid}" -o comm= 2> /dev/null)
+  actual_name="${actual_name##*/}"
+  [[ "${actual_name%% *}" == "${expected_name}" ]] || return 1
   # we want to exclude: X (killed), T (traced), Z (zombie)
-  actual_name=$(_get_process_status_field "${pid}" "Name")
-  [[ "${expected_name}" == "${actual_name}" ]] || return 1
-  actual_state=$(_get_process_status_field "${pid}" "State")
-  if _is_item_in_list "${actual_state}" "X" "T" "Z"; then
+  actual_state=$(ps -p "${pid}" -o stat= 2> /dev/null)
+  if _is_item_in_list "${actual_state:0:1}" "X" "T" "Z"; then
     return 1
   fi
   return 0

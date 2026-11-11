@@ -21,9 +21,9 @@ _gaudi-shell-component-cache-clean() {
 			_gaudi-shell-component-cache-clean "${component}"
 		done
 	else
+		# Both lists are dropped unconditionally: "show <type> enabled" writes the
+		# "-enabled" file without the other one having to exist.
 		cache=$(_gaudi-shell-component-cache-add "${component}")
-		if [[ -f "${cache}" ]]; then
-			rm -f "${cache}" && rm -f "${cache}-enabled"
-		fi
+		rm -f "${cache}" "${cache}-enabled"
 	fi
 }

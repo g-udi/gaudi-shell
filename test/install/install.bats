@@ -24,8 +24,13 @@ local_setup() {
 
 @test "gaudi-shell install: run the install script silently by skipping prompts" {
 
+	# Without this the relative path below would be the setup script of the
+	# repository under test, and it would enable components in that checkout.
+	cd "$GAUDI_SHELL"
+
 	run ./setup.sh --silent --shell bash
 	[[ -z $output ]]
+	assert_file_exist "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
 }
 
 @test "gaudi-shell install: run the install script silently and check that config file exists" {
@@ -63,6 +68,8 @@ local_setup() {
 
 	cd "$GAUDI_SHELL" || exit
 
+	# HOME is shared by the tests of this file: start without older backups
+	rm -f "$HOME/$GAUDI_SHELL_PROFILE.bak" "$HOME/$GAUDI_SHELL_PROFILE.bak".*
 	touch "$HOME/$GAUDI_SHELL_PROFILE"
 	echo "test file content" >"$HOME/$GAUDI_SHELL_PROFILE"
 	md5_orig=$(md5sum "$HOME/$GAUDI_SHELL_PROFILE" | awk '{print $1}')
@@ -93,6 +100,10 @@ local_setup() {
 @test "gaudi-shell install: sourced setup resolves the setup script directory" {
 
 	local wrapper="$BATS_TEST_TMPDIR/source-setup.sh"
+
+	# A profile left by an earlier test already loads gaudi-shell and would be
+	# kept as it is; this test is about a first installation.
+	rm -f "$HOME/$GAUDI_SHELL_PROFILE"
 
 	cat >"$wrapper" <<WRAPPER
 #!/usr/bin/env bash
@@ -143,4 +154,104 @@ GIT
 	assert_success
 	run grep -F "source \"\$GAUDI_SHELL/adapters/zsh/init.zsh\"" "$install_home/.zshrc"
 	assert_success
+}
+
+@test "gaudi-shell install: silent setup appends to an existing config and keeps its content" {
+
+	local home="$BATS_TEST_TMPDIR/home"
+	mkdir -p "$home"
+	echo "export KEEP_ME=1" >"$home/$GAUDI_SHELL_PROFILE"
+
+	cd "$GAUDI_SHELL"
+	run env HOME="$home" ./setup.sh --silent --shell bash
+	assert_success
+
+	run cat "$home/$GAUDI_SHELL_PROFILE"
+	assert_line --index 0 "export KEEP_ME=1"
+	assert_line "export GAUDI_SHELL=\"$GAUDI_SHELL\""
+	assert_line "source \"\$GAUDI_SHELL/adapters/bash/init.bash\""
+
+	run cat "$home/$GAUDI_SHELL_PROFILE.bak"
+	assert_output "export KEEP_ME=1"
+}
+
+@test "gaudi-shell install: running setup twice changes nothing the second time" {
+
+	local home="$BATS_TEST_TMPDIR/home"
+	local first_run
+	mkdir -p "$home"
+	echo "export KEEP_ME=1" >"$home/$GAUDI_SHELL_PROFILE"
+
+	cd "$GAUDI_SHELL"
+	env HOME="$home" ./setup.sh --silent --shell bash
+	first_run="$(cat "$home/$GAUDI_SHELL_PROFILE")"
+
+	run env HOME="$home" ./setup.sh --silent --shell bash
+	assert_success
+
+	# Not appended again
+	assert_equal "$(cat "$home/$GAUDI_SHELL_PROFILE")" "$first_run"
+	run grep -c "adapters/bash/init.bash" "$home/$GAUDI_SHELL_PROFILE"
+	assert_output "1"
+
+	# The backup still holds the original file and no other backup was made
+	run cat "$home/$GAUDI_SHELL_PROFILE.bak"
+	assert_output "export KEEP_ME=1"
+	run find "$home" -name "$GAUDI_SHELL_PROFILE.bak.*"
+	assert_output ""
+}
+
+@test "gaudi-shell install: an existing backup is never overwritten" {
+
+	local home="$BATS_TEST_TMPDIR/home"
+	local backups
+	mkdir -p "$home"
+	echo "current config" >"$home/$GAUDI_SHELL_PROFILE"
+	echo "precious original" >"$home/$GAUDI_SHELL_PROFILE.bak"
+
+	cd "$GAUDI_SHELL"
+	run env HOME="$home" ./setup.sh --silent --shell bash
+	assert_success
+
+	run cat "$home/$GAUDI_SHELL_PROFILE.bak"
+	assert_output "precious original"
+
+	# The file as it was before this run went to a timestamped backup
+	backups="$(find "$home" -name "$GAUDI_SHELL_PROFILE.bak.*")"
+	assert [ -n "$backups" ]
+	run cat "$backups"
+	assert_output "current config"
+}
+
+@test "gaudi-shell install: answering no replaces the config but keeps a backup" {
+
+	local home="$BATS_TEST_TMPDIR/home"
+	mkdir -p "$home"
+	echo "export KEEP_ME=1" >"$home/$GAUDI_SHELL_PROFILE"
+
+	cd "$GAUDI_SHELL"
+	run env HOME="$home" ./setup.sh --shell bash <<<"n"
+	assert_success
+
+	run grep -c "KEEP_ME" "$home/$GAUDI_SHELL_PROFILE"
+	assert_output "0"
+	run grep -c "adapters/bash/init.bash" "$home/$GAUDI_SHELL_PROFILE"
+	assert_output "1"
+	run cat "$home/$GAUDI_SHELL_PROFILE.bak"
+	assert_output "export KEEP_ME=1"
+}
+
+@test "gaudi-shell install: setup does not loop or replace the config when the question cannot be answered" {
+
+	local home="$BATS_TEST_TMPDIR/home"
+	mkdir -p "$home"
+	echo "export KEEP_ME=1" >"$home/$GAUDI_SHELL_PROFILE"
+
+	cd "$GAUDI_SHELL"
+	run env HOME="$home" ./setup.sh --shell bash </dev/null
+	assert_success
+
+	run cat "$home/$GAUDI_SHELL_PROFILE"
+	assert_line --index 0 "export KEEP_ME=1"
+	assert_line "source \"\$GAUDI_SHELL/adapters/bash/init.bash\""
 }

@@ -134,7 +134,9 @@ function _git-upstream-branch-gone() {
 }
 
 function _git-status() {
-	local -a git_status_flags=("--porcelain")
+	# --branch adds a leading "## ..." header line, which carries the upstream
+	# "[gone]" marker, so one git status call serves both the counts and that.
+	local -a git_status_flags=("--porcelain" "--branch")
 
 	if [[ "${GAUDI_SCM_GIT_IGNORE_UNTRACKED:-}" == "true" ]]; then
 		git_status_flags+=("-uno")
@@ -151,6 +153,7 @@ function _git-status-counts() {
 	local num_changed=0
 	local num_staged=0
 	local num_conflicted=0
+	local upstream_gone=0
 	local status_line=""
 	local staged_status=""
 	local changed_status=""
@@ -159,6 +162,10 @@ function _git-status-counts() {
 		[[ -z "$status_line" ]] && continue
 
 		case "$status_line" in
+			'## '*)
+				[[ "$status_line" == *' [gone]' ]] && upstream_gone=1
+				continue
+				;;
 			'?? '*)
 				num_untracked=$((num_untracked + 1))
 				continue
@@ -176,7 +183,7 @@ function _git-status-counts() {
 		[[ "$changed_status" != " " ]] && num_changed=$((num_changed + 1))
 	done < <(_git-status)
 
-	printf '%s\t%s\t%s\t%s' "$num_untracked" "$num_changed" "$num_staged" "$num_conflicted"
+	printf '%s\t%s\t%s\t%s\t%s' "$num_untracked" "$num_changed" "$num_staged" "$num_conflicted" "$upstream_gone"
 }
 
 _git-remote-info () {
@@ -258,6 +265,8 @@ git_prompt_vars () {
 	local num_changed=0
 	local num_staged=0
 	local num_conflicted=0
+	local upstream_gone=0
+	local remote_info=""
 	local git_operation=""
 	local working_tree_dirty=false
 
@@ -266,7 +275,8 @@ git_prompt_vars () {
 
   if _git-branch &> /dev/null; then
     GAUDI_SCM_BRANCH="$(_git-friendly-ref)"
-    [[ -n "$(_git-remote-info)" ]] && GAUDI_SCM_BRANCH+=" → $(_git-remote-info)"
+    remote_info="$(_git-remote-info)"
+    [[ -n "$remote_info" ]] && GAUDI_SCM_BRANCH+=" → $remote_info"
   else
 	local detached_prefix
 		if _git-tag &> /dev/null; then
@@ -277,10 +287,13 @@ git_prompt_vars () {
 		GAUDI_SCM_BRANCH="${detached_prefix}$(_git-friendly-ref)"
   fi
 
+  # One git status for both the counts and the upstream "[gone]" marker.
+  IFS=$'\t' read -r num_untracked num_changed num_staged num_conflicted upstream_gone < <(_git-status-counts)
+
   IFS=$'\t' read -r commits_behind commits_ahead <<< "$(_git-upstream-behind-ahead)"
   [[ "${commits_ahead:-0}" -gt 0 ]] && GAUDI_SCM_BRANCH+=" ${GAUDI_SCM_GIT_AHEAD_CHAR}${commits_ahead}"
   [[ "${commits_behind:-0}" -gt 0 ]] && GAUDI_SCM_BRANCH+=" ${GAUDI_SCM_GIT_BEHIND_CHAR}${commits_behind}"
-  _git-upstream-branch-gone && GAUDI_SCM_BRANCH+=" ${GAUDI_SCM_GIT_GONE_CHAR}"
+  [[ "${upstream_gone:-0}" == 1 ]] && GAUDI_SCM_BRANCH+=" ${GAUDI_SCM_GIT_GONE_CHAR}"
 
   git_operation="$(_git-operation 2> /dev/null || true)"
   [[ -n "${git_operation}" ]] && GAUDI_SCM_BRANCH+=" ${git_operation}"
@@ -289,8 +302,6 @@ git_prompt_vars () {
   [[ "${stash_count:-0}" -gt 0 ]] && GAUDI_SCM_BRANCH+=" ${GAUDI_SCM_GIT_STASH_CHAR}${stash_count}"
 
   GAUDI_SCM_STATE=${GIT_THEME_PROMPT_CLEAN:-$GAUDI_SCM_THEME_PROMPT_CLEAN}
-
-  IFS=$'\t' read -r num_untracked num_changed num_staged num_conflicted < <(_git-status-counts)
 
   if [[ "${num_staged}" -gt 0 || "${num_changed}" -gt 0 || "${num_untracked}" -gt 0 || "${num_conflicted}" -gt 0 ]]; then
     working_tree_dirty=true

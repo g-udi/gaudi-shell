@@ -98,9 +98,11 @@ _gaudi-shell-show-usage() {
 _gaudi-shell-backup() {
 	mkdir -p "${GAUDI_SHELL}/tmp"
 	echo -n "" >"${GAUDI_SHELL}/tmp/enabled.gaudi-shell.backup"
+	# Declared once, outside the loop: zsh prints "name=value" when an already
+	# set variable is re-declared with a bare `local`.
+	local _file _component _type
 	for _file in "${GAUDI_SHELL}"/components/enabled/*.bash; do
 		[[ ! -e "$_file" ]] && continue
-		local _component _type
 		_component="${_file##*"$GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR"}"
 		_component="${_component%.bash}"
 		_type=$(_gaudi-shell-singularize-component "${_component##*.}")

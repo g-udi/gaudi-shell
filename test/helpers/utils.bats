@@ -56,3 +56,38 @@ local_setup() {
 	run _array-dedupe "${a[@]}" "${b[@]}"
 	assert_output "apple apricot orange pear"
 }
+
+@test "gaudi-shell helpers: utils: _read_input: should accept yes" {
+	run _read_input "Sure? [yY/nN]" <<<"y"
+	assert_success
+	assert_output --partial "Sure? [yY/nN]"
+}
+
+@test "gaudi-shell helpers: utils: _read_input: should return non-zero for no" {
+	run _read_input "Sure? [yY/nN]" <<<"N"
+	assert_failure 1
+}
+
+@test "gaudi-shell helpers: utils: _read_input: should ask again after an invalid answer" {
+	run _read_input "Sure?" < <(printf '%s\n' "maybe" "Y")
+	assert_success
+}
+
+@test "gaudi-shell helpers: utils: _read_input: should set REPLY to the answer" {
+	_read_input "Sure?" <<<"y" >/dev/null
+	assert_equal "$REPLY" "y"
+}
+
+@test "gaudi-shell helpers: utils: _read_input: should stop instead of looping when nothing can be read" {
+	run _read_input "Sure?" </dev/null
+	assert_failure 2
+
+	# An invalid answer followed by end of input ends the loop as well
+	run _read_input "Sure?" <<<"maybe"
+	assert_failure 2
+
+	local status_code=0
+	_read_input "Sure?" </dev/null >/dev/null || status_code=$?
+	assert_equal "$status_code" 2
+	assert_equal "$REPLY" ""
+}

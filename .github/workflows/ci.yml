@@ -32,7 +32,8 @@ jobs:
       if: startsWith(runner.os, 'Linux')
       run: |
         sudo apt-get update
-        sudo apt-get install -y parallel
+        # zsh is needed by test/adapters/zsh.bats (skipped when it is missing)
+        sudo apt-get install -y parallel zsh
 
     - name: Run tests (Linux)
       if: startsWith(runner.os, 'Linux')
