@@ -57,7 +57,7 @@ The prompt character (`>>`) appears on the line below, in green. In zsh the righ
 
 Many segments -- particularly SCM, language runtimes, and cloud profiles -- shell out to external commands (`git`, `node`, `docker`, `aws`, etc.). In gaudi-shell every zone is rendered synchronously when the prompt hook fires, in both bash and zsh, so the prompt always reflects the current state; `GAUDI_PROMPT_ASYNC` is simply the zone appended after `GAUDI_PROMPT_LEFT`. Keep that array short, or disable segments you do not need with their `_SHOW` variable, if the prompt feels slow.
 
-The file-backed background pipeline from gaudi-bash (per-segment cache files, a background worker and an in-place redraw) is not part of the theme. The only remnant is per-shell state under `${XDG_CACHE_HOME:-$HOME/.cache}/gaudi-bash/theme/gaudi/state`: a prompt counter and the last rendered left and right zones, which the theme writes on every prompt and nothing reads.
+The file-backed background pipeline from gaudi-bash (per-segment cache files, a background worker and an in-place redraw) is not part of the theme. The theme writes nothing to disk when it draws the prompt.
 
 ## Available Segments
 
