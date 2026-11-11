@@ -40,83 +40,6 @@ gaudi::write_atomic () {
   mv "$tmp_file" "$file"
 }
 
-gaudi::read_file () {
-  local file="$1"
-  local content=""
-
-  [[ -e "$file" ]] || return 1
-
-  content="$(<"$file")"
-  printf "%s" "$content"
-}
-
-gaudi::hash_string () {
-  local checksum=""
-  local remainder=""
-
-  IFS=' ' read -r checksum remainder < <(printf "%s" "$1" | cksum)
-  printf "%s" "$checksum"
-}
-
-gaudi::async_segment_scope () {
-  case "$1" in
-    aws|kubecontext)
-      printf "%s" "global"
-      ;;
-    *)
-      printf "%s" "directory"
-      ;;
-  esac
-}
-
-gaudi::async_segment_cache_file () {
-  local segment="$1"
-  local segment_scope=""
-  local scope_key=""
-  local scope_target="${2:-$PWD}"
-
-  segment_scope="$(gaudi::async_segment_scope "$segment")"
-  if [[ "$segment_scope" == "global" ]]; then
-    scope_key="global"
-  else
-    scope_key="$(gaudi::hash_string "$scope_target")"
-  fi
-
-  printf "%s/%s--%s.cache" "$GAUDI_THEME_ASYNC_CACHE_DIR" "$segment" "$scope_key"
-}
-
-gaudi::render_cached_async_prompt () {
-  local prompt=""
-  local segment=""
-  local cache_file=""
-  local _arr="${1%"[@]"}"; eval "local segments=(\"\${${_arr}[@]}\")"
-
-  for segment in "${segments[@]}"; do
-    cache_file="$(gaudi::async_segment_cache_file "$segment")"
-    [[ -e "$cache_file" ]] || continue
-    prompt+="$(gaudi::read_file "$cache_file")"
-  done
-
-  printf "%s" "$prompt"
-}
-
-gaudi::prime_global_async_segments () {
-  local segment=""
-  local cache_file=""
-  local output=""
-  local _arr="${1%"[@]"}"; eval "local segments=(\"\${${_arr}[@]}\")"
-
-  for segment in "${segments[@]}"; do
-    [[ "$(gaudi::async_segment_scope "$segment")" == "global" ]] || continue
-
-    cache_file="$(gaudi::async_segment_cache_file "$segment")"
-    [[ -e "$cache_file" ]] && continue
-
-    output="$(gaudi::render_segment "$segment")"
-    gaudi::write_atomic "$cache_file" "$output"
-  done
-}
-
 gaudi::current_generation () {
   local current_generation="0"
 
@@ -125,10 +48,6 @@ gaudi::current_generation () {
   fi
 
   printf "%s" "${current_generation:-0}"
-}
-
-gaudi::generation_matches () {
-  [[ "$(gaudi::current_generation)" == "$1" ]]
 }
 
 gaudi::next_generation () {
@@ -145,82 +64,6 @@ gaudi::next_generation () {
 gaudi::store_prompt_state () {
   gaudi::write_atomic "$GAUDI_THEME_LEFT_PROMPT_FILE" "$1" || return 1
   gaudi::write_atomic "$GAUDI_THEME_RIGHT_PROMPT_FILE" "$2"
-}
-
-gaudi::redraw_prompt () {
-  # In zsh, skip manual redraw — cached segments are picked up on next precmd.
-  # GAUDI_ASYNC_NO_REDRAW is set when workers are launched from a zsh parent,
-  # so bash workers don't do tput cursor manipulation that corrupts zsh's display.
-  [[ -n "${ZSH_VERSION:-}" || -n "${GAUDI_ASYNC_NO_REDRAW:-}" ]] && return 0
-
-  local async_prompt=""
-  local left_prompt=""
-  local right_prompt=""
-
-  left_prompt="$(gaudi::read_file "$GAUDI_THEME_LEFT_PROMPT_FILE")" || return 0
-  right_prompt="$(gaudi::read_file "$GAUDI_THEME_RIGHT_PROMPT_FILE")" || return 0
-  async_prompt="$(gaudi::render_cached_async_prompt GAUDI_PROMPT_ASYNC[@])"
-
-  tput sc
-  tput cuu1
-  tput cuu1
-  if [[ $GAUDI_SPLIT_PROMPT == false ]]; then
-    printf "\r%b%b%b" "$right_prompt" "$left_prompt" "$async_prompt"
-  else
-    printf "\r%b%b" "$left_prompt" "$async_prompt"
-  fi
-  tput rc
-}
-
-gaudi::refresh_async_segment () {
-  local segment="$1"
-  local generation="$2"
-  local cache_file=""
-  local temp_file=""
-  local fresh_output=""
-  local had_cache=false
-
-  cache_file="$(gaudi::async_segment_cache_file "$segment")"
-  fresh_output="$(gaudi::render_segment "$segment")"
-
-  gaudi::generation_matches "$generation" || return 0
-  [[ -e "$cache_file" ]] && had_cache=true
-
-  temp_file="$(mktemp "${GAUDI_THEME_STATE_DIR}/${segment}.XXXXXX")" || return 1
-  printf "%s" "$fresh_output" > "$temp_file" || {
-    rm -f "$temp_file"
-    return 1
-  }
-
-  if [[ -e "$cache_file" ]] && cmp -s "$temp_file" "$cache_file"; then
-    rm -f "$temp_file"
-    return 0
-  fi
-
-  gaudi::generation_matches "$generation" || {
-    rm -f "$temp_file"
-    return 0
-  }
-
-  mv "$temp_file" "$cache_file"
-
-  gaudi::generation_matches "$generation" || return 0
-  if [[ -n "$fresh_output" || "$had_cache" == true ]]; then
-    gaudi::redraw_prompt
-  fi
-}
-
-gaudi::launch_async_segment_jobs () {
-  local generation="$1"
-  local segment=""
-  local _arr="${2%"[@]"}"; eval "local segments=(\"\${${_arr}[@]}\")"
-
-  for segment in "${segments[@]}"; do
-    GAUDI_THEME_SHELL_ID="$GAUDI_THEME_SHELL_ID" \
-      GAUDI_SHELL="$GAUDI_SHELL" \
-      GAUDI_ASYNC_NO_REDRAW="${ZSH_VERSION:+1}" \
-      bash "$GAUDI_ROOT/lib/async_segment_worker.bash" "$segment" "$generation"
-  done
 }
 
 gaudi::register_prompt_hook () {

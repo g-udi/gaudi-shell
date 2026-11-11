@@ -53,7 +53,7 @@ _gaudi-shell-zsh-comp() {
 			fi
 			;;
 		update)
-			compadd -- stable dev all
+			compadd -- stable dev
 			;;
 		reload | restart | search | version | backup | restore)
 			;;

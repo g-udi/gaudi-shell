@@ -176,6 +176,7 @@ gshell enable alias all              # enable all aliases
 gshell disable plugin nvm            # disable the nvm plugin
 gshell disable alias all             # disable all aliases
 
+gshell help                          # show the command usage
 gshell help aliases                  # show help for enabled aliases
 gshell help plugins                  # show functions defined by enabled plugins
 
@@ -298,6 +299,8 @@ The `duration` segment of the gaudi theme displays how long the last command too
 ```bash
 export GAUDI_SHELL_COMMAND_DURATION=true
 ```
+
+Set it before the line that sources the gaudi-shell adapter. The timer starts when a command is run and is reset once the prompt has been drawn: zsh uses its own `preexec`/`precmd` hooks, bash uses [bash-preexec](https://github.com/rcaloras/bash-preexec) when it is loaded and a `DEBUG` trap plus `PROMPT_COMMAND` otherwise. In bash, a `DEBUG` trap that is already set is left alone, and one set later (by a plugin such as `cmd-returned-notify`, for example) replaces the timer's.
 
 | Variable | Default | Description |
 |---|---|---|

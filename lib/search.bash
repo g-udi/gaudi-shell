@@ -6,42 +6,45 @@
 # @description  returns list of aliases, plugins and completions in gaudi-shell
 #               name or description should match one of the search terms provided as arguments
 # @usage:
-#    ❯ gaudi-shell search [-|@]term1 [-|@]term2 ... \
-#       [[ --enable   | -e ]] \
-#       [[ --disable  | -d ]] \
-#       [[ --no-color | -c ]] \
-#       [[ --refresh  | -r ]] \
-#       [[ --help     | -h ]]
+#    ❯ gshell search [-|@]term1 [-|@]term2 ... \
+#       [[ --enable ]] \
+#       [[ --disable ]] \
+#       [[ --plugin     | -p ]] \
+#       [[ --alias      | -a ]] \
+#       [[ --completion | -c ]] \
+#       [[ --no-color   | -x ]] \
+#       [[ --refresh    | -r ]] \
+#       [[ --help       | -h ]]
 #
 #    Single dash, as in "-chruby", indicates a negative search term.
-#    Double dash indicates a command that is to be applied to the search result.
-#    At the moment only --help, --enable and --disable are supported.
+#    Double dash indicates a command that is to be applied to the search result
+#    (--enable and --disable have no short form).
 #    An '@' sign indicates an exact (not partial) match.
 #
 # @example
-#    ❯ gaudi-shell search ruby rbenv rvm gem rake
+#    ❯ gshell search ruby rbenv rvm gem rake
 #          aliases:  bundler
 #          plugins:  chruby rbenv ruby rvm
 #      completions:  gem rake rvm
 #
-#    ❯ gaudi-shell search ruby rbenv rvm gem rake -chruby
+#    ❯ gshell search ruby rbenv rvm gem rake -chruby
 #          aliases:  bundler
 #          plugins:  rbenv ruby rvm
 #      completions:  gem rake rvm
 #
 # Examples of enabling or disabling results of the search:
 #
-#    ❯ gaudi-shell search ruby
+#    ❯ gshell search ruby
 #          aliases:  bundler
 #          plugins:  chruby chruby-auto ruby
 #
-#    ❯ gaudi-shell search ruby -chruby --enable
+#    ❯ gshell search ruby -chruby --enable
 #          aliases:  bundler
 #          plugins:  ruby
 #
 # Examples of using exact match:
 #
-#    ❯ gaudi-shell search @git @ruby
+#    ❯ gshell search @git @ruby
 #          aliases:  git
 #          plugins:  git ruby
 #      completions:  git
@@ -253,16 +256,19 @@ _gaudi-shell-search-help() {
 
 ${YELLOW}USAGE${NC}
 
-   gaudi-shell search [-|@]term1 [-|@]term2 ... \\
-     [[ --enable   | -e ]] \\
-     [[ --disable  | -d ]] \\
-     [[ --no-color | -c ]] \\
-     [[ --refresh  | -r ]] \\
-     [[ --help     | -h ]]
+   gshell search [-|@]term1 [-|@]term2 ... \\
+     [[ --enable ]] \\
+     [[ --disable ]] \\
+     [[ --plugin     | -p ]] \\
+     [[ --alias      | -a ]] \\
+     [[ --completion | -c ]] \\
+     [[ --no-color   | -x ]] \\
+     [[ --refresh    | -r ]] \\
+     [[ --help       | -h ]]
 
 ${YELLOW}DESCRIPTION${NC}
 
-   Use ${GREEN}search${NC} gaudi-shell command to search for a list of terms or term negations
+   Use the ${GREEN}gshell search${NC} command to search for a list of terms or term negations
    across all components: aliases, completions and plugins. Components that are
    enabled are shown in green (or with a check box if --no-color option is used).
 
@@ -280,27 +286,30 @@ ${YELLOW}DESCRIPTION${NC}
         eg. '@git' would only match aliases, plugins and completions named 'git'.
 
 ${YELLOW}FLAGS${NC}
-   --enable   | -e    ${MAGENTA}Enable all matching componenents${NC}
-   --disable  | -d    ${MAGENTA}Disable all matching componenents${NC}
-   --help     | -h    ${MAGENTA}Print this help${NC}
-   --refresh  | -r    ${MAGENTA}Force a refresh of the search cache${NC}
-   --no-color | -c    ${MAGENTA}Disable color output and use monochrome text${NC}
+   --enable             ${MAGENTA}Enable all matching components${NC}
+   --disable            ${MAGENTA}Disable all matching components${NC}
+   --plugin     | -p    ${MAGENTA}Search plugins only${NC}
+   --alias      | -a    ${MAGENTA}Search aliases only${NC}
+   --completion | -c    ${MAGENTA}Search completions only${NC}
+   --help       | -h    ${MAGENTA}Print this help${NC}
+   --refresh    | -r    ${MAGENTA}Force a refresh of the search cache${NC}
+   --no-color   | -x    ${MAGENTA}Disable color output and use monochrome text${NC}
 
 ${YELLOW}EXAMPLES${NC}
 
-   For example, ${GREEN}gaudi-shell search git${NC} would match any alias, completion
+   For example, ${GREEN}gshell search git${NC} would match any alias, completion
    or plugin that has the word 'git' in either the module name or
    it's description. You should see something like this when you run this
    command:
 
-         ${GREEN}❯ gaudi-shell search git${NC}
+         ${GREEN}❯ gshell search git${NC}
                ${YELLOW}aliases:  ${GREEN}git ${NC}gitsvn
                ${YELLOW}plugins:  ${NC}autojump ${GREEN}git ${NC}git-subrepo jgitflow jump
            ${YELLOW}completions:  ${GREEN}git ${NC}git_flow git_flow_avh${NC}
 
    You can exclude some terms by prefixing a term with a minus, eg:
 
-         ${GREEN}❯ gaudi-shell search git -flow -svn${NC}
+         ${GREEN}❯ gshell search git -flow -svn${NC}
                ${YELLOW}aliases:  ${NC}git
                ${YELLOW}plugins:  ${NC}autojump git git-subrepo jump
            ${YELLOW}completions:  ${NC}git${NC}
@@ -309,7 +318,7 @@ ${YELLOW}EXAMPLES${NC}
    match. Note, that we also pass the '--enable' flag, which would ensure
    that all matches are automatically enabled. The example is below:
 
-         ${GREEN}❯ gaudi-shell search @git --enable${NC}
+         ${GREEN}❯ gshell search @git --enable${NC}
                ${YELLOW}aliases:  ${NC}git
                ${YELLOW}plugins:  ${NC}git
            ${YELLOW}completions:  ${NC}git${NC}

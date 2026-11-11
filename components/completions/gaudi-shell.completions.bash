@@ -76,7 +76,7 @@ if [[ -n "${BASH_VERSION:-}" ]]; then
 				fi
 				;;
 			update)
-				COMPREPLY=($(compgen -W "stable dev all" -- "${current}"))
+				COMPREPLY=($(compgen -W "stable dev" -- "${current}"))
 				;;
 			reload | restart | search | version | backup | restore)
 				;;

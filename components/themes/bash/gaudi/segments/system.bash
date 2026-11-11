@@ -1,13 +1,14 @@
 #
 # System
 #
-# Get System stats e.g., CPU count, load, memory usage
+# Show system stats (CPU load, free memory, disk usage).
+# The theme does not collect these itself: the segment renders whatever is in
+# GAUDI_CPU_LOAD, GAUDI_MEMORY_FREE and GAUDI_HDD_USAGE, and nothing when they
+# are unset.
 
 # ------------------------------------------------------------------------------
 # Configuration
 # ------------------------------------------------------------------------------
-
-source "$GAUDI_ROOT/lib/sysstat.bash"
 
 GAUDI_SYSTEM_SHOW="${GAUDI_SYSTEM_SHOW=true}"
 GAUDI_SYSTEM_PREFIX="${GAUDI_SYSTEM_PREFIX="$GAUDI_PROMPT_DEFAULT_PREFIX"}"

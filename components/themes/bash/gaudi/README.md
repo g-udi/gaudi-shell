@@ -57,7 +57,7 @@ The prompt character (`>>`) appears on the line below, in green. In zsh the righ
 
 Many segments -- particularly SCM, language runtimes, and cloud profiles -- shell out to external commands (`git`, `node`, `docker`, `aws`, etc.). In gaudi-shell every zone is rendered synchronously when the prompt hook fires, in both bash and zsh, so the prompt always reflects the current state; `GAUDI_PROMPT_ASYNC` is simply the zone appended after `GAUDI_PROMPT_LEFT`. Keep that array short, or disable segments you do not need with their `_SHOW` variable, if the prompt feels slow.
 
-The file-backed background pipeline from gaudi-bash (per-segment cache files under `${XDG_CACHE_HOME:-$HOME/.cache}/gaudi-bash/theme/gaudi`, a generation guard and `lib/async_segment_worker.bash`) is still present in the theme code but is not started by the prompt.
+The file-backed background pipeline from gaudi-bash (per-segment cache files, a background worker and an in-place redraw) is not part of the theme. The only remnant is per-shell state under `${XDG_CACHE_HOME:-$HOME/.cache}/gaudi-bash/theme/gaudi/state`: a prompt counter and the last rendered left and right zones, which the theme writes on every prompt and nothing reads.
 
 ## Available Segments
 
@@ -74,7 +74,7 @@ The file-backed background pipeline from gaudi-bash (per-segment cache files und
 | `multiplexer` | Detached tmux and GNU Screen session counts. |
 | `separator` | Inserts a newline to split the prompt across multiple lines. |
 | `shlvl` | Current shell nesting level (`SHLVL`). Useful for detecting nested shells spawned from editors or nix-shell. Only shown when depth reaches a threshold (default: 2). |
-| `system` | System statistics: CPU load, memory usage, and disk usage. |
+| `system` | System statistics: CPU load, free memory, and disk usage. The theme does not collect them: the segment shows the values of `GAUDI_CPU_LOAD`, `GAUDI_MEMORY_FREE` and `GAUDI_HDD_USAGE` when you set them, and nothing otherwise. |
 | `time` | Current time in a configurable format (default: `HH:MM`). |
 | `user` | Username. Visibility can be set to `always`, `true` (show if needed or on SSH), `needed`, or `false`. Root users are highlighted in red. |
 | `battery` | Battery level and charging status with threshold-based visibility. |
@@ -125,7 +125,7 @@ The file-backed background pipeline from gaudi-bash (per-segment cache files und
 | `gradle` | Gradle version. Shown in directories containing Gradle project files. |
 | `maven` | Maven version. Shown in directories containing `pom.xml`. |
 | `package` | Current package version from `package.json` (NPM). |
-| `xcode` | Xcode version on macOS via xcenv. Supports local-only or global display. |
+| `xcode` | Xcode version on macOS via xcenv. Shown when a local `.xcode-version` applies (`GAUDI_XCODE_SHOW_LOCAL`, default `true`), or always with `GAUDI_XCODE_SHOW_GLOBAL=true`. |
 
 ### Frontend Frameworks
 

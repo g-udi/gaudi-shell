@@ -128,7 +128,7 @@ _complete_at() {
 	assert_success
 	assert_output --partial "stable"
 	assert_output --partial "dev"
-	assert_output --partial "all"
+	refute_output --partial "all"
 }
 
 # --- no-arg commands ---

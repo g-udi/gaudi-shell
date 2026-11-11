@@ -26,9 +26,9 @@ gaudi_xcode () {
 
   local 'xcode_path'
 
-  if [[ $GAUDI_SWIFT_SHOW_GLOBAL == true ]] ; then
+  if [[ $GAUDI_XCODE_SHOW_GLOBAL == true ]] ; then
     xcode_path=$(xcenv version | sed 's/ .*//')
-  elif [[ $GAUDI_SWIFT_SHOW_LOCAL == true ]] ; then
+  elif [[ $GAUDI_XCODE_SHOW_LOCAL == true ]] ; then
     if xcenv version | grep ".xcode-version" > /dev/null; then
       xcode_path=$(xcenv version | sed 's/ .*//')
     fi
