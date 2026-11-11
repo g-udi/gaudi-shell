@@ -96,12 +96,14 @@ function _gaudi-shell-update() {
 			echo "Updating to ${TARGET}($(git log -1 --format=%h "${TARGET}"))..."
 			_gaudi-shell_update_and_restart "$TARGET" "$version"
 		else
-			read -r -e -n 1 -p "Would you like to update to ${TARGET}($(git log -1 --format=%h "${TARGET}"))? [Y/n] " RESP
+			# printf + plain read works in both bash and zsh (read -e -n -p is bash-only)
+			printf '%s' "Would you like to update to ${TARGET}($(git log -1 --format=%h "${TARGET}"))? [Y/n] "
+			read -r RESP
 			case "$RESP" in
-			[yY] | "")
+			[yY]* | "")
 				_gaudi-shell_update_and_restart "$TARGET" "$version"
 				;;
-			[nN])
+			[nN]*)
 				echo "Not updating…"
 				;;
 			*)

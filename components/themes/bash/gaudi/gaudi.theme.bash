@@ -12,60 +12,6 @@ source "$GAUDI_ROOT/lib/utils.bash"
 source "$GAUDI_ROOT/lib/colors.bash"
 source "$GAUDI_ROOT/lib/scm.bash"
 
-GAUDI_THEME_SHELL_ID="${GAUDI_THEME_SHELL_ID:-$$}"
-GAUDI_THEME_CACHE_ROOT="${XDG_CACHE_HOME:-$HOME/.cache}/gaudi-bash/theme/gaudi"
-GAUDI_THEME_ASYNC_CACHE_DIR="${GAUDI_THEME_CACHE_ROOT}/async"
-GAUDI_THEME_STATE_DIR="${GAUDI_THEME_CACHE_ROOT}/state/${GAUDI_THEME_SHELL_ID}"
-GAUDI_THEME_GENERATION_FILE="${GAUDI_THEME_STATE_DIR}/generation"
-GAUDI_THEME_LEFT_PROMPT_FILE="${GAUDI_THEME_STATE_DIR}/left_prompt"
-GAUDI_THEME_RIGHT_PROMPT_FILE="${GAUDI_THEME_STATE_DIR}/right_prompt"
-
-gaudi::ensure_async_dirs () {
-  mkdir -p "$GAUDI_THEME_ASYNC_CACHE_DIR" "$GAUDI_THEME_STATE_DIR"
-}
-
-gaudi::write_atomic () {
-  local file="$1"
-  local content="$2"
-  local dir="${file%/*}"
-  local tmp_file=""
-
-  mkdir -p "$dir" || return 1
-  tmp_file="$(mktemp "${dir}/.gaudi.XXXXXX")" || return 1
-  printf "%s" "$content" > "$tmp_file" || {
-    rm -f "$tmp_file"
-    return 1
-  }
-
-  mv "$tmp_file" "$file"
-}
-
-gaudi::current_generation () {
-  local current_generation="0"
-
-  if [[ -e "$GAUDI_THEME_GENERATION_FILE" ]]; then
-    current_generation="$(<"$GAUDI_THEME_GENERATION_FILE")"
-  fi
-
-  printf "%s" "${current_generation:-0}"
-}
-
-gaudi::next_generation () {
-  local current_generation="0"
-  local next_generation="1"
-
-  current_generation="$(gaudi::current_generation)"
-  next_generation=$((current_generation + 1))
-  gaudi::write_atomic "$GAUDI_THEME_GENERATION_FILE" "$next_generation" || return 1
-
-  printf "%s" "$next_generation"
-}
-
-gaudi::store_prompt_state () {
-  gaudi::write_atomic "$GAUDI_THEME_LEFT_PROMPT_FILE" "$1" || return 1
-  gaudi::write_atomic "$GAUDI_THEME_RIGHT_PROMPT_FILE" "$2"
-}
-
 gaudi::register_prompt_hook () {
   if gaudi::defined __bp_precmd_invoke_cmd; then
     gaudi::check_precmd_conflict "gaudi::prompt" || precmd_functions+=(gaudi::prompt)
@@ -82,7 +28,6 @@ gaudi::register_prompt_hook () {
 }
 
 gaudi::init () {
-  gaudi::ensure_async_dirs
   gaudi::load_segment continuation
 
   PS2="$(gaudi_continuation)"
@@ -97,7 +42,6 @@ gaudi::prompt () {
   # will be overridden by a different command execution - do not move this line!
   RETVAL=$?
 
-  local generation=""
   local prompt_char=""
   local compensate=58
   local left_prompt=""
@@ -113,12 +57,8 @@ gaudi::prompt () {
     prompt_char="${GAUDI_GREEN}>>${NC} "
   fi
 
-  gaudi::ensure_async_dirs
-  generation="$(gaudi::next_generation)" || return 1
-
   left_prompt="$(gaudi::render_prompt GAUDI_PROMPT_LEFT[@])"
   right_prompt="$(gaudi::render_prompt GAUDI_PROMPT_RIGHT[@])"
-  gaudi::store_prompt_state "$left_prompt" "$right_prompt"
 
   if [[ -n "${ZSH_VERSION:-}" ]]; then
     # In zsh, render async segments synchronously — always fresh, no stale
