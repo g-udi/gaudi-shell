@@ -39,9 +39,13 @@ jobs:
     - name: Install dependencies (Linux)
       if: startsWith(runner.os, 'Linux')
       run: |
-        sudo apt-get update
         # zsh is needed by test/adapters/zsh.bats (skipped when it is missing)
-        sudo apt-get install -y parallel zsh
+        # The runners' package mirrors fail to resolve now and then: retry before giving up
+        for attempt in 1 2 3 4 5; do
+          sudo apt-get update && sudo apt-get install -y parallel zsh && break
+          if [ "$attempt" = 5 ]; then exit 1; fi
+          echo "apt failed (attempt $attempt), retrying in 20 seconds"; sleep 20
+        done
 
     - name: Run tests (Linux)
       if: startsWith(runner.os, 'Linux')
@@ -61,7 +65,13 @@ jobs:
     - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
     - name: Install shellcheck
-      run: sudo apt-get update && sudo apt-get install -y shellcheck
+      run: |
+        # The runners' package mirrors fail to resolve now and then: retry before giving up
+        for attempt in 1 2 3 4 5; do
+          sudo apt-get update && sudo apt-get install -y shellcheck && break
+          if [ "$attempt" = 5 ]; then exit 1; fi
+          echo "apt failed (attempt $attempt), retrying in 20 seconds"; sleep 20
+        done
 
     # A fixed version built from source (checked against the Go checksum
     # database), instead of piping an install script from the network to sh.
