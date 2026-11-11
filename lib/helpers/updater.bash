@@ -17,7 +17,7 @@ function _gaudi-shell_update_and_restart() {
 		popd &>/dev/null || return
 		_gaudi-shell-restart
 	else
-		echo "Error updating gaudi-shell, please, check if your gaudi-shell installation folder (${BASH_IT}) is clean."
+		echo "Error updating gaudi-shell, please, check if your gaudi-shell installation folder (${GAUDI_SHELL}) is clean."
 	fi
 }
 
@@ -29,10 +29,13 @@ function _gaudi-shell-update() {
 	about 'updates gaudi-shell'
 	group 'gaudi-shell:core:updater'
 
-	local silent word DIFF version TARGET revision status revert log_color RESP
+	local silent word mode DIFF version TARGET revision status revert log_color RESP
 	for word in "$@"; do
 		if [[ "${word}" == "--silent" || "${word}" == "-s" ]]; then
 			silent=true
+		elif [[ -z "${mode:-}" ]]; then
+			# The first word that is not a flag is the update mode
+			mode="${word}"
 		fi
 	done
 
@@ -55,7 +58,7 @@ function _gaudi-shell-update() {
 		GAUDI_SHELL_DEVELOPMENT_BRANCH="main"
 	fi
 
-	if [[ -z "${1:-}" || "$1" == "stable" ]]; then
+	if [[ -z "${mode:-}" || "${mode}" == "stable" ]]; then
 		version="stable"
 		TARGET=$(git describe --tags "$(git rev-list --tags --max-count=1)" 2>/dev/null)
 
@@ -102,13 +105,13 @@ function _gaudi-shell-update() {
 				echo "Not updating…"
 				;;
 			*)
-				echo -e "${echo_orange?}Please choose y or n.${echo_reset_color?}"
+				echo -e "${ORANGE:-}Please choose y or n.${NC:-}"
 				;;
 			esac
 		fi
 	else
 		if [[ "${version}" == "stable" ]]; then
-			echo "You're on the latest stable version. If you want to check out the latest 'dev' version, please run \"gaudi-shell update dev\""
+			echo "You're on the latest stable version. If you want to check out the latest 'dev' version, please run \"gshell update dev\""
 		else
 			echo "gaudi-shell is up to date, nothing to do!"
 		fi

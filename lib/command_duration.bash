@@ -18,13 +18,71 @@ _command_duration_current_time() {
 : "${COMMAND_DURATION_MIN_SECONDS:=1}"
 : "${COMMAND_DURATION_PRECISION:=1}"
 
+# Runs right before a command typed at the prompt: start the timer.
 _command_duration_pre_exec() {
+	[[ -n "${GAUDI_SHELL_COMMAND_DURATION:-}" ]] || return 0
 	COMMAND_DURATION_START_SECONDS="$(_command_duration_current_time)"
 }
 
+# Runs after the prompt has been drawn: reset the timer, so the next prompt
+# only shows a duration if a command ran in between.
 _command_duration_pre_cmd() {
 	COMMAND_DURATION_START_SECONDS=""
+	_COMMAND_DURATION_AT_PROMPT=1
 }
+
+# bash DEBUG trap, used when bash-preexec is not loaded. It fires before every
+# top-level command; only the first one after a prompt starts the timer, and
+# commands that belong to PROMPT_COMMAND are ignored. "$1" is the previous
+# "$_", passed through so the trap leaves it unchanged.
+_command_duration_debug_trap() {
+	if [[ -n "${_COMMAND_DURATION_AT_PROMPT:-}" && -z "${COMP_LINE:-}" && "${PROMPT_COMMAND[*]:-}" != *"${BASH_COMMAND:-}"* ]]; then
+		_COMMAND_DURATION_AT_PROMPT=""
+		_command_duration_pre_exec
+	fi
+	: "${1:-}"
+}
+
+# Hook the reset (and, where the shell has them, the preexec/precmd arrays).
+# Runs as a finalize hook, after the theme has registered its prompt function,
+# so the reset happens after the prompt was rendered.
+_command_duration_register_hooks() {
+	[[ $- == *i* ]] || return 0
+
+	if [[ " ${preexec_functions[*]:-} " != *" _command_duration_pre_exec "* ]]; then
+		preexec_functions+=(_command_duration_pre_exec)
+	fi
+
+	# zsh runs precmd_functions natively; in bash only bash-preexec does.
+	if [[ -n "${ZSH_VERSION:-}" ]] || type -t __bp_precmd_invoke_cmd &>/dev/null; then
+		if [[ " ${precmd_functions[*]:-} " != *" _command_duration_pre_cmd "* ]]; then
+			precmd_functions+=(_command_duration_pre_cmd)
+		fi
+		return 0
+	fi
+
+	[[ "${PROMPT_COMMAND[*]:-}" == *"_command_duration_pre_cmd"* ]] && return 0
+	if [[ "$(declare -p PROMPT_COMMAND 2>/dev/null)" == "declare -a"* ]]; then
+		PROMPT_COMMAND+=(_command_duration_pre_cmd)
+	elif [[ -n "${PROMPT_COMMAND:-}" ]]; then
+		PROMPT_COMMAND="${PROMPT_COMMAND%;}"$'\n'"_command_duration_pre_cmd"
+	else
+		PROMPT_COMMAND="_command_duration_pre_cmd"
+	fi
+}
+
+GAUDI_SHELL_FINALIZE_HOOKS+=(_command_duration_register_hooks)
+
+# Plain bash (no bash-preexec) has no preexec hook, so use a DEBUG trap. It is
+# set here, outside any function, and only when duration tracking is enabled:
+# a DEBUG trap that is already set is left alone, and one set later (a plugin,
+# bash-preexec) simply replaces it.
+if [[ -n "${BASH_VERSION:-}" && -n "${GAUDI_SHELL_COMMAND_DURATION:-}" && $- == *i* ]] &&
+	! type -t __bp_precmd_invoke_cmd &>/dev/null; then
+	case "$(trap -p DEBUG)" in
+	"" | *_command_duration_debug_trap*) trap '_command_duration_debug_trap "$_"' DEBUG ;;
+	esac
+fi
 
 _command_duration() {
 	[[ -n "${GAUDI_SHELL_COMMAND_DURATION:-}" ]] || return

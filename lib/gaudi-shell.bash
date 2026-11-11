@@ -41,8 +41,29 @@ _gaudi-shell-restart() {
 	exec "${GAUDI_SHELL_CURRENT}" --login
 }
 
+_gaudi-shell-usage() {
+	cat <<'EOF'
+Usage: gshell <command> [args]  (short alias: g)
+
+Commands:
+  show [aliases|plugins|completions] [enabled]       list components (no type: everything enabled)
+  enable <alias|plugin|completion> <name>...|all     enable components
+  disable <alias|plugin|completion> <name>...|all    disable components
+  search <term>... [--enable|--disable]              find components ('gshell search --help' for details)
+  help [aliases|plugins|completions]                 this usage, or what the enabled components of a type provide
+  profile <save|load|list|rm> [name]                 save and switch sets of enabled components
+  backup                                             record the enabled components
+  restore                                            re-enable the components recorded by 'backup'
+  update [stable|dev]                                update to the latest tag (stable, default) or the development branch
+  doctor [errors|warnings|all]                       reload with logging at the given level
+  reload                                             re-source your shell profile
+  restart                                            re-exec the shell
+  version                                            show version, git SHA and shell
+EOF
+}
+
 _gaudi-shell-help() {
-	! __check-function-parameters "$1" && echo "Usage: gshell <command> [args]. Run 'gshell help' for details." && return 0
+	! __check-function-parameters "$1" && _gaudi-shell-usage && return 0
 	local type component
 	type="$(_gaudi-shell-pluralize-component "$1")"
 	_command_exists _help-"${type}" && _help-"${type}" "$2"
