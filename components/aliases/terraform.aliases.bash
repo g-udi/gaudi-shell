@@ -3,12 +3,14 @@ cite about-alias
 about-alias 'Aliases for Terraform/OpenTofu'
 
 if _command_exists terraform; then
+	_gaudi_terraform_command=terraform
 	alias tf='terraform'
 elif _command_exists tofu; then
+	_gaudi_terraform_command=tofu
 	alias tf='tofu'
 fi
 
-if _command_exists tf; then
+if [[ -n "${_gaudi_terraform_command:-}" ]]; then
 	alias tfa='tf apply'
 	alias tfp='tf plan'
 	alias tfd='tf destroy'
@@ -21,3 +23,4 @@ if _command_exists tf; then
 	alias tfpa='tf plan -out=tfplan && tf apply tfplan'
 	alias tfpaf='tf plan -out=tfplan && tf apply -auto-approve tfplan'
 fi
+unset _gaudi_terraform_command

@@ -1,33 +1,48 @@
 # shellcheck shell=bash
-# about-plugin 'Universal archive extractor'
+
+cite about-plugin
+about-plugin 'Universal archive extractor'
 
 extract() {
 	about 'Extracts archives of the most common formats'
-	param '1: archive to extract'
+	param '*: archives to extract'
 	group 'extract'
 
-	if [[ -z "$1" ]]; then
-		echo "usage: extract <archive>" >&2
+	if [[ -z "${1:-}" ]]; then
+		echo "usage: extract <archive>..." >&2
 		return 1
 	fi
-	if [[ ! -f "$1" ]]; then
-		echo "extract: '$1' is not a file" >&2
-		return 1
-	fi
-	case "$1" in
-		*.tar.bz2) tar xjf "$1" ;;
-		*.tar.gz) tar xzf "$1" ;;
-		*.tar.xz) tar xJf "$1" ;;
-		*.tar.zst) tar --zstd -xf "$1" ;;
-		*.bz2) bunzip2 "$1" ;;
-		*.gz) gunzip "$1" ;;
-		*.tar) tar xf "$1" ;;
-		*.tbz2) tar xjf "$1" ;;
-		*.tgz) tar xzf "$1" ;;
-		*.zip) unzip "$1" ;;
-		*.Z) uncompress "$1" ;;
-		*.7z) 7z x "$1" ;;
-		*.rar) unrar x "$1" ;;
-		*) echo "extract: unsupported format '$1'" >&2; return 1 ;;
-	esac
+
+	local archive rc=0
+	for archive in "$@"; do
+		if [[ ! -f "$archive" ]]; then
+			echo "extract: '$archive' is not a file" >&2
+			rc=1
+			continue
+		fi
+		case "$archive" in
+			*.tar.bz2 | *.tbz2 | *.tbz) tar xjf "$archive" ;;
+			*.tar.gz | *.tgz) tar xzf "$archive" ;;
+			*.tar.xz | *.txz) tar xJf "$archive" ;;
+			*.tar.zst) tar --zstd -xf "$archive" ;;
+			*.tar.Z) tar xZf "$archive" ;;
+			*.tar) tar xf "$archive" ;;
+			*.bz2) bunzip2 "$archive" ;;
+			*.gz) gunzip "$archive" ;;
+			*.xz) xz --decompress "$archive" ;;
+			*.zip | *.war | *.jar) unzip "$archive" ;;
+			*.Z) uncompress "$archive" ;;
+			*.7z) 7z x "$archive" ;;
+			*.rar) unrar x "$archive" ;;
+			*.deb) dpkg-deb -x "$archive" "${archive%.deb}" ;;
+			*.rpm) rpm2cpio "$archive" | cpio -idm ;;
+			*.pax) pax -r -f "$archive" ;;
+			*.pkg) pkgutil --expand "$archive" "${archive%.pkg}" ;;
+			*)
+				echo "extract: unsupported format '$archive'" >&2
+				false
+				;;
+		esac || rc=$?
+	done
+	return "$rc"
 }

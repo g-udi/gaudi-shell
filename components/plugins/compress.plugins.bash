@@ -1,4 +1,5 @@
 # shellcheck shell=bash
+# shellcheck disable=SC2016
 
 cite about-plugin
 about-plugin 'Compression tools'

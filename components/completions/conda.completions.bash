@@ -4,5 +4,7 @@
 cite about-completion
 about-completion 'Enable Conda completions'
 
-_command_exists argcomplete && which register-python-argcomplete > /dev/null \
-  && eval "$(register-python-argcomplete conda)"
+if register_python_argcomplete=$(command -v register-python-argcomplete); then
+  eval "$("$register_python_argcomplete" conda)"
+fi
+unset register_python_argcomplete

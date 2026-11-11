@@ -8,9 +8,9 @@ about-plugin 'Manage your Java environment via jenv'
 # - Check if installed manually to $JENV_ROOT
 # - Check if installed manually to $HOME
 _command_exists jenv ||
-  [[ -n "$JENV_ROOT" && -x "$JENV_ROOT/bin/jenv" ]] ||
+  [[ -n "${JENV_ROOT:-}" && -x "$JENV_ROOT/bin/jenv" ]] ||
   [[ -x "$HOME/.jenv/bin/jenv" ]] ||
-  return
+  return 0
 
 # Set JENV_ROOT, if not already set
 export JENV_ROOT="${JENV_ROOT:-$HOME/.jenv}"

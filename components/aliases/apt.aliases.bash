@@ -3,8 +3,8 @@
 cite about-alias
 about-alias 'apt and dpkg aliases for Ubuntu and Debian distros.'
 
-_set_pkg_aliases () {
-	if [[ -x "$(which apt)" ]]; then
+_set_apt_aliases () {
+	if command -v apt > /dev/null 2>&1; then
 		alias apts='apt-cache search'
 		alias aptshow='apt-cache show'
 		alias aptinst='sudo apt-get install -V'
@@ -21,4 +21,5 @@ _set_pkg_aliases () {
 	fi
 }
 
-_set_pkg_aliases
+_set_apt_aliases
+unset -f _set_apt_aliases

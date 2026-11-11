@@ -13,7 +13,7 @@ _capcomplete () {
             cur="${COMP_WORDS[COMP_CWORD]}"
         fi
         # The task list is cached per project under the XDG cache, not in the project
-        local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/gaudi-shell/capistrano" recent
+        local cache_dir="${XDG_CACHE_HOME:-$HOME/.cache}/${GAUDI_HOST_NAME:-gaudi}/capistrano" recent
         local cache="${cache_dir}/${PWD//\//%}"
         recent=$(ls -t "$cache" Capfile **/*.cap 2> /dev/null | head -n 1)
         if [[ $recent != "$cache" ]]; then

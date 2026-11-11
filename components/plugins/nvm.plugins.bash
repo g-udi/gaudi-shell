@@ -18,16 +18,17 @@ _gaudi_nvm_load() {
 	local nvm_sh=""
 	if [[ -s "$NVM_DIR/nvm.sh" ]]; then
 		nvm_sh="$NVM_DIR/nvm.sh"
-	elif [[ -n "${GAUDI_SHELL_HOMEBREW_PREFIX:-}" ]] && [[ -s "$GAUDI_SHELL_HOMEBREW_PREFIX/opt/nvm/nvm.sh" ]]; then
-		nvm_sh="$GAUDI_SHELL_HOMEBREW_PREFIX/opt/nvm/nvm.sh"
+	elif [[ -n "${GAUDI_HOST_HOMEBREW_PREFIX:-}" ]] && [[ -s "$GAUDI_HOST_HOMEBREW_PREFIX/opt/nvm/nvm.sh" ]]; then
+		nvm_sh="$GAUDI_HOST_HOMEBREW_PREFIX/opt/nvm/nvm.sh"
 	fi
 
 	if [[ -n "$nvm_sh" ]]; then
-		source "$nvm_sh"
-		# Load nvm bash completion if available
-		[[ -s "${nvm_sh%/*}/bash_completion" ]] && source "${nvm_sh%/*}/bash_completion"
+			source "$nvm_sh"
+			# Load nvm bash completion if available
+			# shellcheck source=/dev/null
+			[[ -s "${nvm_sh%/*}/bash_completion" ]] && source "${nvm_sh%/*}/bash_completion"
 	else
-		echo "gaudi-bash: nvm not found. Install from https://github.com/nvm-sh/nvm"
+		echo "${GAUDI_HOST_NAME:-gaudi}: nvm not found. Install from https://github.com/nvm-sh/nvm"
 		return 1
 	fi
 }
@@ -36,7 +37,7 @@ _gaudi_nvm_load() {
 # Only when nvm is installed: without it the stubs would shadow the system
 # node, npm, ... and fail with "nvm not found" instead of running them.
 _gaudi_nvm_found=""
-for _gaudi_nvm_dir in "$NVM_DIR" "${GAUDI_SHELL_HOMEBREW_PREFIX:+${GAUDI_SHELL_HOMEBREW_PREFIX}/opt/nvm}" "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/opt/nvm}" /opt/homebrew/opt/nvm /usr/local/opt/nvm; do
+for _gaudi_nvm_dir in "$NVM_DIR" "${GAUDI_HOST_HOMEBREW_PREFIX:+${GAUDI_HOST_HOMEBREW_PREFIX}/opt/nvm}" "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/opt/nvm}" /opt/homebrew/opt/nvm /usr/local/opt/nvm; do
 	if [[ -n "$_gaudi_nvm_dir" && -s "${_gaudi_nvm_dir}/nvm.sh" ]]; then
 		_gaudi_nvm_found=1
 		break

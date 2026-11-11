@@ -112,10 +112,12 @@ sshagent () {
   example '$ sshagent on'
   group 'sshagent'
   [[ -z "${SSH_AGENT_ENV}" ]] \
-  && export SSH_AGENT_ENV="${HOME}/.ssh/agent_env.${HOSTNAME}"
+  && export SSH_AGENT_ENV="${HOME}/.ssh/agent_env.${HOSTNAME:-$(hostname)}"
 
   case "${1}" in
-    on) _ensure_valid_sshagent_env;
+    on)
+      command -v ssh-agent > /dev/null 2>&1 || return
+      _ensure_valid_sshagent_env;
       # shellcheck disable=SC1090
       source "${SSH_AGENT_ENV}" > /dev/null;
       ;;
@@ -126,4 +128,6 @@ sshagent () {
   esac
 }
 
-sshagent on
+if [[ $- == *i* ]]; then
+  sshagent on
+fi

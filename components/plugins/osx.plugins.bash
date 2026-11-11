@@ -11,9 +11,10 @@ if [[ "$OSTYPE" == darwin* ]]; then
   if type update_terminal_cwd > /dev/null 2>&1 ; then
     if ! [[ $PROMPT_COMMAND =~ (^|;)update_terminal_cwd($|;) ]] ; then
       PROMPT_COMMAND="${PROMPT_COMMAND:+${PROMPT_COMMAND%;};}update_terminal_cwd"
-      declared="$(declare -p PROMPT_COMMAND)"
-      [[ "$declared" =~ \ -[aAilrtu]*x[aAilrtu]*\  ]] 2>/dev/null
-      [[ $? -eq 0 ]] && export PROMPT_COMMAND
+      declared="$(declare -p PROMPT_COMMAND 2>/dev/null || :)"
+      if [[ "$declared" =~ \ -[aAilrtu]*x[aAilrtu]*\  ]]; then
+        export PROMPT_COMMAND
+      fi
     fi
   fi
 fi
@@ -39,7 +40,7 @@ tabname () {
   param '1: title'
   group 'OSX'
 
-  printf "\e]1;$1\a"
+  printf '\e]1;%s\a' "$1"
 }
 
 # renames the current os x terminal window title
@@ -48,14 +49,15 @@ winname () {
   param '1: title'
   group 'OSX'
 
-  printf "\e]2;$1\a"
+  printf '\e]2;%s\a' "$1"
 }
 
 pman () {
     about 'View man documentation in Preview'
     example '$ pman bash'
     group 'OSX'
-    man -t "${1}" | open -fa $PREVIEW
+    local preview_app="${PREVIEW:-Preview}"
+    man -t "${1}" | open -fa "$preview_app"
 }
 
 pri () {
@@ -63,7 +65,8 @@ pri () {
     param '1: Ruby method, module, or class'
     example '$ pri Array'
     group 'OSX'
-    ri -T "${1}" | open -fa $PREVIEW
+    local preview_app="${PREVIEW:-Preview}"
+    ri -T "${1}" | open -fa "$preview_app"
 }
 
 # Download a file and open it in Preview
@@ -76,7 +79,8 @@ prevcurl () {
     echo "This only works with Mac OS X"
     return 1
   fi
-  curl "$*" | open -fa $PREVIEW
+  local preview_app="${PREVIEW:-Preview}"
+  curl "$@" | open -fa "$preview_app"
 }
 
 refresh-launchpad () {
@@ -102,7 +106,11 @@ _osx-jvms-scan () {
     return 1
   fi
 
-  JVMS=( $(ls "${JVMS_DIR}") )
+  # No mapfile: this file also loads in bash 3.2
+  local _jvm
+  while IFS= read -r _jvm; do
+    JVMS+=("$_jvm")
+  done < <(find "$JVMS_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)
 }
 
 list-jvms () {
@@ -117,9 +125,9 @@ list-jvms () {
   # Map state of JVM
   for (( i = 0; i < ${#JVMS[@]}; i++ )); do
     if [[ -f "${JVMS_DIR}/${JVMS[$i]}/Contents/Info.plist" ]]; then
-      JVMS_STATES[${i}]=enabled
+      JVMS_STATES[i]=enabled
     else
-      JVMS_STATES[${i}]=disabled
+      JVMS_STATES[i]=disabled
     fi
       echo "${i} ${JVMS[$i]} ${JVMS_STATES[$i]}"
   done
@@ -143,7 +151,7 @@ pick-default-jvm () {
 
   # OPTION for default jdk and set variables
   while [[ ! "$OPTION" =~ ^[0-9]+$ || OPTION -ge "${#JVMS[@]}" ]]; do
-    read -p "Enter Default JVM: "  OPTION
+    read -r -p "Enter Default JVM: " OPTION
       if [[ ! "$OPTION" =~ ^[0-9]+$  ]]; then
         echo "Please enter a number"
       fi

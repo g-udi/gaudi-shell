@@ -16,7 +16,7 @@ hg_in_repo () {
     about 'Determine if pwd is an hg repo'
     group 'hg'
 
-    [[ `hg branch 2> /dev/null` ]] && echo 'on '
+    [[ $(hg branch 2> /dev/null) ]] && echo 'on '
 }
 
 hg_branch () {

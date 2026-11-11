@@ -1,10 +1,12 @@
+# shellcheck shell=bash
+
 cite about-plugin
 about-plugin 'Proxy Tools'
 
 PROXY_DIVIDER=$(printf '%.0s-' {1..30}; echo)
 # sed in-place flags: the framework's own, else the legacy bash-it ones, else by OS
-if ((${#GAUDI_SHELL_SED_I_PARAMETERS[@]} > 0)); then
-	_gaudi_proxy_sed_i=("${GAUDI_SHELL_SED_I_PARAMETERS[@]}")
+if ((${#GAUDI_HOST_SED_I_PARAMETERS[@]} > 0)); then
+	_gaudi_proxy_sed_i=("${GAUDI_HOST_SED_I_PARAMETERS[@]}")
 elif ((${#BASH_IT_SED_I_PARAMETERS[@]} > 0)); then
 	_gaudi_proxy_sed_i=("${BASH_IT_SED_I_PARAMETERS[@]}")
 else
@@ -13,6 +15,16 @@ else
 		*) _gaudi_proxy_sed_i=(-i) ;;
 	esac
 fi
+
+# Print the proxy setting $1 (HTTP_PROXY, HTTPS_PROXY, NO_PROXY, HTTP_PROXY_ALT,
+# HTTPS_PROXY_ALT): GAUDI_<name> or the framework's own name for it (see
+# _gaudi_host_setting), else the legacy BASH_IT_<name>
+_gaudi_proxy_setting () {
+	local value legacy
+	value="$(_gaudi_host_setting "$1")"
+	eval "legacy=\${BASH_IT_$1:-}"
+	printf '%s' "${value:-$legacy}"
+}
 
 disable-proxy () {
 	about 'Disables proxy settings for Bash, npm and SSH'
@@ -37,12 +49,14 @@ enable-proxy () {
 	about 'Enables proxy settings for Bash, npm and SSH'
 	group 'Proxy'
 
-	export http_proxy=${GAUDI_SHELL_HTTP_PROXY:-${BASH_IT_HTTP_PROXY:-}}
-	export https_proxy=${GAUDI_SHELL_HTTPS_PROXY:-${BASH_IT_HTTPS_PROXY:-}}
+	http_proxy="$(_gaudi_proxy_setting HTTP_PROXY)"
+	https_proxy="$(_gaudi_proxy_setting HTTPS_PROXY)"
+	export http_proxy https_proxy
 	export HTTP_PROXY=$http_proxy
 	export HTTPS_PROXY=$https_proxy
 	export ALL_PROXY=$http_proxy
-	export no_proxy=${GAUDI_SHELL_NO_PROXY:-${BASH_IT_NO_PROXY:-}}
+	no_proxy="$(_gaudi_proxy_setting NO_PROXY)"
+	export no_proxy
 	export NO_PROXY=$no_proxy
 
 	echo "Enabled proxy environment variables"
@@ -56,18 +70,20 @@ enable-proxy-alt () {
 	about 'Enables alternate proxy settings for Bash, npm and SSH'
 	group 'Proxy'
 
-	export http_proxy=${GAUDI_SHELL_HTTP_PROXY_ALT:-${BASH_IT_HTTP_PROXY_ALT:-}}
-	export https_proxy=${GAUDI_SHELL_HTTPS_PROXY_ALT:-${BASH_IT_HTTPS_PROXY_ALT:-}}
+	http_proxy="$(_gaudi_proxy_setting HTTP_PROXY_ALT)"
+	https_proxy="$(_gaudi_proxy_setting HTTPS_PROXY_ALT)"
+	export http_proxy https_proxy
 	export HTTP_PROXY=$http_proxy
 	export HTTPS_PROXY=$https_proxy
 	export ALL_PROXY=$http_proxy
-	export no_proxy=${GAUDI_SHELL_NO_PROXY:-${BASH_IT_NO_PROXY:-}}
+	no_proxy="$(_gaudi_proxy_setting NO_PROXY)"
+	export no_proxy
 	export NO_PROXY=$no_proxy
 	echo "Enabled alternate proxy environment variables"
 
-	npm-enable-proxy $http_proxy $https_proxy
+	npm-enable-proxy "$http_proxy" "$https_proxy"
 	ssh-enable-proxy
-	svn-enable-proxy $http_proxy
+	svn-enable-proxy "$http_proxy"
 }
 
 show-proxy () {
@@ -75,7 +91,7 @@ show-proxy () {
 	group 'Proxy'
 
   printf "\n${GREEN}%s${NC}\n$PROXY_DIVIDER\n" "Environment Variables"
-	env | grep -i "proxy" | grep -Ev "BASH_IT|GAUDI_SHELL"
+	env | grep -i "proxy" | grep -Ev "^(BASH_IT|GAUDI)_"
 
 	gaudi-show-proxy
 	npm-show-proxy
@@ -85,21 +101,24 @@ show-proxy () {
 }
 
 proxy-help () {
-	about 'Provides an overview of the gaudi-shell proxy configuration'
+	about 'Provides an overview of the proxy configuration'
 	group 'Proxy'
 
+	local name="${GAUDI_HOST_NAME:-gaudi}" prefix
+	prefix="$(printf '%s' "$name" | tr 'a-z-' 'A-Z_')"
+
 	cat << EOF
-gaudi-shell provides support for enabling/disabling proxy settings for various shell tools.
+${name} provides support for enabling/disabling proxy settings for various shell tools.
 
 The following backends are currently supported (in addition to the shell's environment variables): Git, SVN, npm, ssh
 
-gaudi-shell uses the following variables to set the shell's proxy settings when you call 'enable-proxy'.
-These variables are best defined in a custom script in gaudi-shell's custom script folder ('$GAUDI_SHELL/components/custom'),
-e.g. '$GAUDI_SHELL/components/custom/proxy.env.bash'
-* GAUDI_SHELL_HTTP_PROXY and GAUDI_SHELL_HTTPS_PROXY: Define the proxy URL to be used, e.g. 'http://localhost:1234'
-* GAUDI_SHELL_HTTP_PROXY_ALT and GAUDI_SHELL_HTTPS_PROXY_ALT: The alternate proxy used by 'enable-proxy-alt'
-* GAUDI_SHELL_NO_PROXY: A comma-separated list of proxy exclusions, e.g. '127.0.0.1,localhost'
-The legacy BASH_IT_* names of these variables still work.
+${name} uses the following variables to set the shell's proxy settings when you call 'enable-proxy'.
+These variables are best defined in a custom script in ${name}'s custom script folder ('${GAUDI_HOST_HOME%/}/components/custom'),
+e.g. '${GAUDI_HOST_HOME%/}/components/custom/proxy.env.bash'
+* GAUDI_HTTP_PROXY and GAUDI_HTTPS_PROXY: Define the proxy URL to be used, e.g. 'http://localhost:1234'
+* GAUDI_HTTP_PROXY_ALT and GAUDI_HTTPS_PROXY_ALT: The alternate proxy used by 'enable-proxy-alt'
+* GAUDI_NO_PROXY: A comma-separated list of proxy exclusions, e.g. '127.0.0.1,localhost'
+The ${prefix}_* names of these variables (${prefix}_HTTP_PROXY, ...) and the legacy BASH_IT_* names still work.
 
 Run 'glossary proxy' to show the available proxy functions with a short description.
 EOF
@@ -108,11 +127,11 @@ EOF
 }
 
 gaudi-show-proxy () {
-	about 'Shows the gaudi-shell proxy settings'
+	about 'Shows the proxy settings of the framework'
 	group 'Proxy'
 
-  printf "\n${GREEN}%s${NC}\n%s\n$PROXY_DIVIDER\n" "gaudi-shell Environment Variables" "(These variables will be used to set the proxy when you call 'enable-proxy')"
-	env | grep -E "(BASH_IT|GAUDI_SHELL).*PROXY"
+  printf "\n${GREEN}%s${NC}\n%s\n$PROXY_DIVIDER\n" "${GAUDI_HOST_NAME:-gaudi} Environment Variables" "(These variables will be used to set the proxy when you call 'enable-proxy')"
+		env | grep -E "^(BASH_IT|GAUDI)_.*PROXY"
 }
 
 npm-show-proxy () {
@@ -143,14 +162,15 @@ npm-enable-proxy () {
 	about 'Enables npm proxy settings'
 	group 'Proxy'
 
-	local my_http_proxy=${1:-${GAUDI_SHELL_HTTP_PROXY:-${BASH_IT_HTTP_PROXY:-}}}
-	local my_https_proxy=${2:-${GAUDI_SHELL_HTTPS_PROXY:-${BASH_IT_HTTPS_PROXY:-}}}
-	local my_no_proxy=${3:-${GAUDI_SHELL_NO_PROXY:-${BASH_IT_NO_PROXY:-}}}
+	local my_http_proxy my_https_proxy my_no_proxy
+	my_http_proxy=${1:-$(_gaudi_proxy_setting HTTP_PROXY)}
+	my_https_proxy=${2:-$(_gaudi_proxy_setting HTTPS_PROXY)}
+	my_no_proxy=${3:-$(_gaudi_proxy_setting NO_PROXY)}
 
 	if command -v npm &> /dev/null ; then
-		npm config set proxy $my_http_proxy
-		npm config set https-proxy $my_https_proxy
-		npm config set noproxy $my_no_proxy
+		npm config set proxy "$my_http_proxy"
+		npm config set https-proxy "$my_https_proxy"
+		npm config set noproxy "$my_no_proxy"
 		echo "Enabled npm proxy settings"
 	fi
 }
@@ -184,8 +204,8 @@ git-global-enable-proxy () {
 	if command -v git &> /dev/null ; then
 		git-global-disable-proxy
 
-		git config --global --add http.proxy ${GAUDI_SHELL_HTTP_PROXY:-${BASH_IT_HTTP_PROXY:-}}
-		git config --global --add https.proxy ${GAUDI_SHELL_HTTPS_PROXY:-${BASH_IT_HTTPS_PROXY:-}}
+		git config --global --add http.proxy "$(_gaudi_proxy_setting HTTP_PROXY)"
+		git config --global --add https.proxy "$(_gaudi_proxy_setting HTTPS_PROXY)"
 		echo "Enabled global Git proxy settings"
 	fi
 }
@@ -219,8 +239,8 @@ git-enable-proxy () {
 	if command -v git &> /dev/null ; then
 		git-disable-proxy
 
-		git config --add http.proxy ${GAUDI_SHELL_HTTP_PROXY:-${BASH_IT_HTTP_PROXY:-}}
-		git config --add https.proxy ${GAUDI_SHELL_HTTPS_PROXY:-${BASH_IT_HTTPS_PROXY:-}}
+		git config --add http.proxy "$(_gaudi_proxy_setting HTTP_PROXY)"
+		git config --add https.proxy "$(_gaudi_proxy_setting HTTPS_PROXY)"
 		echo "Enabled Git project proxy settings"
 	fi
 }
@@ -286,9 +306,10 @@ svn-enable-proxy () {
 	group 'Proxy'
 
 	if command -v svn &> /dev/null && command -v python3 &> /dev/null ; then
-		local my_http_proxy=${1:-${GAUDI_SHELL_HTTP_PROXY:-${BASH_IT_HTTP_PROXY:-}}}
+		local my_http_proxy
+		my_http_proxy=${1:-$(_gaudi_proxy_setting HTTP_PROXY)}
 
-		python3 - "$my_http_proxy" "${GAUDI_SHELL_NO_PROXY:-${BASH_IT_NO_PROXY:-}}" <<END
+		python3 - "$my_http_proxy" "$(_gaudi_proxy_setting NO_PROXY)" <<END
 import configparser, os, sys
 from urllib.parse import urlparse
 pieces = urlparse(sys.argv[1])

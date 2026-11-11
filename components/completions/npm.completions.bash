@@ -3,9 +3,9 @@
 cite about-completion
 about-completion 'NPM (Node Package Manager) completion'
 
-# Only a real npm binary counts: the nvm plugin's lazy-load stub is a function
-# named npm, and calling it here would load nvm at every shell start
-if (unset -f npm 2>/dev/null; command -v npm) &>/dev/null
-then
-  eval "$(npm completion)"
+# _binary_exists (not _command_exists): the nvm plugin's lazy-load stub is a
+# function named npm, and calling it here would load nvm at every shell start
+if _binary_exists npm && npm_completion=$(npm completion 2> /dev/null); then
+  eval "$npm_completion"
 fi
+unset npm_completion

@@ -3,7 +3,7 @@
 cite about-alias
 about-alias 'kubectl aliases'
 
-_set_pkg_aliases () {
+_set_kubectl_aliases () {
   if _command_exists kubectl; then
     alias kc='kubectl'
     alias kcgp='kubectl get pods'
@@ -19,4 +19,5 @@ _set_pkg_aliases () {
   fi
 }
 
-_set_pkg_aliases
+_set_kubectl_aliases
+unset -f _set_kubectl_aliases

@@ -1,4 +1,5 @@
 # shellcheck shell=bash
+# shellcheck disable=SC2016
 
 cite about-plugin
 about-plugin 'Git helper functions'
@@ -10,7 +11,7 @@ git_remote () {
   group 'git'
 
   echo "Running: git remote add origin ${GIT_HOSTING}:$1.git"
-  git remote add origin $GIT_HOSTING:$1.git
+  git remote add origin "${GIT_HOSTING}:$1.git"
 }
 
 git_first_push () {
@@ -33,15 +34,15 @@ git_pub () {
   BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
   echo "Publishing ${BRANCH} to remote origin"
-  git push -u origin $BRANCH
+  git push -u origin "$BRANCH"
 }
 
 git_revert () {
   about 'Applies changes to HEAD that revert all changes after this commit'
   group 'git'
 
-  git reset $1
-  git reset --soft HEAD@{1}
+  git reset "$1"
+  git reset --soft 'HEAD@{1}'
   git commit -m "Revert to ${1}"
   git reset --hard
 }
@@ -121,8 +122,8 @@ git_info () {
 
         # print all remotes and thier details
         for remote in $(git remote show); do
-            echo $remote:
-            git remote show $remote
+            echo "$remote":
+            git remote show "$remote"
             echo
         done
 
@@ -156,32 +157,32 @@ git_stats () {
 if [[ -n "$(git symbolic-ref HEAD 2> /dev/null)" ]]; then
     echo "Number of commits per author:"
     git --no-pager shortlog -sn --all
-    AUTHORS=$( git shortlog -sn --all | cut -f2 | cut -f1 -d' ')
-    LOGOPTS=""
-    if [[ "$1" == '-w' ]]; then
-        LOGOPTS="$LOGOPTS -w"
-        shift
-    fi
-    if [[ "$1" == '-M' ]]; then
-        LOGOPTS="$LOGOPTS -M"
-        shift
-    fi
-    if [[ "$1" == '-C' ]]; then
-        LOGOPTS="$LOGOPTS -C --find-copies-harder"
-        shift
-    fi
+	    AUTHORS=$( git shortlog -sn --all | cut -f2 | cut -f1 -d' ')
+	    local -a logopts=()
+	    if [[ "$1" == '-w' ]]; then
+	        logopts+=(-w)
+	        shift
+	    fi
+	    if [[ "$1" == '-M' ]]; then
+	        logopts+=(-M)
+	        shift
+	    fi
+	    if [[ "$1" == '-C' ]]; then
+	        logopts+=(-C --find-copies-harder)
+	        shift
+	    fi
     for a in $AUTHORS
     do
         echo '-------------------'
         echo "Statistics for: $a"
         echo -n "Number of files changed: "
-        git log $LOGOPTS --all --numstat --format="%n" --author=$a | cut -f3 | sort -iu | wc -l
+	        git log "${logopts[@]}" --all --numstat --format="%n" --author="$a" | cut -f3 | sort -iu | wc -l
         echo -n "Number of lines added: "
-        git log $LOGOPTS --all --numstat --format="%n" --author=$a | cut -f1 | awk '{s+=$1} END {print s}'
+	        git log "${logopts[@]}" --all --numstat --format="%n" --author="$a" | cut -f1 | awk '{s+=$1} END {print s}'
         echo -n "Number of lines deleted: "
-        git log $LOGOPTS --all --numstat --format="%n" --author=$a | cut -f2 | awk '{s+=$1} END {print s}'
+	        git log "${logopts[@]}" --all --numstat --format="%n" --author="$a" | cut -f2 | awk '{s+=$1} END {print s}'
         echo -n "Number of merges: "
-        git log $LOGOPTS --all --merges --author=$a | grep -c '^commit'
+	        git log "${logopts[@]}" --all --merges --author="$a" | grep -c '^commit'
     done
 else
     echo "you're currently not in a git repository"
@@ -201,7 +202,7 @@ gittowork () {
     echo "$result"
   else
     if [[ -f .gitignore ]]; then
-      result=`echo "$result" | grep -v "# Created by http://www.gitignore.io"`
+      result=$(echo "$result" | grep -v "# Created by http://www.gitignore.io")
       echo ".gitignore already exists, appending..."
       echo "$result" >> .gitignore
     else

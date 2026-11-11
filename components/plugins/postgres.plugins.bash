@@ -5,14 +5,14 @@ about-plugin 'Postgres helper functions'
 
 if _command_exists pg_config; then
 
-  PGVERSION=`pg_config --version | awk '{print $2}'`
-  POSTGRES_BIN=`pg_config --bindir`
+  PGVERSION=$(pg_config --version | awk '{print $2}')
+  POSTGRES_BIN=$(pg_config --bindir)
 
   export PGVERSION
   export POSTGRES_BIN
 
   # Homebrew keeps the data directory under its prefix (var/postgres or var/postgresql@<version>)
-  _gaudi_pg_brew="${GAUDI_SHELL_HOMEBREW_PREFIX:-${HOMEBREW_PREFIX:-}}"
+  _gaudi_pg_brew="${GAUDI_HOST_HOMEBREW_PREFIX:-${HOMEBREW_PREFIX:-}}"
   if [[ -z "$_gaudi_pg_brew" ]]; then
     _gaudi_pg_brew=/usr/local
     [[ -d /opt/homebrew/var ]] && _gaudi_pg_brew=/opt/homebrew
@@ -33,7 +33,8 @@ if _command_exists pg_config; then
     group 'postgres'
 
     echo 'Starting PostgreSQL....';
-    $POSTGRES_BIN/pg_ctl -D $PGDATA -l $PGDATA/logfile  start
+    [[ -n "${PGDATA:-}" ]] || { echo "PGDATA is not set"; return 1; }
+    "$POSTGRES_BIN"/pg_ctl -D "$PGDATA" -l "$PGDATA"/logfile start
   }
 
   postgres_stop () {
@@ -41,7 +42,8 @@ if _command_exists pg_config; then
     group 'postgres'
 
     echo 'Stopping PostgreSQL....';
-    $POSTGRES_BIN/pg_ctl -D $PGDATA -l $PGDATA/logfile stop -s -m fast
+    [[ -n "${PGDATA:-}" ]] || { echo "PGDATA is not set"; return 1; }
+    "$POSTGRES_BIN"/pg_ctl -D "$PGDATA" -l "$PGDATA"/logfile stop -s -m fast
   }
 
   postgres_status () {
@@ -59,7 +61,8 @@ if _command_exists pg_config; then
 
 
   is_postgres_running () {
-    $POSTGRES_BIN/pg_ctl -D $PGDATA status | egrep -o "no server running"
+    [[ -n "${PGDATA:-}" ]] || { echo "PGDATA is not set"; return 1; }
+    "$POSTGRES_BIN"/pg_ctl -D "$PGDATA" status | grep -E -o "no server running"
   }
 
 
@@ -68,21 +71,24 @@ if _command_exists pg_config; then
     group 'postgres'
 
     echo 'Restarting PostgreSQL....';
-    $POSTGRES_BIN/pg_ctl -D $PGDATA restart
+    [[ -n "${PGDATA:-}" ]] || { echo "PGDATA is not set"; return 1; }
+    "$POSTGRES_BIN"/pg_ctl -D "$PGDATA" restart
   }
 
   postgres_logfile () {
     about 'View the last 500 lines from logfile'
     group 'postgres'
 
-    tail -500 $PGDATA/logfile | less
+    [[ -n "${PGDATA:-}" ]] || { echo "PGDATA is not set"; return 1; }
+    tail -500 "$PGDATA"/logfile | less
   }
 
   postgres_serverlog () {
     about 'View the last 500 lines from server.log'
     group 'postgres'
 
-    tail -500 $PGDATA/server.log | less
+    [[ -n "${PGDATA:-}" ]] || { echo "PGDATA is not set"; return 1; }
+    tail -500 "$PGDATA"/server.log | less
   }
 
 

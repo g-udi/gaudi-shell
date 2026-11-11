@@ -6,7 +6,9 @@ escape () {
     about 'UTF-8-encode a string of Unicode symbols'
     group 'Encode'
 
-    printf "\\\x%s" "$(printf "$@" | xxd -p -c1 -u)";
+    printf '%s' "$*" | xxd -p -c1 -u | while IFS= read -r byte; do
+        printf '\\x%s' "$byte"
+    done
     if [[ -t 1 ]]; then
         echo "";
     fi;

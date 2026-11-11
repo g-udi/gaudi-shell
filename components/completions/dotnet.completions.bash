@@ -3,6 +3,9 @@ cite about-completion
 about-completion "bash parameter completion for the dotnet CLI"
 # see https://docs.microsoft.com/en-us/dotnet/core/tools/enable-tab-autocomplete#bash
 
+_command_exists dotnet || return 0
+complete -p dotnet &> /dev/null && return 0
+
 function _dotnet_bash_complete() {
 	local cur="${COMP_WORDS[COMP_CWORD]}" IFS=$'\n'
 	local candidates

@@ -6,7 +6,7 @@ about-alias 'Vagrant aliases'
 alias vhl='vagrant hosts list'
 alias vscp='vagrant scp'
 alias vsl='vagrant snapshot list'
-alias vst='vagrant snapshot take'
+alias vstt='vagrant snapshot take'
 alias vup="vagrant up"
 alias vupl="vagrant up 2>&1 | tee vagrant.log"
 alias vh="vagrant halt"

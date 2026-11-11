@@ -8,14 +8,14 @@ docker-compose-fresh () {
   group 'docker-compose'
   example 'docker-compose-fresh docker-compose-foo.yaml'
 
-  local DCO_FILE_PARAM=""
+  local -a dco_file_param=()
   if [[ -n "$1" ]]; then
     echo "Using docker-compose file: $1"
-    DCO_FILE_PARAM="--file $1"
+    dco_file_param=(--file "$1")
   fi
 
-  docker-compose $DCO_FILE_PARAM stop
-  docker-compose $DCO_FILE_PARAM rm -f
-  docker-compose $DCO_FILE_PARAM up -d
-  docker-compose $DCO_FILE_PARAM logs -f --tail 100
+  docker-compose "${dco_file_param[@]}" stop
+  docker-compose "${dco_file_param[@]}" rm -f
+  docker-compose "${dco_file_param[@]}" up -d
+  docker-compose "${dco_file_param[@]}" logs -f --tail 100
 }

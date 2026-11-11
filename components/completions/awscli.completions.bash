@@ -3,4 +3,7 @@
 cite about-completion
 about-completion 'AWS CLI completions'
 
-[[ -x "$(which aws_completer)" ]] && complete -C "$(which aws_completer)" aws
+if aws_completer=$(command -v aws_completer); then
+  complete -C "$aws_completer" aws
+fi
+unset aws_completer

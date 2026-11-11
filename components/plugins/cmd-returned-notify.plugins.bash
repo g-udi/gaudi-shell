@@ -5,6 +5,8 @@ about-plugin 'Alert (BEL) when a command takes longer than a threshold to comple
 # Threshold in seconds (default: 5)
 : "${NOTIFY_IF_COMMAND_RETURNS_AFTER:=5}"
 
+[[ $- == *i* ]] || return 0
+
 __cmd_notify_preexec() {
 	__CMD_NOTIFY_START=${SECONDS}
 }
