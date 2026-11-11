@@ -1,47 +1,41 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 
-# Note: arrays cannot be exported in bash — don't use `export` here.
-# The array is available in the current shell and subshells (fork inherits).
-GAUDI_SHELL_COMPONENT_TYPES=(plugins aliases completions)
-
+# There are exactly three component types, so both name helpers are a lookup.
+# Anything else is passed through the way the old generic code did ("foo"
+# becomes "foos"), which callers then reject as an unknown type.
 __check-function-parameters() {
-	[[ -z "$1" ]] && return 1
-	# Ensure the component types array is populated (defensive — cannot rely
-	# on array export surviving across bats `run` or other subshell boundaries).
-	local -a _types=("${GAUDI_SHELL_COMPONENT_TYPES[@]}")
-	((${#_types[@]})) || _types=(plugins aliases completions)
-	_array-contains "$(_gaudi-shell-pluralize-component "${1}")" "${_types[@]}" && return 0
+	case "$1" in
+	alias | aliases | plugin | plugins | completion | completions) return 0 ;;
+	esac
 	return 1
 }
 
 _gaudi-shell-pluralize-component() {
-	local component="${1}"
-	local len=$((${#component} - 1))
-	[[ -n $component ]] || return 1
-	[[ ${component:${len}:1} != 's' ]] && component="${component}s"
-	[[ ${component} == "alias" ]] && component="aliases"
-	printf "%s" "${component}"
+	case "$1" in
+	"") return 1 ;;
+	alias | aliases) printf "%s" "aliases" ;;
+	plugin | plugins) printf "%s" "plugins" ;;
+	completion | completions) printf "%s" "completions" ;;
+	*s) printf "%s" "$1" ;;
+	*) printf "%s" "${1}s" ;;
+	esac
 }
 
 _gaudi-shell-singularize-component() {
-	local component="${1}"
-	[[ -n "$component" ]] || return 1
-	local plural
-	plural="$(_gaudi-shell-pluralize-component "$component")"
-	local component_singular
-	[[ "$plural" == *ies ]] && component_singular=${plural%ies} && {
-		printf "%s" "${component_singular}y"
-		return 0
-	}
-	[[ "$plural" == *es ]] && component_singular=${plural%es}
-	[[ "$plural" == *ns ]] && component_singular=${plural%s}
-	printf "%s" "${component_singular:-$plural}"
+	case "$1" in
+	"") return 1 ;;
+	alias | aliases) printf "%s" "alias" ;;
+	plugin | plugins) printf "%s" "plugin" ;;
+	completion | completions) printf "%s" "completion" ;;
+	*s) printf "%s" "${1%s}" ;;
+	*) printf "%s" "$1" ;;
+	esac
 }
 
 _gaudi-shell-component-help() {
 	__check-function-parameters "$1" || return 1
-	local type component
+	local type component help
 	type=$(_gaudi-shell-pluralize-component "${1}")
 	component="$2"
 	help=$(_gaudi-shell-describe "$type" | tail -n +4)
@@ -72,24 +66,10 @@ _gaudi-shell-component-list-enabled() {
 	_gaudi-shell-component-help "${1}" | $GAUDI_SHELL_GREP -E '◉' | awk '{print $1}' | uniq | sort | tr '\n' ' '
 }
 
-_gaudi-shell-component-list-disabled() {
-	__check-function-parameters "$1" || return 1
-	_gaudi-shell-component-help "${1}" | $GAUDI_SHELL_GREP -E '◯' | awk '{print $1}' | uniq | sort | tr '\n' ' '
-}
-
 _gaudi-shell-component-item-is-enabled() {
 	__check-function-parameters "$1" || return 1
 	if [[ -n "$1" ]] && [[ -n "$2" ]]; then
 		_gaudi-shell-component-list-enabled "$1" | tr ' ' '\n' | $GAUDI_SHELL_GREP -E -q -- "^${2}$"
-	else
-		return 1
-	fi
-}
-
-_gaudi-shell-component-item-is-disabled() {
-	__check-function-parameters "$1" || return 1
-	if [[ -n "$1" ]] && [[ -n "$2" ]]; then
-		_gaudi-shell-component-list-disabled "$1" | tr ' ' '\n' | $GAUDI_SHELL_GREP -E -q -- "^${2}$"
 	else
 		return 1
 	fi

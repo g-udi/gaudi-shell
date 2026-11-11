@@ -66,7 +66,7 @@ The file-backed background pipeline from gaudi-bash (per-segment cache files, a 
 | Segment | Description |
 |---------|-------------|
 | `char` | Prompt character (`>>`). Changes color based on last command exit status (green on success, red on failure). Not part of the default arrays; the built-in prompt character is always green. |
-| `continuation` | PS2 continuation prompt character displayed during multi-line input. |
+| `continuation` | PS2 continuation prompt character displayed during multi-line input. Configured with `GAUDI_CONTINUATION_PREFIX`, `_SUFFIX`, `_SYMBOL` and `_COLOR`; the `GAUDI_CHAR_*` names it used to share with `char` are still read when the new ones are not set. |
 | `cwd` | Current working directory with intelligent path shortening. Changes color when the directory is not writable. Optionally displays file count and total size. |
 | `duration` | Execution time of the last command. Requires `GAUDI_SHELL_COMMAND_DURATION=true`. Only appears when the command exceeded a configurable threshold (default: 1 second). |
 | `host` | Hostname. Highlights differently when connected via SSH. |
@@ -153,6 +153,7 @@ Some segments expose additional variables. For example:
 - `GAUDI_BATTERY_THRESHOLD` -- Only show battery when the charge is below this percentage.
 - `GAUDI_DURATION_MIN_SECONDS` -- Minimum command duration (in seconds) before the segment appears.
 - `GAUDI_SCM_FETCH` -- Whether to run `git fetch` automatically.
+- `GAUDI_SCM_GIT_*` and `GAUDI_SCM_THEME_*` -- Characters and prefixes of the Git segment (for example `GAUDI_SCM_GIT_AHEAD_CHAR`, `GAUDI_SCM_THEME_PROMPT_DIRTY`). These are defaults: a value set before the adapter is sourced is kept.
 - `GAUDI_RUST_SHOW_TOOLCHAIN` -- Display the active Rust toolchain alongside the version.
 - `GAUDI_CWD_SHORTEN` -- Intelligently shorten long directory paths.
 - `GAUDI_CWD_SUMMARY` -- Append file count and directory size to the path.

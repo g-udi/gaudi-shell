@@ -38,7 +38,8 @@ gaudi_xcode () {
     local xcode_version_path=$xcode_path"/Contents/version.plist"
     if [[ -f ${xcode_version_path} ]]; then
       if gaudi::exists defaults; then
-        local xcode_version=$(defaults read ${xcode_version_path} CFBundleShortVersionString)
+        local xcode_version
+        xcode_version=$(defaults read "${xcode_version_path}" CFBundleShortVersionString)
 
         gaudi::section \
           "$GAUDI_XCODE_COLOR" \

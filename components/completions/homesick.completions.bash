@@ -3,11 +3,13 @@
 cite about-completion
 about-completion 'Homesick bash completions'
 
+_binary_exists homesick || return 0
+
 _homesick_complete () {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local options="--skip --force --pretend --quiet"
     local actions="cd clone commit destroy diff generate help list open pull push rc show_path status symlink track unlink version"
-    local repos=$(\ls ~/.homesick/repos)
+    local repos=$(\ls ~/.homesick/repos 2> /dev/null)
 
     # Subcommand list
     [[ ${COMP_CWORD} -eq 1 ]] && {

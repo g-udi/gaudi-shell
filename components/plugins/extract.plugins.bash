@@ -2,6 +2,10 @@
 # about-plugin 'Universal archive extractor'
 
 extract() {
+	about 'Extracts archives of the most common formats'
+	param '1: archive to extract'
+	group 'extract'
+
 	if [[ -z "$1" ]]; then
 		echo "usage: extract <archive>" >&2
 		return 1

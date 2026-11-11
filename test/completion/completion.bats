@@ -144,3 +144,75 @@ _complete_at() {
 	assert_success
 	assert_output ""
 }
+
+# --- driven by the command table ---
+
+@test "bash completion: the top level offers exactly the commands of the command table" {
+	run _complete_at gshell ""
+	assert_success
+	assert_equal "$(tr ' ' '\n' <<<"$output" | sort | tr '\n' ' ')" "$(_gaudi-shell-verb-names | tr ' ' '\n' | sort | tr '\n' ' ')"
+}
+
+@test "bash completion: show <type> offers enabled" {
+	run _complete_at gshell show aliases ""
+	assert_success
+	assert_output "enabled"
+
+	run _complete_at gshell show plugins "en"
+	assert_output "enabled"
+
+	run _complete_at gshell show plugins enabled ""
+	assert_output ""
+}
+
+@test "bash completion: search offers its flags" {
+	run _complete_at gshell search "--"
+	assert_success
+	assert_output --partial "--enable"
+	assert_output --partial "--disable"
+	assert_output --partial "--plugin"
+	assert_output --partial "--no-color"
+	assert_output --partial "--refresh"
+
+	run _complete_at gshell search git "--e"
+	assert_output "--enable"
+
+	run _complete_at gshell search git "--d"
+	assert_output "--disable"
+}
+
+@test "bash completion: every search flag offered is one the search command handles" {
+	local flag
+	for flag in $(_gaudi-shell-verb-field search 4); do
+		case "$flag" in
+		--enable | --disable) continue ;;
+		esac
+		run grep -c -- "'${flag}')" "$GAUDI_SHELL/lib/search.bash"
+		assert_output "1"
+	done
+}
+
+@test "bash completion: profile load, rm and save offer the saved profiles" {
+	mkdir -p "$GAUDI_SHELL/profiles"
+	echo "alias general" >"$GAUDI_SHELL/profiles/work.gaudi-shell"
+
+	run _complete_at gshell profile load ""
+	assert_success
+	assert_output --partial "work"
+
+	run _complete_at gshell profile rm "wo"
+	assert_output "work"
+
+	run _complete_at gshell profile list ""
+	assert_output ""
+}
+
+@test "bash completion: enable and disable complete more than one name" {
+	run _complete_at gshell enable alias git "gene"
+	assert_success
+	assert_output "general"
+
+	ln -s "../plugins/base.plugins.bash" "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
+	run _complete_at gshell disable plugins git "ba"
+	assert_output "base"
+}

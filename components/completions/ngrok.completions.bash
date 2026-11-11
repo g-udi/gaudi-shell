@@ -4,40 +4,23 @@
 cite about-completion
 about-completion 'Ngrok bash completions'
 
-__ngrok_completion() {
+_binary_exists ngrok || return 0
 
-	local prev=$(_get_pword)
-	local curr=$(_get_cword)
+# Don't handle completion if it's already managed
+complete -p ngrok &> /dev/null && return 0
 
-	local BASE_NO_CONF="--log --log-format --log-level --help"
-	local BASE="--config $BASE_NO_CONF"
-	local DEFAULT="$BASE --authtoken --region"
-
-	case $prev in
-		authtoken)
-			COMPREPLY=($(compgen -W "$BASE" -- "$curr"))
-			;;
-		http)
-			COMPREPLY=($(compgen -W "$DEFAULT --auth --bind-tls --host-header --hostname --inspect --subdomain" -- "$curr"))
-			;;
-		start)
-			COMPREPLY=($(compgen -W "$DEFAULT --all --none" -- "$curr"))
-			;;
-		tcp)
-			COMPREPLY=($(compgen -W "$DEFAULT --remote-addr" -- "$curr"))
-			;;
-		tls)
-			COMPREPLY=($(compgen -W "$DEFAULT --client-cas --crt --hostname --key --subdomain" -- "$curr"))
-			;;
-		update)
-			COMPREPLY=($(compgen -W "$BASE_NO_CONF --channel" -- "$curr"))
-			;;
-		ngrok)
-			COMPREPLY=($(compgen -W "authtoken credits http start tcp tls update version help" -- "$curr"))
-			;;
-		*) ;;
-
-	esac
+# Loaded on the first TAB, so nothing forks at shell start
+_gaudi_lazy_completion_ngrok() {
+  local spec
+  spec="$(complete -p ngrok 2> /dev/null)"
+  if [[ "$spec" == *" -F ${FUNCNAME[0]} "* ]]; then
+    complete -r ngrok
+    eval "$(SHELL=bash ngrok completion 2> /dev/null)"
+    spec="$(complete -p ngrok 2> /dev/null)"
+    # Completing ngrok itself: 124 makes bash retry with the completion just loaded
+    [[ "${1:-}" == ngrok && -n "$spec" ]] && return 124
+  fi
+  # Reached through an alias of ngrok: hand over to the loaded completion function
+  [[ "$spec" =~ -F[[:space:]]+([^[:space:]]+) ]] && "${BASH_REMATCH[1]}" "$@"
 }
-
-complete -F __ngrok_completion ngrok
+complete -F _gaudi_lazy_completion_ngrok ngrok

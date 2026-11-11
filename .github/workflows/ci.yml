@@ -6,8 +6,16 @@ on:
   pull_request:
     branches: [main]
 
+# Read-only by default; the release job asks for more on its own.
 permissions:
-  contents: write
+  contents: read
+
+# One run per branch or pull request at a time. A newer push to a pull request
+# cancels the run in progress; runs on main are never cancelled (the release
+# job tags), they queue.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   test:
@@ -20,7 +28,7 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
         submodules: recursive
 
@@ -50,20 +58,38 @@ jobs:
     steps:
     # No submodules here: bin/bats-* are vendored third-party test tools and
     # must not be linted or formatted as project code.
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
     - name: Install shellcheck
       run: sudo apt-get update && sudo apt-get install -y shellcheck
 
+    # A fixed version built from source (checked against the Go checksum
+    # database), instead of piping an install script from the network to sh.
     - name: Install shfmt
       run: |
-        curl -sS https://webi.sh/shfmt | sh
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
+        go install mvdan.cc/sh/v3/cmd/shfmt@v3.14.1
+        echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-    - name: Run shellcheck
+    # Everything the project wrote: the core, the adapters, the theme, the
+    # gshell completion, the hooks and the tests. A finding fails the job.
+    # bin/ (vendored bats) is not checked out here; the other completions are
+    # third-party scripts and are left out on purpose.
+    - name: Run shellcheck (core, theme, tests)
       run: |
-        find . -name '*.bash' -o -name '*.sh' -o -name '*.bats' | \
-          grep -v '/bin/' | xargs shellcheck --shell=bash || true
+        {
+          find . \( -name '*.bash' -o -name '*.sh' -o -name '*.bats' \) \
+            -not -path './bin/*' \
+            -not -path './components/aliases/*' \
+            -not -path './components/plugins/*' \
+            -not -path './components/completions/*'
+          echo ./components/completions/gaudi-shell.completions.bash
+          echo ./hooks/pre-push
+        } | sort | xargs shellcheck --shell=bash
+
+    # Aliases and plugins still carry style warnings, so only errors fail the
+    # job for now. Raise the severity once those are cleaned up.
+    - name: Run shellcheck (aliases and plugins, errors only)
+      run: shellcheck --shell=bash --severity=error components/aliases/*.bash components/plugins/*.bash
 
     # Same scope as the shfmt hook in .pre-commit-config.yaml, which leaves
     # adapters/zsh/, components/ and template/ unformatted.
@@ -75,9 +101,17 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test, lint]
     runs-on: ubuntu-latest
+    # The only job that writes to the repository (a tag and a release)
+    permissions:
+      contents: write
+    # Releases run one after the other, so two pushes cannot work out the same
+    # next tag.
+    concurrency:
+      group: release
+      cancel-in-progress: false
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       with:
         fetch-depth: 0
 
@@ -105,7 +139,7 @@ jobs:
     # tag to release; without tag_name it fails with "requires a tag".
     - name: Create GitHub Release
       if: steps.tag.outputs.skip != 'true'
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
       with:
         tag_name: ${{ steps.tag.outputs.tag }}
         generate_release_notes: true

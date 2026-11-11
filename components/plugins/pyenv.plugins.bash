@@ -5,6 +5,11 @@ cite about-plugin
 about-plugin 'Python version management via pyenv (lazy-loaded for fast startup)'
 
 export PYENV_ROOT="${PYENV_ROOT:-$HOME/.pyenv}"
+
+# Nothing to do without pyenv: the stubs below would shadow the system python
+# and pip and fail with "pyenv not found" instead of running them
+[[ -x "$PYENV_ROOT/bin/pyenv" ]] || hash pyenv 2> /dev/null || return 0
+
 pathmunge "$PYENV_ROOT/bin"
 
 # Add shims to PATH immediately so the correct python/pip is found,

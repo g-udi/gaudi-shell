@@ -16,14 +16,24 @@ _short-command () {
 }
 
 set_xterm_title () {
+    about 'Sets the xterm window title'
+    param '1: title'
+    group 'xterm'
+
     local title="$1"
     echo -ne "\033]0;$title\007"
 }
 
 precmd () {
+    about 'Sets the xterm title to user@host and the directory before each prompt'
+    group 'xterm'
+
     set_xterm_title "${SHORT_USER:-${USER}}@${SHORT_HOSTNAME:-${HOSTNAME}} `_short-dirname` $PROMPTCHAR"
 }
 
 preexec () {
+    about 'Sets the xterm title to the command being run'
+    group 'xterm'
+
     set_xterm_title "`_short-command $1` {`_short-dirname`} (${SHORT_USER:-${USER}}@${SHORT_HOSTNAME:-${HOSTNAME}})"
 }

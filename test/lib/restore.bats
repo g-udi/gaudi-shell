@@ -73,5 +73,30 @@ BACKUP
 	rm -f "$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup"
 
 	run _gaudi-shell-restore
+	assert_failure
 	assert_output --partial "No valid backup file found"
+}
+
+@test "gaudi-shell core: _gaudi-shell-restore prefers the backup profile over an older backup file" {
+
+	mkdir -p "$GAUDI_SHELL/tmp" "$GAUDI_SHELL/profiles"
+	printf '%s\n' "gshell enable alias general" >"$GAUDI_SHELL/tmp/enabled.gaudi-shell.backup"
+	printf '%s\n' "plugin base" >"$GAUDI_SHELL/profiles/backup.gaudi-shell"
+
+	run _gaudi-shell-restore
+	assert_success
+
+	assert_file_exist "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
+	assert_file_not_exist "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
+}
+
+@test "gaudi-shell core: _gaudi-shell-restore fails when a listed component cannot be enabled" {
+
+	mkdir -p "$GAUDI_SHELL/profiles"
+	printf '%s\n' "plugin base" "plugin no-such-plugin" >"$GAUDI_SHELL/profiles/backup.gaudi-shell"
+
+	run _gaudi-shell-restore
+	assert_failure
+	# What could be enabled still is
+	assert_file_exist "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
 }

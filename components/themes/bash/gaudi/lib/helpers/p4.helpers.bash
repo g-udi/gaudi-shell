@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
+# The GAUDI_SCM_* variables set here are read by lib/scm.bash and segments/scm.bash.
+# shellcheck disable=SC2034
 
 GAUDI_SCM_P4='p4'
 GAUDI_SCM_P4_CHAR='⌛'

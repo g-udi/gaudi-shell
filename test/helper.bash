@@ -32,8 +32,9 @@ function setup() {
 			-cf - . | tar -C "${GAUDI_SHELL}" -xf -
 	fi
 
-	# Clean runtime state
+	# Clean runtime state (the copy may come from a checkout that is in use)
 	rm -rf "$GAUDI_SHELL/tmp" "$GAUDI_SHELL/components/enabled"
+	rm -f "$GAUDI_SHELL/profiles/backup.gaudi-shell"
 	mkdir -p "$GAUDI_SHELL/components/enabled"
 
 	# Tests start inside the sandbox copy, so a relative path such as

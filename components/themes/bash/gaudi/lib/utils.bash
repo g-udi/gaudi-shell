@@ -20,6 +20,22 @@ gaudi::defined () {
   fi
 }
 
+# Check if the current directory has an entry with one of the given extensions
+# (hidden entries do not count). A glob, so no process is started.
+# USAGE:
+#   gaudi::has_files <extension>...
+gaudi::has_files () {
+  # Leave a pattern without matches as it is instead of raising an error
+  [[ -n "${ZSH_VERSION:-}" ]] && setopt local_options no_nomatch
+  local extension entry
+  for extension in "$@"; do
+    for entry in ./*."$extension"; do
+      [[ -e "$entry" || -L "$entry" ]] && return 0
+    done
+  done
+  return 1
+}
+
 # Sanitize a prompt string for zsh.
 # 1. Escapes literal % → %% (so zsh doesn't interpret them as prompt escapes)
 # 2. Wraps ALL raw ANSI escape sequences with %{...%} (so zsh knows they are
@@ -126,6 +142,7 @@ gaudi::render_prompt () {
   local segment=""
   local segment_function=""
   local GAUDI_SYMBOL_ALT=""
+  # shellcheck disable=SC2124
   local _arr_name="${1%"[@]"}"
   eval "local _segments=(\"\${${_arr_name}[@]}\")"
   if [[ -n "${_segments[*]:-}" ]]; then
@@ -155,20 +172,4 @@ gaudi::check_precmd_conflict () {
         fi
     done
     return 1
-}
-
-# Display seconds in human readable fromat
-# Based on http://stackoverflow.com/a/32164707/3859566
-# USAGE:
-#   gaudi::displaytime <seconds>
-gaudi::displaytime () {
-  local T=$1
-  local D=$((T/60/60/24))
-  local H=$((T/60/60%24))
-  local M=$((T/60%60))
-  local S=$((T%60))
-  [[ $D -gt 0 ]] && printf '%dd ' $D
-  [[ $H -gt 0 ]] && printf '%dh ' $H
-  [[ $M -gt 0 ]] && printf '%dm ' $M
-  printf '%ds' $S
 }

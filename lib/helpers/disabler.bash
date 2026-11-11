@@ -15,31 +15,24 @@ _gaudi-shell-disable() {
 	type_singular=$(_gaudi-shell-singularize-component "$1")
 	component="$2"
 
-	# Disable all
-	if [[ "$type" = "alls" ]] && [[ -z "$component" ]]; then
-		_read_input "This will disable all components. Are you sure? [yY/nN]"
-		if [[ $REPLY =~ ^[yY]$ ]]; then
-			for file_type in "aliases" "plugins" "completions"; do
-				_gaudi-shell-disable "$file_type" "all"
-			done
-		fi
-		return 0
-	fi
-
 	if [[ "$component" = "all" ]]; then
 		find "${GAUDI_SHELL}/components/enabled" -name "*.${type}.bash" -exec rm {} \;
 	else
 		[[ -z "$component" ]] && printf "${RED}%s ${GREEN}$type_singular(s) ${RED}%s${NC}\n" "Please enter a valid" "to disable" && return 1
 
-		local _component
-		_component=$(command ls "${GAUDI_SHELL}/components/enabled/"[0-9]*"${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${component}.${type}.bash" 2>/dev/null | head -1)
+		# A dangling link counts too: disabling is how it gets cleaned up.
+		local _link _found=""
+		for _link in "${GAUDI_SHELL}/components/enabled/"[0-9]*"${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${component}.${type}.bash"; do
+			[[ -e "$_link" || -L "$_link" ]] || continue
+			_found="$_link"
+			break
+		done
 
-		if [[ -z "$_component" ]]; then
+		if [[ -z "$_found" ]]; then
 			printf "${RED}∴${NC} ${CYAN}$component ${NC}%s ${GREEN}$type_singular${NC}\n" "does not appear to be an enabled"
 			return 1
-		else
-			rm "${GAUDI_SHELL}/components/enabled/$(basename "$_component")"
 		fi
+		rm "$_found"
 	fi
 
 	_gaudi-shell-component-cache-clean "${type}"

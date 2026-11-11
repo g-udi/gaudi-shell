@@ -1,29 +1,35 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
-# shellcheck disable=SC2155
 
+# Colours of the theme, as literal ANSI sequences: the same bytes `tput` prints
+# on a 256-colour terminal, without starting a process for each of them.
 
-# Reset
-export NC=$(tput sgr0)       # Text Reset
+# Reset. The split bash prompt pads the right-hand side by a fixed number of
+# invisible bytes, so this stays the exact sequence `tput sgr0` gives: screen
+# and tmux terminals use a different one from xterm-like terminals.
+case "${TERM:-}" in
+  screen* | tmux*) export NC=$'\e[m\017' ;;
+  *) export NC=$'\e(B\e[m' ;;
+esac
 
 # Regular Colors
-export GAUDI_BLACK=$(tput setaf 0)        # GAUDI_BLACK
-export GAUDI_RED=$(tput setaf 1)          # GAUDI_RED
-export GAUDI_GREEN=$(tput setaf 2)        # GAUDI_GREEN
-export GAUDI_YELLOW=$(tput setaf 3)       # GAUDI_YELLOW
-export GAUDI_BLUE=$(tput setaf 4)         # GAUDI_BLUE
-export GAUDI_MAGENTA=$(tput setaf 165)    # GAUDI_MAGENTA
-export GAUDI_CYAN=$(tput setaf 6)         # GAUDI_CYAN
-export GAUDI_WHITE=$(tput setaf 15)       # GAUDI_WHITE
-export GAUDI_ORANGE=$(tput setaf 202)     # GAUDI_ORANGE
+export GAUDI_BLACK=$'\e[30m'
+export GAUDI_RED=$'\e[31m'
+export GAUDI_GREEN=$'\e[32m'
+export GAUDI_YELLOW=$'\e[33m'
+export GAUDI_BLUE=$'\e[34m'
+export GAUDI_MAGENTA=$'\e[38;5;165m'
+export GAUDI_CYAN=$'\e[36m'
+export GAUDI_WHITE=$'\e[97m'
+export GAUDI_ORANGE=$'\e[38;5;202m'
 
 # Background
-export BACKGROUND_GAUDI_BLACK=$(tput setab 0)        # GAUDI_BLACK
-export BACKGROUND_GAUDI_RED=$(tput setab 1)          # GAUDI_RED
-export BACKGROUND_GAUDI_GREEN=$(tput setab 2)        # GAUDI_GREEN
-export BACKGROUND_GAUDI_YELLOW=$(tput setab 3)       # GAUDI_YELLOW
-export BACKGROUND_GAUDI_BLUE=$(tput setab 4)         # GAUDI_BLUE
-export BACKGROUND_GAUDI_MAGENTA=$(tput setab 5)      # GAUDI_MAGENTA
-export BACKGROUND_GAUDI_CYAN=$(tput setab 6)         # GAUDI_CYAN
-export BACKGROUND_GAUDI_WHITE=$(tput setab 15)       # GAUDI_WHITE
-export BACKGROUND_GAUDI_ORANGE=$(tput setab 202)     # GAUDI_ORANGE
+export BACKGROUND_GAUDI_BLACK=$'\e[40m'
+export BACKGROUND_GAUDI_RED=$'\e[41m'
+export BACKGROUND_GAUDI_GREEN=$'\e[42m'
+export BACKGROUND_GAUDI_YELLOW=$'\e[43m'
+export BACKGROUND_GAUDI_BLUE=$'\e[44m'
+export BACKGROUND_GAUDI_MAGENTA=$'\e[45m'
+export BACKGROUND_GAUDI_CYAN=$'\e[46m'
+export BACKGROUND_GAUDI_WHITE=$'\e[107m'
+export BACKGROUND_GAUDI_ORANGE=$'\e[48;5;202m'

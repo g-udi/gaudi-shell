@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
-# shellcheck disable=SC2034,SC1090,SC2091,SC2207,SC2059,SC2128
+# shellcheck disable=SC2207,SC2059
 
 # @function _gaudi-shell-search
 # @description  returns list of aliases, plugins and completions in gaudi-shell
@@ -50,26 +50,20 @@
 #      completions:  git
 #
 
-declare -a search_commands=(enable disable)
-
 _gaudi-shell-search() {
 	about "searches for given terms amongst gaudi-shell plugins, aliases and completions"
 	group "gaudi-shell:search"
 
-	[[ -z "$(type _array-contains 2>/dev/null)" ]]
+	local GAUDI_SHELL_SEARCH_USE_COLOR="${GAUDI_SHELL_SEARCH_USE_COLOR:-true}"
+	local COMPONENT="" word component
+	local -a args
+	args=()
 
-	local GAUDI_SHELL_SEARCH_USE_COLOR="${GAUDI_SHELL_SEARCH_USE_COLOR:=true}"
-	local COMPONENT
-	: "${GAUDI_SHELL_GREP:=$(_gaudi-shell-grep)}"
-	export GAUDI_SHELL_GREP=${GAUDI_SHELL_GREP:-$(which egrep)}
-	declare -a GAUDI_SHELL_COMPONENTS=(aliases plugins completions)
-
-	if [[ -z "$*" ]]; then
+	if [[ $# -eq 0 ]]; then
 		_gaudi-shell-search-help
 		return 0
 	fi
 
-	declare -a args=()
 	for word in "$@"; do
 		case "${word}" in
 		'-h' | '--help')
@@ -97,14 +91,14 @@ _gaudi-shell-search() {
 		esac
 	done
 
-	if [[ ${#args} -gt 0 ]]; then
-		if [[ -n $COMPONENT ]]; then
-			_gaudi-shell-search-component "${COMPONENT}" "${args[@]}"
-		else
-			for component in "${GAUDI_SHELL_COMPONENTS[@]}"; do
-				_gaudi-shell-search-component "${component}" "${args[@]}"
-			done
-		fi
+	[[ ${#args[@]} -gt 0 ]] || return 0
+
+	if [[ -n $COMPONENT ]]; then
+		_gaudi-shell-search-component "${COMPONENT}" "${args[@]}"
+	else
+		for component in aliases plugins completions; do
+			_gaudi-shell-search-component "${component}" "${args[@]}"
+		done
 	fi
 }
 
@@ -140,39 +134,29 @@ _gaudi-shell-search-component() {
 
 	local component="$1" && shift
 
-	# If one of the search terms is --enable or --disable, we will apply this action to the matches further down.
-	local component_singular action action_func
-
-	# check if the arguments has a --enable or --disable flags passed
-	for search_command in "${search_commands[@]}"; do
-		if $(_array-contains "--${search_command}" "$@"); then
-			action="${search_command}"
-			action_func="_gaudi-shell-${action} ${component}"
-			break
-		fi
-	done
-
-	declare -a terms=("$@")
-
-	unset exact_terms
-	unset partial_terms
-	unset negative_terms
+	# --enable or --disable among the terms is applied to the matches further down.
+	local action="" term search_term match line
+	if _array-contains "--enable" "$@"; then
+		action="enable"
+	elif _array-contains "--disable" "$@"; then
+		action="disable"
+	fi
 
 	# Terms that should be included only if they match exactly
-	declare -a exact_terms=()
+	local -a exact_terms
+	exact_terms=()
 	# Terms that should be included if they match partially
-	declare -a partial_terms=()
+	local -a partial_terms
+	partial_terms=()
 	# Negated partial terms that should be excluded
-	declare -a negative_terms=()
-	local modified=0
+	local -a negative_terms
+	negative_terms=()
+	# All components of this type (alias, plugin or completion)
+	local -a component_list
+	component_list=($(_gaudi-shell-component-list "${component}"))
 
-	unset component_list
-	# The component list is the list/array of all components for each category (alias, plugin and completion)
-	declare -a component_list=($(_gaudi-shell-component-list "${component}"))
-	local term
-
-	for term in "${terms[@]}"; do
-		local search_term="${term:1}"
+	for term in "$@"; do
+		search_term="${term:1}"
 		if [[ "${term:0:2}" == "--" ]]; then
 			continue
 		elif [[ "${term:0:1}" == "-" ]]; then
@@ -188,63 +172,65 @@ _gaudi-shell-search-component() {
 		fi
 	done
 
-	declare -a total_matches=($(_array-dedupe "${exact_terms[@]}" "${partial_terms[@]}"))
+	local -a total_matches
+	total_matches=($(_array-dedupe "${exact_terms[@]}" "${partial_terms[@]}"))
+	[[ ${#total_matches[@]} -eq 0 ]] && return 1
 
-	[[ ${#total_matches} -eq 0 ]] && return 1
-
-	unset matches
-	declare -a matches=()
+	local -a matches
+	matches=()
 	for match in "${total_matches[@]}"; do
-		local include_match=true
-
-		if [[ ${#negative_terms[@]} -gt 0 ]]; then
-			(_gaudi-shell-component-term-matches-negation "${match}" "${negative_terms[@]}") && include_match=false
+		if [[ ${#negative_terms[@]} -gt 0 ]] &&
+			_gaudi-shell-component-term-matches-negation "${match}" "${negative_terms[@]}"; then
+			continue
 		fi
-		(${include_match}) && matches=("${matches[@]}" "${match}")
+		matches+=("${match}")
 	done
+
+	[[ ${#matches[@]} -eq 0 ]] && return 1
 
 	if [[ -n "${action}" ]]; then
 		for match in "${matches[@]}"; do
-			_output=$(_gaudi-shell-"$action" "$component" "$match")
+			"_gaudi-shell-${action}" "$component" "$match" >/dev/null
 		done
 		_gaudi-shell-component-cache-clean "${component}"
 	fi
 
-	if [[ ${#matches[@]} == 0 || -z $matches ]]; then
-		return 1
-	else
-		_gaudi-shell-search-print-result "${component}" "${matches[@]}"
-		unset matches final_matches terms
-
-	fi
+	_gaudi-shell-search-print-result "${component}" "${matches[@]}"
 }
 
 # @function     _gaudi-shell-search-print-result
 # @description  prints the results of search result
 # @param $1     component: the component to search in e.g., alias, completion, plugin
-# @param $4     search terms: the search result terms
+# @param $2...  the matching components
 # @return       print the search results formatted and colored
-# @example      ❯ _gaudi-shell-search-print-result "${component}" "${action}" "${action_func}" "${matches[@]}"
+# @example      ❯ _gaudi-shell-search-print-result "${component}" "${matches[@]}"
 _gaudi-shell-search-print-result() {
 	local component="$1" && shift
-	declare -a matches=("$@")
-	local match enabled
+	local match
 
-	if [[ "${#matches[@]}" -gt 0 ]]; then
+	[[ $# -gt 0 ]] || return 0
 
-		(${GAUDI_SHELL_SEARCH_USE_COLOR}) && printf "${YELLOW}%s:${NC}\t" "${component}" || printf "%s:\t" "${component}"
-
-		for match in "${matches[@]}"; do
-			enabled=0
-			(_gaudi-shell-component-item-is-enabled "${component}" "${match}") && enabled=1
-			if [[ $enabled == 1 ]]; then
-				(${GAUDI_SHELL_SEARCH_USE_COLOR}) && match="${GREEN}${match} ✓${NC}" || match="${match} ✓"
-			fi
-			(${GAUDI_SHELL_SEARCH_USE_COLOR}) && echo -ne "${CYAN}$match  ${NC}" || printf "%s\t" "$match"
-		done
-
-		printf "\n"
+	if [[ "${GAUDI_SHELL_SEARCH_USE_COLOR}" == true ]]; then
+		printf '%s\t' "${YELLOW}${component}:${NC}"
+	else
+		printf '%s:\t' "${component}"
 	fi
+
+	for match in "$@"; do
+		if _gaudi-shell-component-item-is-enabled "${component}" "${match}"; then
+			if [[ "${GAUDI_SHELL_SEARCH_USE_COLOR}" == true ]]; then
+				printf '%s' "${CYAN}${GREEN}${match} ✓${NC}  ${NC}"
+			else
+				printf '%s\t' "${match} ✓"
+			fi
+		elif [[ "${GAUDI_SHELL_SEARCH_USE_COLOR}" == true ]]; then
+			printf '%s' "${CYAN}${match}  ${NC}"
+		else
+			printf '%s\t' "${match}"
+		fi
+	done
+
+	printf "\n"
 }
 
 # @function     _gaudi-shell-search-help

@@ -1,6 +1,6 @@
 # shellcheck shell=bash
 cite about-plugin
-about-plugin 'alias "shttp" to SimpleHTTPServer'
+about-plugin 'Python helpers: shttp (http.server in the current directory) and pyedit'
 
 if _command_exists python3; then
 	alias shttp='python3 -m http.server'
@@ -17,7 +17,11 @@ function pyedit() {
 	example '$ pyedit requests'
 	group 'python'
 
-	xpyc="$(python -c "import os, sys; f = open(os.devnull, 'w'); sys.stderr = f; module = __import__('$1'); sys.stdout.write(module.__file__)")"
+	local xpyc xpydir python_bin=python3
+	hash python3 2> /dev/null || python_bin=python
+
+	# The module name is passed as an argument, never pasted into the Python source
+	xpyc="$("$python_bin" -c "import os, sys; sys.stderr = open(os.devnull, 'w'); module = __import__(sys.argv[1]); sys.stdout.write(module.__file__)" "$1")"
 
 	if [[ "$xpyc" == "" ]]; then
 		echo "Python module $1 not found"

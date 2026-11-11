@@ -11,7 +11,14 @@ if _command_exists pg_config; then
   export PGVERSION
   export POSTGRES_BIN
 
-  COMMON_PGDATA_PATHS=("/usr/local/var/postgres" "/var/pgsql" "/Library/Server/PostgreSQL/Data")
+  # Homebrew keeps the data directory under its prefix (var/postgres or var/postgresql@<version>)
+  _gaudi_pg_brew="${GAUDI_SHELL_HOMEBREW_PREFIX:-${HOMEBREW_PREFIX:-}}"
+  if [[ -z "$_gaudi_pg_brew" ]]; then
+    _gaudi_pg_brew=/usr/local
+    [[ -d /opt/homebrew/var ]] && _gaudi_pg_brew=/opt/homebrew
+  fi
+  COMMON_PGDATA_PATHS=("${_gaudi_pg_brew}/var/postgres" "${_gaudi_pg_brew}/var/"postgresql@* "/var/pgsql" "/Library/Server/PostgreSQL/Data")
+  unset _gaudi_pg_brew
   for possible in "${COMMON_PGDATA_PATHS[@]}"
   do
     :

@@ -110,7 +110,7 @@ sshagent () {
   about 'ensures ssh-agent is up and running'
   param '1: on|off '
   example '$ sshagent on'
-  group 'ssh'
+  group 'sshagent'
   [[ -z "${SSH_AGENT_ENV}" ]] \
   && export SSH_AGENT_ENV="${HOME}/.ssh/agent_env.${HOSTNAME}"
 

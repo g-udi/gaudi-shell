@@ -32,11 +32,24 @@ _gaudi_nvm_load() {
 	fi
 }
 
-# Create stub functions for common Node commands that trigger lazy loading
-nvm() { _gaudi_nvm_load && nvm "$@"; }
-node() { _gaudi_nvm_load && node "$@"; }
-npm() { _gaudi_nvm_load && npm "$@"; }
-npx() { _gaudi_nvm_load && npx "$@"; }
-yarn() { _gaudi_nvm_load && yarn "$@"; }
-pnpm() { _gaudi_nvm_load && pnpm "$@"; }
-corepack() { _gaudi_nvm_load && corepack "$@"; }
+# Create stub functions for common Node commands that trigger lazy loading.
+# Only when nvm is installed: without it the stubs would shadow the system
+# node, npm, ... and fail with "nvm not found" instead of running them.
+_gaudi_nvm_found=""
+for _gaudi_nvm_dir in "$NVM_DIR" "${GAUDI_SHELL_HOMEBREW_PREFIX:+${GAUDI_SHELL_HOMEBREW_PREFIX}/opt/nvm}" "${HOMEBREW_PREFIX:+${HOMEBREW_PREFIX}/opt/nvm}" /opt/homebrew/opt/nvm /usr/local/opt/nvm; do
+	if [[ -n "$_gaudi_nvm_dir" && -s "${_gaudi_nvm_dir}/nvm.sh" ]]; then
+		_gaudi_nvm_found=1
+		break
+	fi
+done
+
+if [[ -n "$_gaudi_nvm_found" ]]; then
+	nvm() { _gaudi_nvm_load && nvm "$@"; }
+	node() { _gaudi_nvm_load && node "$@"; }
+	npm() { _gaudi_nvm_load && npm "$@"; }
+	npx() { _gaudi_nvm_load && npx "$@"; }
+	yarn() { _gaudi_nvm_load && yarn "$@"; }
+	pnpm() { _gaudi_nvm_load && pnpm "$@"; }
+	corepack() { _gaudi_nvm_load && corepack "$@"; }
+fi
+unset _gaudi_nvm_found _gaudi_nvm_dir

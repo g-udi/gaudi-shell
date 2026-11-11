@@ -11,6 +11,9 @@ _bash_history_sync () {
 }
 
 history () {
+  about 'Syncs the history with the history file, then runs the history builtin'
+  group 'history'
+
   _bash_history_sync
   builtin history "$@"
 }

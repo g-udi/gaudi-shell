@@ -1,6 +1,5 @@
-# #!/usr/bin/env bash
+#!/usr/bin/env bash
 # shellcheck shell=bash
-# shellcheck disable=SC2181
 
 # @function     _gaudi-shell_update_and_restart
 # @description  Checks out the wanted version, pops directory and restart
@@ -13,8 +12,7 @@ function _gaudi-shell_update_and_restart() {
 
 	# Called with the install directory pushed by _gaudi-shell-update: every
 	# path out of here pops it again, so the user is never left in there.
-	git checkout "$1" &>/dev/null
-	if [[ $? -eq 0 ]]; then
+	if git checkout "$1" &>/dev/null; then
 		echo "gaudi-shell successfully updated."
 		popd &>/dev/null || return
 		_gaudi-shell-restart
@@ -57,7 +55,11 @@ function _gaudi-shell-update() {
 		GAUDI_SHELL_REMOTE="origin"
 	fi
 
-	git fetch "$GAUDI_SHELL_REMOTE" --tags &>/dev/null
+	if ! git fetch "$GAUDI_SHELL_REMOTE" --tags &>/dev/null; then
+		echo "Could not fetch from '$GAUDI_SHELL_REMOTE': check the network and the remote, then try again."
+		popd >/dev/null || return 1
+		return 1
+	fi
 
 	if [[ -z "$GAUDI_SHELL_DEVELOPMENT_BRANCH" ]]; then
 		GAUDI_SHELL_DEVELOPMENT_BRANCH="main"

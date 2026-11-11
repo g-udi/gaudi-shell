@@ -9,7 +9,9 @@ case $OSTYPE in
     alias en='emacs -nw'
     alias e='emacsclient -n'
     alias et='emacsclient -t'
-    alias ed='emacs --daemon'
+    # ed is a real editor: alias it only when no such binary is installed
+    hash ed 2> /dev/null || alias ed='emacs --daemon'
+    alias emd='emacs --daemon'
     alias E='SUDO_EDITOR=emacsclient sudo -e'
     ;;
   darwin*)

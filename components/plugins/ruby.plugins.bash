@@ -10,8 +10,20 @@ if which ruby >/dev/null && which gem >/dev/null; then
 fi
 
 remove_gem () {
-  about 'Removes installed gem'
-  group 'Ruby'
+  about 'Removes an installed gem (exact name) with sudo, after confirmation'
+  param '1: gem name'
+  group 'ruby'
 
-  gem list | grep $1 | awk '{ print $1; }' | xargs sudo gem uninstall
+  if [[ -z "${1:-}" ]]; then
+    echo "Usage: remove_gem <gem name>" >&2
+    return 1
+  fi
+  if ! gem list --no-versions | grep -qFx -- "$1"; then
+    echo "remove_gem: gem '$1' is not installed" >&2
+    return 1
+  fi
+
+  _read_input "Run 'sudo gem uninstall $1'? [y/n]"
+  [[ "$REPLY" == [yY] ]] || return 1
+  sudo gem uninstall "$1"
 }

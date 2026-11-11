@@ -3,7 +3,7 @@
 cite about-plugin
 about-plugin 'Git helper functions'
 
-export GIT_EDITOR="vi";
+export GIT_EDITOR="${GIT_EDITOR:-${VISUAL:-${EDITOR:-vi}}}"
 
 git_remote () {
   about 'Adds remote $GIT_HOSTING:$1 to current repo'
@@ -14,11 +14,17 @@ git_remote () {
 }
 
 git_first_push () {
-  about 'Push into origin refs/heads/master'
+  about 'Push the current branch to origin for the first time'
   group 'git'
 
-  echo "Running: git push origin master:refs/heads/master"
-  git push origin master:refs/heads/master
+  local branch
+  if ! branch=$(git symbolic-ref --quiet --short HEAD); then
+    echo "Not on a branch, nothing to push" >&2
+    return 1
+  fi
+
+  echo "Running: git push origin ${branch}:refs/heads/${branch}"
+  git push origin "${branch}:refs/heads/${branch}"
 }
 
 git_pub () {
@@ -44,67 +50,48 @@ git_rollback () {
   about 'Resets the current HEAD to this commit'
   group 'git'
 
-  is_clean () {
-    if [[ $(git diff --shortstat 2> /dev/null | tail -n1) != "" ]]; then
-      echo "Your branch is dirty, please commit your changes"
-      kill -INT $$
-    fi
-  }
+  local resp
 
-  commit_exists () {
-    git rev-list --quiet $1
-    status=$?
-    if [[ $status -ne 0 ]]; then
-      echo "Commit ${1} does not exist"
-      kill -INT $$
-    fi
-  }
+  if [[ -z "$(git symbolic-ref HEAD 2> /dev/null)" ]]; then
+    echo "you're currently not in a git repository"
+    return 1
+  fi
+  if [[ -n "$(git diff --shortstat 2> /dev/null | tail -n1)" ]]; then
+    echo "Your branch is dirty, please commit your changes"
+    return 1
+  fi
+  if ! git rev-list --quiet "$1"; then
+    echo "Commit ${1} does not exist"
+    return 1
+  fi
 
-  keep_changes () {
-    while true
-    do
-      read -p "Do you want to keep all changes from rolled back revisions in your working tree? [Y/N]" RESP
-      case $RESP
-      in
+  while true; do
+    printf '%s' "WARNING: This will change your history and move the current HEAD back to commit ${1}, continue? [Y/N]"
+    read -r resp || return 1
+    case $resp in
+      [yY]) break ;;
+      [nN]) return 0 ;;
+      *) echo "Please enter Y or N" ;;
+    esac
+  done
+
+  while true; do
+    printf '%s' "Do you want to keep all changes from rolled back revisions in your working tree? [Y/N]"
+    read -r resp || return 1
+    case $resp in
       [yY])
         echo "Rolling back to commit ${1} with unstaged changes"
-        git reset $1
-        break
+        git reset "$1"
+        return
         ;;
       [nN])
         echo "Rolling back to commit ${1} with a clean working tree"
-        git reset --hard $1
-        break
+        git reset --hard "$1"
+        return
         ;;
-      *)
-        echo "Please enter Y or N"
-      esac
-    done
-  }
-
-  if [[ -n "$(git symbolic-ref HEAD 2> /dev/null)" ]]; then
-    is_clean
-    commit_exists $1
-
-    while true
-    do
-      read -p "WARNING: This will change your history and move the current HEAD back to commit ${1}, continue? [Y/N]" RESP
-      case $RESP
-        in
-        [yY])
-          keep_changes $1
-          break
-          ;;
-        [nN])
-          break
-          ;;
-        *)
-          echo "Please enter Y or N"
-      esac
-    done
-  else
-    echo "you're currently not in a git repository"
-  fi
+      *) echo "Please enter Y or N" ;;
+    esac
+  done
 }
 
 git_remove_missing_files () {

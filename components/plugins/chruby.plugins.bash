@@ -1,7 +1,17 @@
 # shellcheck shell=bash
 
 cite about-plugin
-about-plugin 'Load chruby (from /usr/local/share/chruby)'
+about-plugin 'Load chruby (from the Homebrew prefix, /usr/local or /usr)'
 
-[ -f /usr/local/share/chruby/chruby.sh ] && source /usr/local/share/chruby/chruby.sh
-[ -f /usr/local/share/chruby/auto.sh ] && source source /usr/local/share/chruby/auto.sh
+for _gaudi_chruby_prefix in "${GAUDI_SHELL_HOMEBREW_PREFIX:-}" "${HOMEBREW_PREFIX:-}" /opt/homebrew /usr/local /usr; do
+  if [[ -n "$_gaudi_chruby_prefix" && -f "${_gaudi_chruby_prefix}/share/chruby/chruby.sh" ]]; then
+    # shellcheck source=/dev/null
+    source "${_gaudi_chruby_prefix}/share/chruby/chruby.sh"
+    if [[ -f "${_gaudi_chruby_prefix}/share/chruby/auto.sh" ]]; then
+      # shellcheck source=/dev/null
+      source "${_gaudi_chruby_prefix}/share/chruby/auto.sh"
+    fi
+    break
+  fi
+done
+unset _gaudi_chruby_prefix

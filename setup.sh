@@ -10,6 +10,10 @@ source "$GAUDI_SETUP_DIRECTORY/lib/colors.bash"
 # Sets REPLY and returns 0 for yes, 1 for no. When nothing can be read (end of
 # input, no terminal) it stops asking: REPLY is left empty and it returns 2, so
 # callers treat it as "not yes". Works in bash and zsh.
+#
+# This is a copy of _read_input in lib/helpers/utils.bash, kept here on
+# purpose: setup asks its question before the libraries are loaded. Change
+# both together.
 _read_input() {
 	REPLY=""
 	while true; do

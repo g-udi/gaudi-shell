@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
+# Vendored (see the credit below): its unquoted expansions are relied upon.
+# shellcheck disable=SC2086,SC2004
 
 # Usage: battstat [options] format
 # CGAUDI_REDit: https://github.com/imwally/battstat

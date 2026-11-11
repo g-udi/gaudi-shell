@@ -4,7 +4,12 @@
 # Git pre-push hook for gaudi-shell
 # Runs pre-commit lint checks and tests before pushing.
 
-: "${GAUDI_SHELL:=$HOME/.gaudi-shell}"
+# The repository being pushed, not whichever copy happens to be installed.
+if ! REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)" || [[ -z "$REPO_ROOT" ]]; then
+	echo "pre-push: not inside a git work tree. Push aborted."
+	exit 1
+fi
+cd "$REPO_ROOT" || exit 1
 
 # Run pre-commit checks if available
 if command -v pre-commit &>/dev/null; then
@@ -15,10 +20,11 @@ if command -v pre-commit &>/dev/null; then
 	}
 fi
 
-# Run tests if a test runner is available
-if [[ -f "${GAUDI_SHELL}/test/run" ]]; then
+# Run tests if a test runner is available. Standard input is closed for them:
+# git feeds the hook the list of refs being pushed.
+if [[ -x "${REPO_ROOT}/test/run" ]]; then
 	echo "Running tests before push..."
-	"${GAUDI_SHELL}/test/run" || {
+	"${REPO_ROOT}/test/run" </dev/null || {
 		echo "Tests failed. Push aborted."
 		exit 1
 	}

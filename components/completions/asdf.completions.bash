@@ -1,74 +1,25 @@
-
 # shellcheck shell=bash
 
 cite about-completion
 about-completion 'asdf completions | The multiple runtime version manager'
 
-_asdf () {
-  local cur
-  cur=${COMP_WORDS[COMP_CWORD]}
-  local cmd
-  cmd=${COMP_WORDS[1]}
-  local prev
-  prev=${COMP_WORDS[COMP_CWORD-1]}
-  local plugins
-  plugins=$(asdf plugin-list | tr '\n' ' ')
+_binary_exists asdf || return 0
 
-  # We can safely ignore warning SC2207 since it warns that it will uses the
-  # shell's sloppy word splitting and globbing. The possible commands here are
-  # all single words, and most likely won't contain special chars the shell will
-  # expand.
-  COMPREPLY=()
+# Don't handle completion if it's already managed
+complete -p asdf &> /dev/null && return 0
 
-  case "$cmd" in
-    plugin-update)
-      # shellcheck disable=SC2207
-      COMPREPLY=($(compgen -W "$plugins --all" -- "$cur"))
-      ;;
-    plugin-remove|current|list|list-all)
-      # shellcheck disable=SC2207
-      COMPREPLY=($(compgen -W "$plugins" -- "$cur"))
-      ;;
-    plugin-add)
-      local available_plugins
-      available_plugins=$( (asdf plugin-list && asdf plugin-list-all) | sort | uniq -u)
-      # shellcheck disable=SC2207
-      COMPREPLY=($(compgen -W "$available_plugins" -- "$cur"))
-      ;;
-    install)
-      if [[ "$plugins" == *"$prev"* ]] ; then
-        local versions
-        versions=$(asdf list-all "$prev")
-        # shellcheck disable=SC2207
-        COMPREPLY=($(compgen -W "$versions" -- "$cur"))
-      else
-        # shellcheck disable=SC2207
-        COMPREPLY=($(compgen -W "$plugins" -- "$cur"))
-      fi
-      ;;
-    update)
-      # shellcheck disable=SC2207
-      COMPREPLY=($(compgen -W "--head" -- "$cur"))
-      ;;
-    uninstall|where|reshim|local|global)
-      if [[ "$plugins" == *"$prev"* ]] ; then
-        local versions
-        versions=$(asdf list "$prev")
-        # shellcheck disable=SC2207
-        COMPREPLY=($(compgen -W "$versions" -- "$cur"))
-      else
-        # shellcheck disable=SC2207
-        COMPREPLY=($(compgen -W "$plugins" -- "$cur"))
-      fi
-      ;;
-    *)
-      local cmds='current global help install list list-all local plugin-add plugin-list plugin-list-all plugin-remove plugin-update reshim uninstall update where which '
-      # shellcheck disable=SC2207
-      COMPREPLY=($(compgen -W "$cmds" -- "$cur"))
-      ;;
-  esac
-
-  return 0
+# Loaded on the first TAB, so nothing forks at shell start
+_gaudi_lazy_completion_asdf() {
+  local spec
+  spec="$(complete -p asdf 2> /dev/null)"
+  if [[ "$spec" == *" -F ${FUNCNAME[0]} "* ]]; then
+    complete -r asdf
+    eval "$(asdf completion bash 2> /dev/null)"
+    spec="$(complete -p asdf 2> /dev/null)"
+    # Completing asdf itself: 124 makes bash retry with the completion just loaded
+    [[ "${1:-}" == asdf && -n "$spec" ]] && return 124
+  fi
+  # Reached through an alias of asdf: hand over to the loaded completion function
+  [[ "$spec" =~ -F[[:space:]]+([^[:space:]]+) ]] && "${BASH_REMATCH[1]}" "$@"
 }
-
-complete -F _asdf asdf
+complete -F _gaudi_lazy_completion_asdf asdf

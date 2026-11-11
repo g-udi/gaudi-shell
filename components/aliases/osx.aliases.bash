@@ -3,19 +3,18 @@
 cite about-alias
 about-alias 'OSX specific aliases'
 
-# Requires growlnotify, which can be found in the Growl DMG under "Extras"
-alias grnot='growlnotify -s -t Terminal -m "Done"'
+case $OSTYPE in
+  darwin*) ;;
+  *) return 0 ;;
+esac
 
 # Get rid of those pesky .DS_Store files recursively
 alias dsclean='find . -type f -name .DS_Store -delete'
 
-# Track who is listening to your iTunes music
-alias whotunes='lsof -r 2 -n -P -F n -c iTunes -a -i TCP@`hostname`:3689'
-
 # Flush your dns cache
-alias flush='dscacheutil -flushcache'
+alias flush='sudo dscacheutil -flushcache && sudo killall -HUP mDNSResponder'
 
-# Show/hide hidden files (for Mac OS X Mavericks)
+# Show/hide hidden files in Finder
 alias showhidden="defaults write com.apple.finder AppleShowAllFiles TRUE"
 alias hidehidden="defaults write com.apple.finder AppleShowAllFiles FALSE"
 

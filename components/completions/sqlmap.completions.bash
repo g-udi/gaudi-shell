@@ -10,8 +10,12 @@ if command -v sqlmap > /dev/null; then
         local cur prev
 
         COMPREPLY=()
-        cur=$(_get_cword)
-        prev=$(_get_pword)
+        if declare -F _get_comp_words_by_ref > /dev/null; then
+            _get_comp_words_by_ref cur prev
+        else
+            cur="${COMP_WORDS[COMP_CWORD]}"
+            prev="${COMP_WORDS[COMP_CWORD - 1]}"
+        fi
 
         case $prev in
 

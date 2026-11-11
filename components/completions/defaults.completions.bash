@@ -3,6 +3,9 @@
 cite about-completion
 about-completion 'Bash command line completion for defaults'
 
+# macOS only
+_binary_exists defaults || return 0
+
 
 _defaults_domains () {
     local cur
