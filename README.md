@@ -25,7 +25,7 @@ What makes it different:
 - **Batteries included**: ships with 71 plugins, 39 alias sets, and 62 completions — curated and ready to use. No need to find and wire up third-party repositories.
 - **Profiles**: save your entire setup as a named profile (`gshell profile save work`), switch between configurations (`gshell profile load minimal`), share them across machines.
 - **Search**: `gshell search docker` finds every docker-related alias, plugin, and completion in one shot. Add `--enable` to activate all matches.
-- **Proven foundation**: built on years of real-world use in [gaudi-bash](https://github.com/g-udi/gaudi-bash) — async theme rendering, priority-sorted loading, diagnostic tooling (`gshell doctor`).
+- **Proven foundation**: built on years of real-world use in [gaudi-bash](https://github.com/g-udi/gaudi-bash) — segment-based prompt theme, priority-sorted loading, diagnostic tooling (`gshell doctor`).
 
 If you're someone who uses both bash and zsh and wants **one consistent experience** instead of maintaining two separate shell configurations — that's what this is for.
 
@@ -36,10 +36,11 @@ git clone https://github.com/g-udi/gaudi-shell.git ~/.gaudi-shell
 cd ~/.gaudi-shell && ./setup.sh
 ```
 
-The setup script backs up your existing shell config, writes the gaudi-shell template, and enables a sane set of defaults (general aliases, base plugin, system completions).
+The setup script backs up your existing shell config (to a `.bak` file), appends the gaudi-shell template to it or replaces it (it asks which), and enables a sane set of defaults (general aliases, base plugin, system and `gshell` completions).
 
 Options:
 
+- `--help` (`-h`): Display the usage message
 - `--silent` (`-s`): Install with defaults without prompting
 - `--no-modify-config` (`-n`): Do not modify your existing config file
 - `--shell bash|zsh`: Install for a specific shell instead of auto-detecting from `$SHELL`
@@ -77,7 +78,7 @@ gshell reload                     # reload your shell to apply changes
 
 `g` is a shortcut for `gshell` — use `g show`, `g enable alias git`, etc.
 
-Tab completion works in both bash and zsh for all commands and component names.
+Tab completion for `gshell` (and `g`) works in both bash and zsh for all commands and component names.
 
 ## Architecture
 
@@ -103,7 +104,7 @@ gaudi-shell/
       generic.bash         # pathmunge and utility helpers
       help.bash            # Help display for components
       profile.bash         # Profile save/load/list/rm
-      updater.bash         # Git-based update (stable/dev/all modes)
+      updater.bash         # Git-based update (stable/dev modes)
       utils.bash           # General utilities (_command_exists, _is_function, etc.)
   adapters/
     bash/init.bash         # Bash adapter — sources gaudi_shell.sh directly
@@ -111,8 +112,8 @@ gaudi-shell/
   components/
     aliases/               # Alias definitions (work in both bash and zsh)
     plugins/               # Plugin definitions (work in both bash and zsh)
-    completions/           # Bash completions (.completions.bash) + zsh completion (.zsh)
-    themes/                # Prompt themes (bash/ and zsh/ subdirectories)
+    completions/           # Bash completions (.completions.bash) + zsh completion for gshell (.zsh)
+    themes/                # Prompt themes, per shell (ships bash/gaudi, which also runs in zsh)
     enabled/               # Symlinks to enabled components (runtime state)
     custom/                # Untracked local scripts loaded after enabled components
   scripts/
@@ -127,7 +128,7 @@ The core engine loads libraries from `lib/`, then the loader walks `components/e
 - **Cross-shell**: aliases and plugins are bash scripts that work in both bash and zsh. Only completions and themes need shell-specific implementations.
 - **Symlink-based**: enabling a component creates a symlink; disabling removes it. No config files to edit.
 - **Priority-sorted**: components load in numeric order (aliases at 150, plugins at 250, completions at 350) so aliases are available when plugins run.
-- **Zero dependencies**: pure bash/zsh — no external tools required to run.
+- **Zero dependencies**: pure bash/zsh — nothing to install beyond git and the standard Unix tools.
 
 ## Local Untracked Customizations
 
@@ -188,20 +189,21 @@ gshell profile list                  # list saved profiles
 gshell profile rm old-setup          # delete a saved profile
 
 gshell backup                        # back up enabled components to a file
-gshell restore                       # re-enable components from backup
+gshell restore                       # re-enable components from backup (also reads older `gaudi enable ...` backups)
 
 gshell doctor                        # diagnostic reload with logging (shows all levels)
 gshell doctor errors                 # show only error-level logs
 gshell doctor warnings               # show error + warning logs
 
 gshell update                        # update gaudi-shell to latest stable tag
-gshell update dev                    # update to latest development branch
-gshell update all                    # update core + sync component submodules
+gshell update dev                    # update to the development branch ($GAUDI_SHELL_DEVELOPMENT_BRANCH on $GAUDI_SHELL_REMOTE)
 
 gshell version                       # show version, git SHA, and shell type
 gshell reload                        # re-source your shell profile
 gshell restart                       # re-exec the shell (stronger than reload)
 ```
+
+`gshell update dev` targets `origin/main` unless `GAUDI_SHELL_DEVELOPMENT_BRANCH` is set.
 
 ## Components
 
@@ -216,7 +218,7 @@ Plugins add new shell functions, behaviors, and integrations:
 - **nvm** -- Node version manager (lazy-loaded for fast startup)
 - **pyenv** -- Python version management (lazy-loaded for fast startup)
 - **extract** -- extract any archive format with a single command
-- **cmd-returned-notify** -- desktop notification when a long-running command finishes
+- **cmd-returned-notify** -- terminal bell (BEL) when a long-running command finishes
 - **python** -- `shttp` for HTTP server, `pyedit` to open Python modules
 - **url** -- URL slugify with HTML/MD/RST output formats
 - **fasd** / **zoxide** / **autojump** / **jump** -- fast directory navigation
@@ -263,6 +265,8 @@ Tab-completion for 62 tools including:
 - **ssh** / **gcloud** / **awscli** -- Cloud and system tools
 - **gaudi-shell** -- completion for the `gshell` command itself
 
+The bundled completions are bash completions. Under zsh the adapter turns bash's `complete` builtin into a no-op, so only the `gshell` completion, which has a native zsh implementation, is active there.
+
 ## Profiles
 
 Profiles let you save, switch between, and share complete component configurations:
@@ -289,7 +293,7 @@ The `load` command validates the profile before applying changes.
 
 ## Command Duration
 
-Track and display how long each command takes:
+The `duration` segment of the gaudi theme displays how long the last command took. Enable the tracking with:
 
 ```bash
 export GAUDI_SHELL_COMMAND_DURATION=true
@@ -306,19 +310,17 @@ Find components by keyword across all types:
 
 ```bash
 $ gshell search ruby
-      aliases:  bundler rails
-      plugins:  chruby ruby
-  completions:  bundler gem rake
+plugins:      chruby  ruby
 
 $ gshell search docker -machine
-      aliases:  docker docker-compose
-      plugins:  docker docker-compose
-  completions:  docker docker-compose
+aliases:      docker  docker-compose
+plugins:      boot2docker  docker  docker-compose
+completions:  docker  docker-compose
 
 $ gshell search git --enable    # search and enable all matches
 ```
 
-Prefix a term with `-` to exclude it. Use `@` for exact match. Add `--enable` or `--disable` to act on results.
+Terms are matched case-sensitively against component names and descriptions. Prefix a term with `-` to exclude it. Use `@` for exact match. Add `--enable` or `--disable` to act on results.
 
 ## Priority System
 
@@ -344,6 +346,8 @@ Quick one-off backups:
 gshell backup    # writes to $GAUDI_SHELL/tmp/enabled.gaudi-shell.backup
 gshell restore   # re-enables from the backup file (validates entries)
 ```
+
+The backup is a list of `gshell enable <type> <name>` lines. `gshell restore` also accepts backups written before the command was renamed, which used `gaudi enable ...` lines.
 
 For named, reusable configurations, use profiles instead.
 
