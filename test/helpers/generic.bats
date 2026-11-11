@@ -58,3 +58,37 @@ local_setup() {
 	pathmunge "${new_paths}"
 	assert_equal "${want_paths}:${old_path}" "${PATH}"
 }
+
+@test "gaudi-shell helpers: generic: pathmunge: after appends" {
+
+	local new_paths="/tmp/fake-pathmunge-path"
+	local old_path="${PATH}"
+
+	pathmunge "${new_paths}" after
+	assert_equal "${old_path}:${new_paths}" "${PATH}"
+}
+
+@test "gaudi-shell helpers: generic: pathmunge: a path already in PATH is not added again" {
+
+	local old_path="${PATH}"
+
+	pathmunge "/tmp/fake-pathmunge-path"
+	pathmunge "/tmp/fake-pathmunge-path"
+	pathmunge "/tmp/fake-pathmunge-path" after
+	assert_equal "/tmp/fake-pathmunge-path:${old_path}" "${PATH}"
+}
+
+@test "gaudi-shell helpers: generic: pathmunge: paths are compared literally, not as patterns" {
+
+	local old_path="${PATH}"
+
+	pathmunge "/tmp/fake-pathmunge-pathX1"
+	pathmunge "/tmp/fake-pathmunge-path.1"
+	assert_equal "/tmp/fake-pathmunge-path.1:/tmp/fake-pathmunge-pathX1:${old_path}" "${PATH}"
+}
+
+@test "gaudi-shell helpers: generic: pathmunge: does not leak helper variables" {
+
+	pathmunge "/tmp/fake-pathmunge-path1:/tmp/fake-pathmunge-path2"
+	assert_equal "${p-unset}${_pm_dir-unset}${_pm_rest-unset}" "unsetunsetunset"
+}

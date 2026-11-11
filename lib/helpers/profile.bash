@@ -16,10 +16,10 @@ _gaudi-shell-profile-save() {
 
 	: >"${profile_file}"
 	local _count=0
+	local _file _component _type
 
 	for _file in "${GAUDI_SHELL}"/components/enabled/*.bash; do
 		[[ ! -e "$_file" ]] && continue
-		local _component _type
 		_component="${_file##*"$GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR"}"
 		_component="${_component%.bash}"
 		_type=$(_gaudi-shell-singularize-component "${_component##*.}")
@@ -56,9 +56,11 @@ _gaudi-shell-profile-load() {
 		_gaudi-shell-disable "$file_type" "all"
 	done
 
+	local _type _component
 	while IFS= read -r line || [[ -n "$line" ]]; do
 		[[ -z "$line" ]] && continue
-		local _type="${line%% *}" _component="${line#* }"
+		_type="${line%% *}"
+		_component="${line#* }"
 		_gaudi-shell-enable "$(_gaudi-shell-pluralize-component "$_type")" "$_component"
 	done <"${profile_file}"
 
@@ -72,8 +74,8 @@ _gaudi-shell-profile-list() {
 		return 0
 	fi
 	printf "${GREEN}%s${NC}\n" "Available profiles:"
+	local _profile _name _count
 	for _profile in "${profile_dir}"/*.gaudi-shell; do
-		local _name _count
 		_name="$(basename "$_profile" .gaudi-shell)"
 		_count=$(wc -l <"$_profile" | tr -d ' ')
 		printf "  ${CYAN}%s${NC} (%s component(s))\n" "$_name" "$_count"

@@ -228,14 +228,14 @@ _gaudi-shell-search-component() {
 _gaudi-shell-search-print-result() {
 	local component="$1" && shift
 	declare -a matches=("$@")
-	local match
+	local match enabled
 
 	if [[ "${#matches[@]}" -gt 0 ]]; then
 
 		(${GAUDI_SHELL_SEARCH_USE_COLOR}) && printf "${YELLOW}%s:${NC}\t" "${component}" || printf "%s:\t" "${component}"
 
 		for match in "${matches[@]}"; do
-			local match enabled=0
+			enabled=0
 			(_gaudi-shell-component-item-is-enabled "${component}" "${match}") && enabled=1
 			if [[ $enabled == 1 ]]; then
 				(${GAUDI_SHELL_SEARCH_USE_COLOR}) && match="${GREEN}${match} ✓${NC}" || match="${match} ✓"

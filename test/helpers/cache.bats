@@ -37,3 +37,15 @@ local_setup() {
 	assert_file_not_exist "$GAUDI_SHELL_CACHE_DIR/plugins"
 	assert_file_not_exist "$GAUDI_SHELL_CACHE_DIR/aliases"
 }
+
+@test "gaudi-shell helpers: cache: clean should remove the enabled list when the full list was never cached" {
+	_enabled_cache=$(_gaudi-shell-component-cache-add plugins-enabled)
+	touch "${_enabled_cache}"
+
+	assert_file_not_exist "$GAUDI_SHELL_CACHE_DIR/plugins"
+	assert_file_exist "$GAUDI_SHELL_CACHE_DIR/plugins-enabled"
+
+	_gaudi-shell-component-cache-clean plugins
+
+	assert_file_not_exist "$GAUDI_SHELL_CACHE_DIR/plugins-enabled"
+}

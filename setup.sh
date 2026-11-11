@@ -6,11 +6,23 @@ GAUDI_SETUP_SOURCE="${BASH_SOURCE[0]:-$0}"
 GAUDI_SETUP_DIRECTORY="$(cd "$(dirname "$GAUDI_SETUP_SOURCE")" && pwd)"
 source "$GAUDI_SETUP_DIRECTORY/lib/colors.bash"
 
+# Ask a yes/no question and read the answer (a line) from standard input.
+# Sets REPLY and returns 0 for yes, 1 for no. When nothing can be read (end of
+# input, no terminal) it stops asking: REPLY is left empty and it returns 2, so
+# callers treat it as "not yes". Works in bash and zsh.
 _read_input() {
-	unset REPLY
-	while ! [[ $REPLY =~ ^[yY]$ ]] && ! [[ $REPLY =~ ^[nN]$ ]]; do
-		read -rp "${1} " -n 1 </dev/tty
-		[[ -n $REPLY ]] && echo ""
+	REPLY=""
+	while true; do
+		printf '%s ' "$1"
+		if ! read -r REPLY; then
+			REPLY=""
+			printf '\n'
+			return 2
+		fi
+		case "$REPLY" in
+		[yY]) return 0 ;;
+		[nN]) return 1 ;;
+		esac
 	done
 }
 
@@ -120,6 +132,75 @@ TEMPLATE
 	fi
 }
 
+# Print a path for a new backup of $1 that does not exist yet: "$1.bak" the
+# first time, "$1.bak.<timestamp>" after that. An existing backup is never
+# overwritten: it may be the only copy of the user's original file.
+_backup_path() {
+	local candidate="$1.bak" stamp n=0
+
+	if [[ -e "$candidate" || -L "$candidate" ]]; then
+		stamp="$(date +%Y%m%d%H%M%S)"
+		candidate="$1.bak.$stamp"
+		while [[ -e "$candidate" || -L "$candidate" ]]; do
+			n=$((n + 1))
+			candidate="$1.bak.$stamp.$n"
+		done
+	fi
+	printf "%s\n" "$candidate"
+}
+
+_backup_config() {
+	local config="$HOME/$CONFIG_FILE" backup
+
+	[[ -e "$config" ]] || return 0
+	backup="$(_backup_path "$config")"
+	cp -aL "$config" "$backup" || _die "Could not back up $config, so it was left untouched."
+	echo -e "${GREEN}Your $CONFIG_FILE has been backed up to ${backup##*/}${NC}"
+}
+
+# True when the config file already sources the gaudi-shell adapter.
+_config_has_gaudi_block() {
+	[[ -f "$HOME/$CONFIG_FILE" ]] || return 1
+	grep -Eq "^[[:space:]]*(source|\\.)[[:space:]].*${ADAPTER//./\\.}" "$HOME/$CONFIG_FILE"
+}
+
+# Add gaudi-shell to the shell config file without ever losing what is there:
+#   - already set up: left alone, so running setup again changes nothing
+#   - no config file: the template is written
+#   - otherwise: backed up first, then appended to (the default, and what
+#     --silent does) or replaced, only when the user explicitly answers "n"
+_configure_shell_config() {
+	local config="$HOME/$CONFIG_FILE"
+
+	if _config_has_gaudi_block; then
+		echo -e "${GREEN}$CONFIG_FILE already loads gaudi-shell, left unchanged${NC}"
+		if ! grep -Fq "$GAUDI_SETUP_DIRECTORY" "$config" && ! grep -Fq "${GAUDI_SETUP_DIRECTORY/#$HOME/\$HOME}" "$config"; then
+			echo -e "${YELLOW}It does not mention $GAUDI_SETUP_DIRECTORY: check the GAUDI_SHELL line in ~/$CONFIG_FILE${NC}"
+		fi
+		return 0
+	fi
+
+	if [[ ! -e "$config" ]]; then
+		_write_gaudi_template replace
+		echo -e "${YELLOW}Wrote gaudi-shell template to ~/$CONFIG_FILE${NC}"
+		return 0
+	fi
+
+	REPLY="y"
+	! [[ $silent == true ]] && _read_input "Would you like to keep your $CONFIG_FILE and append gaudi-shell template? [Yy/Nn]"
+
+	_backup_config
+	if [[ $REPLY =~ ^[nN]$ ]]; then
+		_write_gaudi_template replace
+		echo -e "${YELLOW}Wrote gaudi-shell template to ~/$CONFIG_FILE${NC}"
+	else
+		# "y", and also no answer at all (end of input): appending is the
+		# choice that cannot lose anything.
+		_write_gaudi_template append
+		echo -e "${GREEN}gaudi-shell template appended to $CONFIG_FILE${NC}"
+	fi
+}
+
 _parse_args() {
 	silent=false
 	no_modify_config=false
@@ -159,20 +240,7 @@ _setup_gaudi_shell() {
 	! [[ $silent == true ]] && echo -e "\n${CYAN}Installing gaudi-shell for $GAUDI_TARGET_SHELL...${NC}\n"
 
 	if ! [[ $no_modify_config == true ]]; then
-		if [[ -e "$HOME/$CONFIG_FILE" ]]; then
-			cp -aL "$HOME/$CONFIG_FILE" "$HOME/$CONFIG_FILE.bak"
-			echo -e "${GREEN}Your $CONFIG_FILE has been backed up to $CONFIG_FILE.bak${NC}"
-		fi
-
-		! [[ $silent == true ]] && _read_input "Would you like to keep your $CONFIG_FILE and append gaudi-shell template? [Yy/Nn]"
-
-		if [[ $REPLY =~ ^[yY]$ ]]; then
-			_write_gaudi_template append
-			echo -e "${GREEN}gaudi-shell template appended to $CONFIG_FILE${NC}"
-		elif [[ $REPLY =~ ^[nN]$ ]] || [[ $silent == true ]]; then
-			_write_gaudi_template replace
-			echo -e "${YELLOW}Wrote gaudi-shell template to ~/$CONFIG_FILE${NC}"
-		fi
+		_configure_shell_config
 	fi
 
 	# Source core for enabling defaults

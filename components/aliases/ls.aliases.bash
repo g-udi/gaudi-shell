@@ -18,7 +18,7 @@ alias ll="ls -lFG"
 # List all files colorized in long format, including dot files
 alias la="ls -laFG"
 # List only directories
-alias lsd="ls -lFG | grep -G=never '^d'"
+alias lsd="ls -lFG | grep --color=never '^d'"
 alias l='ls -a'
 alias l1='ls -1'
 alias llt="ls -lFtG"

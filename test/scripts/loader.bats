@@ -79,3 +79,29 @@ CUSTOM
 	assert_success
 	assert_line --index 0 "alias local_custom_two='echo two'"
 }
+
+@test "gaudi-shell loader: a dangling link is reported with the command that repairs it" {
+	ln -s "/nonexistent/gaudi-shell/components/aliases/gone.aliases.bash" "$GAUDI_SHELL/components/enabled/150___gone.aliases.bash"
+	ln -s "/nonexistent/gaudi-shell/components/plugins/alias-completion.plugins.bash" "$GAUDI_SHELL/components/enabled/365___alias-completion.plugins.bash"
+	ln -s "../aliases/a.aliases.bash" "$GAUDI_SHELL/components/enabled/150___a.aliases.bash"
+
+	# Warnings are for interactive shells; a doctor run (log level) shows them too.
+	# shellcheck disable=SC2016
+	run env GAUDI_SHELL_LOG_LEVEL=2 "$BASH" --noprofile --norc -c 'source "$GAUDI_SHELL/gaudi_shell.sh" 2>&1 >/dev/null'
+	assert_success
+	assert_line --partial "150___gone.aliases.bash"
+	assert_line --partial "Fix: gshell enable alias gone"
+	assert_line --partial "Fix: gshell enable plugin alias-completion"
+	refute_output --partial "a.aliases.bash' points"
+}
+
+@test "gaudi-shell loader: a dangling link is skipped quietly in non-interactive shells" {
+	ln -s "/nonexistent/gaudi-shell/components/aliases/gone.aliases.bash" "$GAUDI_SHELL/components/enabled/150___gone.aliases.bash"
+	ln -s "../aliases/a.aliases.bash" "$GAUDI_SHELL/components/enabled/150___a.aliases.bash"
+
+	# shellcheck disable=SC2016
+	run "$BASH" --noprofile --norc -c 'source "$GAUDI_SHELL/gaudi_shell.sh" 2>&1; alias test_alias'
+	assert_success
+	refute_output --partial "missing file"
+	assert_line "alias test_alias='a'"
+}

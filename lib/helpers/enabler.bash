@@ -43,14 +43,14 @@ _gaudi-shell-enable() {
 		[[ -z "$_component" ]] && printf "${CYAN}$component ${RED}%s ${GREEN}$type_singular${NC}\n" "does not appear to be an available" && return 1
 		_component=$(basename "$_component")
 
-		local enabled_component existing_component
-		enabled_component=""
-		for existing_component in "${GAUDI_SHELL}"/components/enabled/[0-9][0-9][0-9]"${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${_component}"; do
-			[[ -e "$existing_component" ]] || continue
-			enabled_component="$existing_component"
-			break
+		# A link whose target is gone (for example after the install directory
+		# moved) is not "enabled": drop it so the component can be linked again.
+		local existing_component
+		for existing_component in "${GAUDI_SHELL}"/components/enabled/[0-9]*"${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${_component}"; do
+			[[ -L "$existing_component" && ! -e "$existing_component" ]] && rm -f "$existing_component"
 		done
-		if [[ -n "$enabled_component" ]]; then
+
+		if _gaudi-shell-enabled-link "$_component" >/dev/null; then
 			printf "${GREEN}$type_singular ${CYAN}$component${NC} %s\n" "is already enabled"
 			return 0
 		fi
@@ -60,7 +60,12 @@ _gaudi-shell-enable() {
 		# Check for priority in either format: '# GAUDI_SHELL_LOAD_PRIORITY: NNN' or 'priority "NNN"'
 		local_file_priority=$(grep -m1 -E '(GAUDI_SHELL_LOAD_PRIORITY:|priority ")' "${GAUDI_SHELL}/components/$type/$_component" 2>/dev/null | sed 's/.*: *//;s/priority "//;s/".*//')
 		use_load_priority=${local_file_priority:-$load_priority}
-		ln -s "${GAUDI_SHELL}/components/$type/$_component" "${GAUDI_SHELL}/components/enabled/${use_load_priority}${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${_component}"
+		# Relative target (resolved from components/enabled), so the links keep
+		# working when the install directory is moved or renamed.
+		if ! ln -s "../$type/$_component" "${GAUDI_SHELL}/components/enabled/${use_load_priority}${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${_component}"; then
+			printf "${RED}%s ${GREEN}$type_singular ${CYAN}$component${NC}\n" "Failed to enable" >&2
+			return 1
+		fi
 	fi
 
 	_gaudi-shell-component-cache-clean "${type}"

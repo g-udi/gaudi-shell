@@ -38,34 +38,13 @@ docker-remove-images () {
   group 'docker'
 
   if [[ -z "$1" ]]; then
-    docker rmi "$(docker images -q)"
+    docker images -q | sort -u | xargs docker rmi
   else
-    DOCKER_IMAGES=""
-    for IMAGE_ID in "$@"; do DOCKER_IMAGES="$DOCKER_IMAGES\|$IMAGE_ID"; done
-    # Find the image IDs for the supplied tags
-    ID_ARRAY=( "$(docker images | grep "${DOCKER_IMAGES:2}" | awk "{'print $3'}")" )
-    # Strip out duplicate IDs before attempting to remove the image(s)
-    docker rmi "$(echo "${ID_ARRAY[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
- fi
-}
-
-docker-image-dependencies () {
-  about 'Attempt to create a Graphiz image of the supplied image ID dependencies'
-  group 'docker'
-
-  if hash dot 2>/dev/null; then
-    OUT=$(mktemp -t docker-viz-XXXX.png)
-    docker images -viz | dot -Tpng > $OUT
-    case $OSTYPE in
-      linux*)
-        xdg-open $OUT
-        ;;
-      darwin*)
-        open $OUT
-        ;;
-    esac
-  else
-    >&2 echo "Can't show dependencies; Graphiz is not installed"
+    local image_id docker_images=""
+    for image_id in "$@"; do docker_images="${docker_images}\|${image_id}"; done
+    # Find the image IDs for the supplied tags, strip out duplicate IDs
+    # and remove the image(s)
+    docker images | grep "${docker_images:2}" | awk '{print $3}' | sort -u | xargs docker rmi
   fi
 }
 
@@ -96,7 +75,5 @@ alias dkrmall='docker-remove-stale-assets'
 alias dkrmli='docker-remove-most-recent-image'
 # Delete images for supplied IDs or all if no IDs are passed as arguments
 alias dkrmi='docker-remove-images'
-# Output a graph of image dependencies using Graphiz
-alias dkideps='docker-image-dependencies'
 # List environmental variables of the supplied image ID
 alias dkre='docker-runtime-environment'

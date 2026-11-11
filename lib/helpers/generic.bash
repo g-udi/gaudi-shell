@@ -7,20 +7,29 @@
 # pathmunge /path/to/dir after is equivalent to PATH=$PATH:/path/to/dir
 if ! type pathmunge >/dev/null 2>&1; then
 	pathmunge() {
-		local IFS=':'
-		local a
-		read -r -a a <<<"$1"
-		local i=${#a[@]}
-		while [[ $i -gt 0 ]]; do
-			i=$((i - 1))
-			p=${a[i]}
-			if ! [[ $PATH =~ (^|:)$p($|:) ]]; then
-				if [[ "$2" = "after" ]]; then
-					export PATH=$PATH:$p
-				else
-					export PATH=$p:$PATH
-				fi
+		# Plain parameter expansion only, so it behaves the same in bash (3.2
+		# included) and zsh: no `read -a`, no arrays (their first index differs).
+		# The list is walked from its last entry to its first, so that
+		# prepending keeps the order in which the directories were given.
+		local _pm_rest="$1" _pm_dir
+		while [[ -n "$_pm_rest" ]]; do
+			_pm_dir="${_pm_rest##*:}"
+			if [[ "$_pm_rest" == *:* ]]; then
+				_pm_rest="${_pm_rest%:*}"
+			else
+				_pm_rest=""
 			fi
+			[[ -n "$_pm_dir" ]] || continue
+			case ":${PATH}:" in
+			*":${_pm_dir}:"*) ;;
+			*)
+				if [[ "$2" = "after" ]]; then
+					export PATH="$PATH:$_pm_dir"
+				else
+					export PATH="$_pm_dir:$PATH"
+				fi
+				;;
+			esac
 		done
 	}
 fi

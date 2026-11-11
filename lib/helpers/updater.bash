@@ -11,6 +11,8 @@ function _gaudi-shell_update_and_restart() {
 	about 'Checks out the wanted version, pops directory and restart. Does not return (because of the restart!)'
 	group 'gaudi-shell:core:updater'
 
+	# Called with the install directory pushed by _gaudi-shell-update: every
+	# path out of here pops it again, so the user is never left in there.
 	git checkout "$1" &>/dev/null
 	if [[ $? -eq 0 ]]; then
 		echo "gaudi-shell successfully updated."
@@ -18,6 +20,8 @@ function _gaudi-shell_update_and_restart() {
 		_gaudi-shell-restart
 	else
 		echo "Error updating gaudi-shell, please, check if your gaudi-shell installation folder (${GAUDI_SHELL}) is clean."
+		popd &>/dev/null || return 1
+		return 1
 	fi
 }
 
@@ -29,7 +33,8 @@ function _gaudi-shell-update() {
 	about 'updates gaudi-shell'
 	group 'gaudi-shell:core:updater'
 
-	local silent word mode DIFF version TARGET revision status revert log_color RESP
+	# Not named "status": that is a read-only special variable in zsh.
+	local silent word mode DIFF version TARGET revision pending revert log_color RESP
 	for word in "$@"; do
 		if [[ "${word}" == "--silent" || "${word}" == "-s" ]]; then
 			silent=true
@@ -65,7 +70,7 @@ function _gaudi-shell-update() {
 		if [[ -z "$TARGET" ]]; then
 			echo "Can not find tags, so can not update to latest stable version..."
 			popd >/dev/null || return
-			return
+			return 1
 		fi
 	else
 		version="dev"
@@ -73,15 +78,15 @@ function _gaudi-shell-update() {
 	fi
 
 	revision="HEAD..${TARGET}"
-	status="$(git rev-list "${revision}" 2>/dev/null)"
+	pending="$(git rev-list "${revision}" 2>/dev/null)"
 
-	if [[ -z "${status}" && "${version}" == "stable" ]]; then
+	if [[ -z "${pending}" && "${version}" == "stable" ]]; then
 		revision="${TARGET}..HEAD"
-		status="$(git rev-list "${revision}" 2>/dev/null)"
+		pending="$(git rev-list "${revision}" 2>/dev/null)"
 		revert=true
 	fi
 
-	if [[ -n "${status}" ]]; then
+	if [[ -n "${pending}" ]]; then
 		if [[ -n "${revert}" ]]; then
 			echo "Your version is a more recent development version ($(git log -1 --format=%h HEAD))"
 			echo "You can continue in order to revert and update to the latest stable version"
@@ -94,14 +99,18 @@ function _gaudi-shell-update() {
 
 		if [[ -n "${silent}" ]]; then
 			echo "Updating to ${TARGET}($(git log -1 --format=%h "${TARGET}"))..."
+			# Pops the directory itself, on success and on failure.
 			_gaudi-shell_update_and_restart "$TARGET" "$version"
+			return
 		else
 			# printf + plain read works in both bash and zsh (read -e -n -p is bash-only)
 			printf '%s' "Would you like to update to ${TARGET}($(git log -1 --format=%h "${TARGET}"))? [Y/n] "
-			read -r RESP
+			# No answer at all (end of input, no terminal) is not a "yes".
+			read -r RESP || RESP="n"
 			case "$RESP" in
 			[yY]* | "")
 				_gaudi-shell_update_and_restart "$TARGET" "$version"
+				return
 				;;
 			[nN]*)
 				echo "Not updating…"

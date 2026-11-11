@@ -14,6 +14,22 @@ about-plugin 'Video to gif, gif to WebM helper functions'
 # Optional: if lossy is not important, Ubuntu has gifsicle packaged for apt-get, instead of giflossy
 # Optional: gifski (from `brew install gifski` or github.com/ImageOptim/gifski)
 #           for high quality huge files.
+# Print the path of a GNU getopt (getopt on BSD/macOS is incompatible with GNU,
+# so look for Homebrew's gnu-getopt there)
+_gif_gnu_getopt () {
+  local prefix
+  if [[ "$OSTYPE" == "darwin"* ]] ; then
+    for prefix in "${GAUDI_SHELL_HOMEBREW_PREFIX:-}" "${HOMEBREW_PREFIX:-}" /opt/homebrew /usr/local; do
+      if [[ -n "$prefix" && -x "${prefix}/opt/gnu-getopt/bin/getopt" ]]; then
+        echo "${prefix}/opt/gnu-getopt/bin/getopt"
+        return 0
+      fi
+    done
+    return 1
+  fi
+  command -v getopt
+}
+
 v2gif () {
   about 'Converts a .mov/.avi/.mp4 file into an into an animated GIF.'
   group 'GIF'
@@ -32,19 +48,13 @@ v2gif () {
   example '$ v2gif -dh *.avi'
   example '$ v2gif -thw 600 *.avi *.mov'
 
-  declare -i convert -i ffmpeg -i mediainfo -i gifsicle -i getopt
+  local convert ffmpeg mediainfo gifsicle getopt
 
   convert=$(which convert)     ; [[ -x "$convert" ]]   || { echo "No convert found!" ; return 2 ;}
   ffmpeg=$(which ffmpeg)       ; [[ -x "$ffmpeg" ]]    || { echo "No ffmpeg found!" ; return 2 ;}
   mediainfo=$(which mediainfo) ; [[ -x "$mediainfo" ]] || { echo "No mediainfo found!" ; return 2 ;}
   gifsicle=$(which gifsicle)   ; [[ -x "$gifsicle" ]]  || { echo "No gifsicle found!" ; return 2 ;}
-  getopt=$(which getopt)
-
-  if [[ "$OSTYPE" == "darwin"* ]] ; then
-  # Getopt on BSD is incompatible with GNU
-    getopt=/usr/local/opt/gnu-getopt/bin/getopt
-    [[ -x "$getopt" ]] || { echo "No GNU-getopt found!" ; return 2 ;}
-  fi
+  getopt=$(_gif_gnu_getopt)    ; [[ -x "$getopt" ]]    || { echo "No GNU-getopt found!" ; return 2 ;}
 
   local args
 
@@ -182,7 +192,7 @@ v2gif () {
     if [[ $alert -gt 0 ]] ; then
       local out_size
 
-      out_size=$(wc --bytes < "$output_file")
+      out_size=$(wc -c < "$output_file")
       if [[ $out_size -gt $(( alert * 1000 )) ]] ; then
         echo "$(tput setaf 3)Warning: '$output_file' is $((out_size/1000))kb.$(tput sgr 0)"
         [[ "$del_after" == "true" ]] && echo "$(tput setaf 3)Warning: Keeping '$file' even though --del requested.$(tput sgr 0)"
@@ -210,10 +220,15 @@ any2webm () {
   example '$ any2webm foo.gif'
   example '$ any2webm *.mov -b 1.5M -s 600x480'
 
+  local ffmpeg getopt
+
+  ffmpeg=$(which ffmpeg)    ; [[ -x "$ffmpeg" ]] || { echo "No ffmpeg found!" ; return 2 ;}
+  getopt=$(_gif_gnu_getopt) ; [[ -x "$getopt" ]] || { echo "No GNU-getopt found!" ; return 2 ;}
+
   # Parse the options
   local args
 
-  args=$(getopt -l alert -l "bandwidth:" -l "width:" -l del,delete -l tag -l "fps:" -l webm -o "a:b:w:f:dt" -- "$@")
+  args=$($getopt -l alert -l "bandwidth:" -l "width:" -l del,delete -l tag -l "fps:" -l webm -o "a:b:w:f:dt" -- "$@")
 
   if [[ $? -ne 0 ]]; then
     echo 'Terminating...' >&2
@@ -295,7 +310,7 @@ any2webm () {
     if [[ $alert -gt 0 ]] ; then
       local out_size
 
-      out_size=$(wc --bytes < "$output_file")
+      out_size=$(wc -c < "$output_file")
       if [[ $out_size -gt $(( alert * 1000 )) ]] ; then
         echo "$(tput setaf 3)Warning: '$output_file' is $((out_size/1000))kb.$(tput sgr 0)"
         [[ "$del_after" == "true" ]] && echo "$(tput setaf 3)Warning: Keeping '$file' even though --del requested.$(tput sgr 0)"

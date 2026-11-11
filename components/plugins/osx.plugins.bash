@@ -7,7 +7,7 @@ about-plugin 'OSX specific functions'
 if [[ $(uname) = "Darwin" ]]; then
   if type update_terminal_cwd > /dev/null 2>&1 ; then
     if ! [[ $PROMPT_COMMAND =~ (^|;)update_terminal_cwd($|;) ]] ; then
-      PROMPT_COMMAND="${PROMPT_COMMAND%;};update_terminal_cwd"
+      PROMPT_COMMAND="${PROMPT_COMMAND:+${PROMPT_COMMAND%;};}update_terminal_cwd"
       declared="$(declare -p PROMPT_COMMAND)"
       [[ "$declared" =~ \ -[aAilrtu]*x[aAilrtu]*\  ]] 2>/dev/null
       [[ $? -eq 0 ]] && export PROMPT_COMMAND
