@@ -68,8 +68,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # No submodules here: bin/bats-* are vendored third-party test tools and
-    # must not be linted or formatted as project code.
+    # No submodules here: bin/bats-* are vendored third-party test tools, and
+    # components/aliases, components/completions and components/plugins are
+    # the shared component repositories, which are linted and formatted in
+    # their own repositories. None of them is project code.
     - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
     - name: Install shellcheck
@@ -88,11 +90,12 @@ jobs:
         go install mvdan.cc/sh/v3/cmd/shfmt@v3.14.1
         echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
 
-    # Everything the project wrote: the core, the adapters, the theme, the
-    # gshell completion, the hooks and the tests. A finding fails the job.
-    # bin/ (vendored bats) is not checked out here; the other completions are
-    # third-party scripts and are left out on purpose.
-    - name: Run shellcheck (core, theme, tests)
+    # Everything the project wrote: the core, the adapters, the theme, its own
+    # components (components/host), the hooks and the tests. A finding fails
+    # the job. bin/ and the three component submodules are not checked out
+    # here, and are left out by name so that the same command gives the same
+    # result in a checkout that has them.
+    - name: Run shellcheck (core, theme, own components, tests)
       run: |
         {
           find . \( -name '*.bash' -o -name '*.sh' -o -name '*.bats' \) \
@@ -100,20 +103,15 @@ jobs:
             -not -path './components/aliases/*' \
             -not -path './components/plugins/*' \
             -not -path './components/completions/*'
-          echo ./components/completions/gaudi-shell.completions.bash
           echo ./hooks/pre-push
         } | sort | xargs shellcheck --shell=bash
 
-    # Aliases and plugins still carry style warnings, so only errors fail the
-    # job for now. Raise the severity once those are cleaned up.
-    - name: Run shellcheck (aliases and plugins, errors only)
-      run: shellcheck --shell=bash --severity=error components/aliases/*.bash components/plugins/*.bash
-
     # Same scope as the shfmt hook in .pre-commit-config.yaml, which leaves
-    # adapters/zsh/, components/ and template/ unformatted.
+    # adapters/zsh/, the component submodules, the theme, the zsh half of the
+    # gshell completion and template/ unformatted.
     - name: Run shfmt
       run: |
-        shfmt -f . | grep -vE '^(adapters/zsh/|components/|template/|bin/)' | xargs shfmt -d
+        shfmt -f . | grep -vE '^(adapters/zsh/|components/(aliases|completions|plugins|themes)/|components/host/.*\.zsh$|template/|bin/)' | xargs shfmt -d
 
   release:
     # Only a run started by hand on main releases; pushes and pull requests never tag

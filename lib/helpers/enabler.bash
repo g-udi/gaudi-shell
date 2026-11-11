@@ -23,15 +23,15 @@ _gaudi-shell-enable() {
 
 	if [[ "$component" = "all" ]]; then
 		local _file
-		for _file in "${GAUDI_SHELL}/components/$type/"*."$type".bash; do
-			[[ -e "$_file" ]] || continue
+		while IFS= read -r _file; do
+			[[ -n "$_file" ]] || continue
 			_file="${_file##*/}"
 			_gaudi-shell-enable "$type" "${_file%."$type".bash}"
-		done
+		done < <(_gaudi-shell-component-files "$type")
 	else
-		local _component="${component}.${type}.bash"
+		local _component="${component}.${type}.bash" _component_file
 
-		if [[ ! -e "${GAUDI_SHELL}/components/$type/$_component" ]]; then
+		if ! _component_file="$(_gaudi-shell-component-file "$type" "$component")"; then
 			printf "${CYAN}$component ${RED}%s ${GREEN}$type_singular${NC}\n" "does not appear to be an available"
 			return 1
 		fi
@@ -51,11 +51,11 @@ _gaudi-shell-enable() {
 		# Load priority from file if present
 		local local_file_priority use_load_priority
 		# Check for priority in either format: '# GAUDI_SHELL_LOAD_PRIORITY: NNN' or 'priority "NNN"'
-		local_file_priority=$(grep -m1 -E '(GAUDI_SHELL_LOAD_PRIORITY:|priority ")' "${GAUDI_SHELL}/components/$type/$_component" 2>/dev/null | sed 's/.*: *//;s/priority "//;s/".*//')
+		local_file_priority=$(grep -m1 -E '(GAUDI_SHELL_LOAD_PRIORITY:|priority ")' "$_component_file" 2>/dev/null | sed 's/.*: *//;s/priority "//;s/".*//')
 		use_load_priority=${local_file_priority:-$load_priority}
 		# Relative target (resolved from components/enabled), so the links keep
 		# working when the install directory is moved or renamed.
-		if ! ln -s "../$type/$_component" "${GAUDI_SHELL}/components/enabled/${use_load_priority}${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${_component}"; then
+		if ! ln -s "$(_gaudi-shell-component-link-target "$_component_file")" "${GAUDI_SHELL}/components/enabled/${use_load_priority}${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}${_component}"; then
 			printf "${RED}%s ${GREEN}$type_singular ${CYAN}$component${NC}\n" "Failed to enable" >&2
 			return 1
 		fi

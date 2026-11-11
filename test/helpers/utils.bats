@@ -176,10 +176,11 @@ BREW
 }
 
 @test "gaudi-shell helpers: utils: host contract: shared components do not name a framework" {
-	# aliases, completions and plugins are shared with gaudi-bash; only the
-	# framework's own files (gaudi-shell.*) may name it
+	# aliases, completions and plugins are shared with gaudi-bash; only a
+	# framework's own files (gaudi-bash.* there, components/host here) may
+	# name it
 	run grep -rlE 'GAUDI_(SHELL|BASH)|gaudi[-_](shell|bash)|\bg(shell|bash)\b' \
-		--include='*.bash' --exclude='gaudi-shell.*' \
-		"$GAUDI_SHELL/components/aliases" "$GAUDI_SHELL/components/completions" "$GAUDI_SHELL/components/plugins"
+		--include='*.bash' --exclude='gaudi-bash.*' \
+		"$GAUDI_SHELL/components/aliases/lib" "$GAUDI_SHELL/components/completions/lib" "$GAUDI_SHELL/components/plugins/lib"
 	assert_output ""
 }

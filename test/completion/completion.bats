@@ -6,7 +6,7 @@ load "$GAUDI_TEST_DIRECTORY"/helper.bash
 
 local_setup() {
 	load_gaudi_libs gaudi-shell
-	source "$GAUDI_SHELL/components/completions/gaudi-shell.completions.bash"
+	source "$GAUDI_SHELL/components/host/gaudi-shell.completions.bash"
 }
 
 # Helper: simulate bash tab completion
@@ -73,7 +73,7 @@ _complete_at() {
 }
 
 @test "bash completion: enable alias excludes already enabled" {
-	ln -s "$GAUDI_SHELL/components/aliases/git.aliases.bash" \
+	ln -s "$GAUDI_SHELL/components/aliases/lib/git.aliases.bash" \
 		"$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
 
 	run _complete_at gshell enable alias "g"
@@ -82,10 +82,24 @@ _complete_at() {
 	refute_output --partial "git "
 }
 
+@test "bash completion: enable offers the framework's own files and never another framework's" {
+	run _complete_at gshell enable alias "gaudi"
+	assert_success
+	assert_output "gaudi-shell"
+
+	run _complete_at gshell enable completion "gaudi"
+	assert_output "gaudi-shell"
+
+	run _gaudi-shell-comp-list-available-not-enabled aliases
+	refute_output --partial "gaudi-bash"
+	run _gaudi-shell-comp-list-available-not-enabled completions
+	refute_output --partial "gaudi-bash"
+}
+
 # --- disable ---
 
 @test "bash completion: disable plugin lists only enabled plugins" {
-	ln -s "$GAUDI_SHELL/components/plugins/base.plugins.bash" \
+	ln -s "$GAUDI_SHELL/components/plugins/lib/base.plugins.bash" \
 		"$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
 
 	run _complete_at gshell disable plugin ""
@@ -212,7 +226,7 @@ _complete_at() {
 	assert_success
 	assert_output "general"
 
-	ln -s "../plugins/base.plugins.bash" "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
+	ln -s "../plugins/lib/base.plugins.bash" "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
 	run _complete_at gshell disable plugins git "ba"
 	assert_output "base"
 }

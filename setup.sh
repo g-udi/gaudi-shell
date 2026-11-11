@@ -262,14 +262,30 @@ _setup_gaudi_shell() {
 	_gaudi-shell-enable plugin base 2>/dev/null
 	_gaudi-shell-enable alias general 2>/dev/null
 
+	# An install from before the shared components became submodules has its
+	# enabled links in the old layout: point them at the new one.
+	_gaudi-shell-migrate-enabled-links
+
 	echo -e "
 ${GREEN}Installation finished successfully!${NC}
 ${MAGENTA}To start using it, open a new tab or 'source ${HOME}/$CONFIG_FILE'${NC}
 "
 }
 
+# The shared components are git submodules. Without them there is nothing to
+# enable, so stop before the shell config is touched and say how to get them.
+_require_components() {
+	export GAUDI_SHELL="$GAUDI_SETUP_DIRECTORY"
+	source "$GAUDI_SETUP_DIRECTORY/lib/helpers/components.bash"
+	_gaudi-shell-component-submodules-present && return 0
+	_die "the shared components are missing from $GAUDI_SETUP_DIRECTORY (the component submodules are empty).
+Fetch them, then run this script again:
+  $(_gaudi-shell-component-submodules-command)"
+}
+
 _parse_args "$@"
 _set_shell_config
+_require_components
 
 if [[ $silent == true ]]; then
 	_setup_gaudi_shell >/dev/null 2>&1

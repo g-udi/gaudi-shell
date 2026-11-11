@@ -90,8 +90,8 @@ _homebrew-check() {
 
 # Component host contract
 # -----------------------
-# The files under components/aliases, components/completions and
-# components/plugins are shared, byte for byte, with gaudi-bash. They never
+# The shared components (git submodules, see "Where component files live" in
+# lib/helpers/components.bash) are the same files gaudi-bash uses. They never
 # name a framework: they use only the names below, which each framework
 # defines once (gaudi-bash does it in its own lib/helpers/utils.bash), plus
 # the helpers both frameworks already share:

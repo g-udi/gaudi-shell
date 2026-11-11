@@ -140,6 +140,8 @@ if [[ "$1" == "clone" ]]; then
 		-cf - . | tar -C "$destination" -xf -
 	exit 0
 fi
+# The component submodules: the copy above already holds their content
+[[ "$3 $4 $5" == "submodule update --init" ]] && exit 0
 
 exit 1
 GIT
@@ -154,6 +156,61 @@ GIT
 	assert_success
 	run grep -F "source \"\$GAUDI_SHELL/adapters/zsh/init.zsh\"" "$install_home/.zshrc"
 	assert_success
+}
+
+@test "gaudi-shell install: setup stops, before touching the config, when the component submodules are empty" {
+
+	local home="$BATS_TEST_TMPDIR/home"
+	mkdir -p "$home"
+	# What a clone without submodules leaves behind: empty folders
+	rm -rf "$GAUDI_SHELL/components/aliases" "$GAUDI_SHELL/components/completions" "$GAUDI_SHELL/components/plugins"
+	mkdir "$GAUDI_SHELL/components/aliases" "$GAUDI_SHELL/components/completions" "$GAUDI_SHELL/components/plugins"
+
+	cd "$GAUDI_SHELL"
+	run env HOME="$home" ./setup.sh --shell bash
+	assert_failure
+	assert_output --partial "shared components are missing"
+	# The exact command that fixes it
+	assert_line "  git -C \"$GAUDI_SHELL\" submodule update --init components/aliases components/completions components/plugins"
+	assert_file_not_exist "$home/$GAUDI_SHELL_PROFILE"
+	assert_dir_not_exist "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
+
+	# --silent keeps quiet about progress, not about this
+	run env HOME="$home" ./setup.sh --silent --shell bash
+	assert_failure
+	assert_output --partial "submodule update --init components/aliases components/completions components/plugins"
+	assert_file_not_exist "$home/$GAUDI_SHELL_PROFILE"
+}
+
+@test "gaudi-shell install: setup stops when only one component submodule is empty" {
+
+	local home="$BATS_TEST_TMPDIR/home"
+	mkdir -p "$home"
+	rm -rf "$GAUDI_SHELL/components/plugins"
+	mkdir "$GAUDI_SHELL/components/plugins"
+
+	cd "$GAUDI_SHELL"
+	run env HOME="$home" ./setup.sh --silent --shell bash
+	assert_failure
+	assert_output --partial "shared components are missing"
+}
+
+@test "gaudi-shell install: setup migrates enabled links left by the old layout" {
+
+	local home="$BATS_TEST_TMPDIR/home"
+	mkdir -p "$home"
+	ln -s "../aliases/git.aliases.bash" "$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
+	ln -s "../plugins/alias-completion.plugins.bash" "$GAUDI_SHELL/components/enabled/365___alias-completion.plugins.bash"
+
+	cd "$GAUDI_SHELL"
+	run env HOME="$home" ./setup.sh --shell bash
+	assert_success
+	assert_line "migrated 150___git.aliases.bash -> ../aliases/lib/git.aliases.bash"
+	assert_line "migrated 365___alias-completion.plugins.bash -> ../plugins/lib/alias-completion.plugins.bash"
+
+	run readlink "$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
+	assert_output "../aliases/lib/git.aliases.bash"
+	assert_file_exist "$GAUDI_SHELL/components/enabled/365___alias-completion.plugins.bash"
 }
 
 @test "gaudi-shell install: silent setup appends to an existing config and keeps its content" {
@@ -265,8 +322,10 @@ _existing_install() {
 	FAKEBIN="$BATS_TEST_TMPDIR/fakebin"
 	GIT_CALLS="$BATS_TEST_TMPDIR/git-calls"
 
-	mkdir -p "$INSTALL_HOME/.gaudi-shell" "$FAKEBIN"
+	mkdir -p "$INSTALL_HOME/.gaudi-shell/lib/helpers" "$FAKEBIN"
 	echo "existing" >"$INSTALL_HOME/.gaudi-shell/marker"
+	# The installer takes its component helpers from the install itself
+	cp "$GAUDI_SHELL_ORIGIN/lib/helpers/components.bash" "$INSTALL_HOME/.gaudi-shell/lib/helpers/"
 	: >"$GIT_CALLS"
 	cat >"$FAKEBIN/git" <<GIT
 #!/usr/bin/env bash
@@ -274,7 +333,8 @@ echo "\$*" >>"$GIT_CALLS"
 if [[ "\$1" == "clone" ]]; then
 	# Stands in for the clone: an install with a setup script that only reports
 	for destination in "\$@"; do :; done
-	mkdir -p "\$destination"
+	mkdir -p "\$destination/lib/helpers"
+	cp "$GAUDI_SHELL_ORIGIN/lib/helpers/components.bash" "\$destination/lib/helpers/"
 	printf '%s\n' '#!/usr/bin/env bash' 'echo "fresh setup ran"' >"\$destination/setup.sh"
 	chmod +x "\$destination/setup.sh"
 fi
@@ -319,8 +379,12 @@ _run_installer() {
 	_run_installer <<<"n"
 	assert_success
 
+	# ... and then brings the shared components (only those three submodules)
+	# to the commits the pulled version pins
 	run cat "$GIT_CALLS"
-	assert_output "-C $INSTALL_HOME/.gaudi-shell pull"
+	assert_line --index 0 "-C $INSTALL_HOME/.gaudi-shell pull"
+	assert_line --index 1 "-C $INSTALL_HOME/.gaudi-shell submodule update --init components/aliases components/completions components/plugins"
+	assert_equal "${#lines[@]}" "2"
 	assert_file_exist "$INSTALL_HOME/.gaudi-shell/marker"
 }
 
@@ -333,6 +397,9 @@ _run_installer() {
 
 	run cat "$GIT_CALLS"
 	assert_line --partial "clone --depth=1"
+	# Only the component submodules are fetched, not the test tools in bin/
+	refute_line --partial "--recurse-submodules"
+	assert_line "-C $INSTALL_HOME/.gaudi-shell submodule update --init --depth=1 components/aliases components/completions components/plugins"
 	refute_line --partial "pull"
 	assert_file_not_exist "$INSTALL_HOME/.gaudi-shell/marker"
 }

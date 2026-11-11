@@ -33,8 +33,12 @@ If you're someone who uses both bash and zsh and wants **one consistent experien
 
 ```bash
 git clone https://github.com/g-udi/gaudi-shell.git ~/.gaudi-shell
-cd ~/.gaudi-shell && ./setup.sh
+cd ~/.gaudi-shell
+git submodule update --init components/aliases components/completions components/plugins
+./setup.sh
 ```
+
+The aliases, completions and plugins are shared with [gaudi-bash](https://github.com/g-udi/gaudi-bash) and live in their own repositories ([gaudi-bash-aliases](https://github.com/g-udi/gaudi-bash-aliases), [gaudi-bash-completions](https://github.com/g-udi/gaudi-bash-completions), [gaudi-bash-plugins](https://github.com/g-udi/gaudi-bash-plugins)), which gaudi-shell includes as git submodules pinned to a commit. The second command fetches those three; `install.sh` does the clone and this step for you. The other submodules (`bin/bats-*`) are test tools and are only needed to run the test suite. Without the components, `./setup.sh` stops before changing anything and prints the command above.
 
 The setup script backs up your existing shell config (to a `.bak` file, or a timestamped `.bak.<date>` file when a backup already exists, so an earlier backup is never overwritten), appends the gaudi-shell template to it or replaces it (it asks which; `--silent` appends), and enables a sane set of defaults (general aliases, base plugin, system and `gshell` completions). Running it again is safe: a config file that already loads gaudi-shell is left unchanged.
 
@@ -104,7 +108,7 @@ gaudi-shell/
     appearance.bash        # Theme loading
     helpers/
       cache.bash           # XDG-based component caching
-      components.bash      # Component listing and metadata
+      components.bash      # Where component files live, listing, link migration
       core.bash            # Core utilities and describe
       enabler.bash         # Enable components (symlink creation with priority)
       disabler.bash        # Disable components (symlink removal)
@@ -118,11 +122,12 @@ gaudi-shell/
     bash/init.bash         # Bash adapter — sources gaudi_shell.sh directly
     zsh/init.zsh           # Zsh adapter — sets up compatibility, then sources gaudi_shell.sh
   components/
-    aliases/               # Alias definitions (bash scripts, also loaded by zsh)
-    plugins/               # Plugin definitions (bash scripts; most also work in zsh)
-    completions/           # Bash completions (.completions.bash) + zsh completion for gshell (.zsh)
+    aliases/               # Submodule (gaudi-bash-aliases): lib/<name>.aliases.bash, also loaded by zsh
+    plugins/               # Submodule (gaudi-bash-plugins): lib/<name>.plugins.bash; most also work in zsh
+    completions/           # Submodule (gaudi-bash-completions): lib/<name>.completions.bash (bash completions)
+    host/                  # gaudi-shell's own components: the gshell aliases and completion (bash + zsh)
     themes/                # Prompt themes, per shell (ships bash/gaudi, which also runs in zsh)
-    enabled/               # Symlinks to enabled components (runtime state)
+    enabled/               # Symlinks to enabled components (runtime state): ../<type>/lib/<file> or ../host/<file>
     custom/                # Untracked local scripts loaded after enabled components
   scripts/
     loader.bash            # Loads all enabled components in priority-sorted order
@@ -130,6 +135,8 @@ gaudi-shell/
 ```
 
 The core engine loads libraries from `lib/`, then the loader walks `components/enabled/` and sources every enabled alias, plugin, and completion. Components are enabled and disabled by creating or removing symlinks in the `enabled/` directory, managed through the `gshell enable` and `gshell disable` commands.
+
+A component file is looked up in `components/host/` first (gaudi-shell's own files, tracked in this repository), then in `components/<type>/lib/` (the shared repositories). One helper in `lib/helpers/components.bash` (`_gaudi-shell-component-file`, `_gaudi-shell-component-files`) answers "where is component X" for every command; nothing else spells out those paths. The shared repositories also hold the own files of the other framework that uses them (`gaudi-bash.aliases.bash`, `gaudi-bash.completions.bash`); gaudi-shell never lists, enables, searches or completes those.
 
 ### Design Principles
 
@@ -206,6 +213,7 @@ gshell doctor warnings               # show error + warning logs
 
 gshell update                        # update gaudi-shell to latest stable tag
 gshell update dev                    # update to the development branch ($GAUDI_SHELL_DEVELOPMENT_BRANCH on $GAUDI_SHELL_REMOTE)
+gshell migrate                       # fetch the shared components if missing, repair enabled links of an older layout
 
 gshell version                       # show version, git SHA, and shell type
 gshell reload                        # re-source your shell profile
@@ -213,6 +221,30 @@ gshell restart                       # re-exec the shell (stronger than reload)
 ```
 
 `gshell update dev` targets `origin/main` unless `GAUDI_SHELL_DEVELOPMENT_BRANCH` is set.
+
+After checking out the new version, `gshell update` moves the three component submodules to the commits that version pins (`git submodule update --init components/aliases components/completions components/plugins`) and repairs enabled links if the layout changed. It refuses to run when files of the install directory were edited; a component submodule that sits on another commit does not count as an edit. If you update by hand with `git pull`, run the submodule command yourself, or run `gshell migrate`.
+
+### Upgrading from a vendored-components install
+
+Until this layout, the aliases, completions and plugins were files of this repository (`components/<type>/<file>`). They are now submodules (`components/<type>/lib/<file>`), and gaudi-shell's own files moved to `components/host/`, so the enabled links of an older install point at files that are gone. To bring such an install across:
+
+```bash
+gshell update     # or: gshell update dev
+gshell migrate    # only if the new shell reports components that "point to a missing file"
+gshell reload
+```
+
+The `gshell update` of the old version checks out the new files and restarts the shell, but knows nothing about submodules: the new shell then reports each enabled component as pointing to a missing file, with `gshell migrate` as the fix. `gshell migrate` fetches the three component submodules and rewrites every enabled link to the new location, keeping its load priority; it prints one line per link and changes nothing when run again. From then on `gshell update` does both steps itself.
+
+The same by hand:
+
+```bash
+git -C "$GAUDI_SHELL" pull
+git -C "$GAUDI_SHELL" submodule update --init components/aliases components/completions components/plugins
+gshell migrate
+```
+
+Running `./setup.sh` again also migrates the links. Shells are never slowed down by this: the loader only reports dangling links, it does not repair them at start-up.
 
 ## Components
 
@@ -385,6 +417,12 @@ Merging to `main` does not create a release. A release is cut by hand:
 `gshell update` moves an installation to the latest release tag, and `gshell update dev` to the tip of `main`, so the two only differ once `main` has moved past the last release.
 
 ## Contributing
+
+Where a component goes depends on who it is for:
+
+- **Shared components** (anything useful to both gaudi-shell and gaudi-bash: an alias set, a plugin, a completion) are contributed to the shared repositories, under `lib/`: [gaudi-bash-aliases](https://github.com/g-udi/gaudi-bash-aliases), [gaudi-bash-plugins](https://github.com/g-udi/gaudi-bash-plugins), [gaudi-bash-completions](https://github.com/g-udi/gaudi-bash-completions). They must not name a framework: they use the `GAUDI_HOST_*` names described in `lib/helpers/utils.bash`. They reach gaudi-shell when the submodule pin is moved (`git -C components/<type> checkout <commit>`, then commit the new pointer here). Do not edit files inside `components/aliases`, `components/completions` or `components/plugins` in a gaudi-shell checkout: those folders belong to the submodules.
+- **gaudi-shell's own components** (files that only make sense here, such as the `gshell` aliases and completion) live in `components/host/` as `<name>.<type>.bash` and are tracked in this repository. A file there wins over a shared file of the same name.
+- **Machine-local scripts** go in `components/custom/` (see above) and are not committed.
 
 Components follow a consistent pattern:
 

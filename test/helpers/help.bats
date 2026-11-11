@@ -35,8 +35,8 @@ local_setup() {
 		# Has a handler the dispatcher can call
 		declare -F "_gaudi-shell-${verb}" >/dev/null
 	done
-	# 13 commands, and nothing else is dispatched
-	assert_equal "$(wc -w <<<"$verbs" | tr -d ' ')" "13"
+	# 14 commands, and nothing else is dispatched
+	assert_equal "$(wc -w <<<"$verbs" | tr -d ' ')" "14"
 }
 
 @test "gaudi-shell-helpers: help: the command table gives the words each command completes" {
@@ -59,7 +59,7 @@ local_setup() {
 }
 
 @test "gaudi-shell-helpers: help: _gaudi-shell-help aliases with enabled alias" {
-	ln -s "$GAUDI_SHELL/components/aliases/git.aliases.bash" \
+	ln -s "$GAUDI_SHELL/components/aliases/lib/git.aliases.bash" \
 		"$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
 
 	run _help-aliases
@@ -73,7 +73,7 @@ local_setup() {
 }
 
 @test "gaudi-shell-helpers: help: _gaudi-shell-help plugins with enabled plugin" {
-	ln -s "$GAUDI_SHELL/components/plugins/base.plugins.bash" \
+	ln -s "$GAUDI_SHELL/components/plugins/lib/base.plugins.bash" \
 		"$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
 
 	run _help-plugins

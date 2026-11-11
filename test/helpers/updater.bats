@@ -185,3 +185,135 @@ _directory_stack_depth() {
 	assert_equal "$PWD" "$ELSEWHERE"
 	assert_equal "$(_directory_stack_depth)" "1"
 }
+
+# --- the shared components (git submodules) ---
+
+# Local stand-ins for the shared repositories and for the release that turns
+# components/aliases into a submodule: nothing here uses the network.
+#
+# Before: the install is at v0.0.1, where components/aliases holds plain files
+# (the old, vendored layout: general.aliases.bash right in the folder).
+# After:  v0.0.2 on the remote has components/aliases as a submodule of a
+# local repository that keeps the same file under lib/.
+_publish_components_as_submodule() {
+	(
+		# git refuses file:// submodules unless told otherwise (HOME is the suite's)
+		git config --global protocol.file.allow always
+
+		cd "$GAUDI_SHELL" || exit 1
+		mv components/aliases/lib "$BATS_TEST_TMPDIR/aliases-lib"
+		rm -rf components/aliases
+		mkdir components/aliases
+		cp "$BATS_TEST_TMPDIR/aliases-lib"/*.bash components/aliases/
+		git init -q .
+		git add -A
+		_commit_dated 2020-01-01 -m "one"
+		git tag v0.0.1
+		git clone -q --bare . "$BATS_TEST_TMPDIR/remote.git"
+		git remote add origin "$BATS_TEST_TMPDIR/remote.git"
+
+		mkdir -p "$BATS_TEST_TMPDIR/shared-aliases"
+		cd "$BATS_TEST_TMPDIR/shared-aliases" || exit 1
+		mv "$BATS_TEST_TMPDIR/aliases-lib" lib
+		git init -q .
+		git add -A
+		_commit_dated 2020-06-01 -m "shared aliases"
+
+		git clone -q "$BATS_TEST_TMPDIR/remote.git" "$BATS_TEST_TMPDIR/other"
+		cd "$BATS_TEST_TMPDIR/other" || exit 1
+		git rm -r -q components/aliases
+		git submodule add -q "$BATS_TEST_TMPDIR/shared-aliases" components/aliases
+		_commit_dated 2021-01-01 -m "two: aliases become a submodule"
+		git tag v0.0.2
+		git push -q origin HEAD --tags
+	) >/dev/null 2>&1
+}
+
+@test "gaudi-shell helpers: update: fetches the component submodules and migrates the enabled links after the checkout" {
+	_publish_components_as_submodule
+	assert_file_exist "$GAUDI_SHELL/components/aliases/general.aliases.bash"
+	# Enabled the way the old layout did it
+	ln -s "../aliases/general.aliases.bash" "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
+	ln -s "../completions/gaudi-shell.completions.bash" "$GAUDI_SHELL/components/enabled/350___gaudi-shell.completions.bash"
+	cd "$ELSEWHERE"
+
+	_gaudi-shell-update --silent >"$BATS_TEST_TMPDIR/out" 2>&1 </dev/null
+
+	run cat "$BATS_TEST_TMPDIR/out"
+	assert_output --partial "successfully updated"
+	assert_line "migrated 150___general.aliases.bash -> ../aliases/lib/general.aliases.bash"
+	assert_line "migrated 350___gaudi-shell.completions.bash -> ../host/gaudi-shell.completions.bash"
+	assert_output --partial "RESTART"
+	assert_equal "$(git -C "$GAUDI_SHELL" describe --tags)" "v0.0.2"
+
+	# The submodule was checked out at the pinned commit ...
+	assert_file_exist "$GAUDI_SHELL/components/aliases/lib/general.aliases.bash"
+	assert_file_not_exist "$GAUDI_SHELL/components/aliases/general.aliases.bash"
+	assert_equal "$(git -C "$GAUDI_SHELL/components/aliases" rev-parse HEAD)" "$(git -C "$BATS_TEST_TMPDIR/shared-aliases" rev-parse HEAD)"
+	# ... and the links work again, with the priority they had
+	run readlink "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
+	assert_output "../aliases/lib/general.aliases.bash"
+	assert_file_exist "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
+	assert_file_exist "$GAUDI_SHELL/components/enabled/350___gaudi-shell.completions.bash"
+	assert_equal "$PWD" "$ELSEWHERE"
+	assert_equal "$(_directory_stack_depth)" "1"
+}
+
+@test "gaudi-shell helpers: update: a component submodule on another commit is not a local change" {
+	_publish_components_as_submodule
+	_gaudi-shell-update --silent >/dev/null 2>&1 </dev/null
+	# The shared repository moves on and the install follows it by hand
+	(
+		cd "$BATS_TEST_TMPDIR/shared-aliases" || exit 1
+		_commit_dated 2021-06-01 --allow-empty -m "newer shared aliases"
+		git -C "$GAUDI_SHELL/components/aliases" fetch -q origin
+		git -C "$GAUDI_SHELL/components/aliases" checkout -q FETCH_HEAD
+	) >/dev/null 2>&1
+	run git -C "$GAUDI_SHELL" diff --name-status
+	assert_output --partial "components/aliases"
+	cd "$ELSEWHERE"
+
+	local status_code=0
+	_gaudi-shell-update >"$BATS_TEST_TMPDIR/out" 2>&1 </dev/null || status_code=$?
+
+	run cat "$BATS_TEST_TMPDIR/out"
+	refute_output --partial "Local changes detected"
+	assert_output --partial "latest stable version"
+	assert_equal "$status_code" "0"
+}
+
+@test "gaudi-shell helpers: update: when already up to date it still fetches missing components and migrates old links" {
+	_publish_components_as_submodule
+	# Updated by hand: the new version is checked out, the submodule is not
+	git -C "$GAUDI_SHELL" fetch -q origin --tags
+	git -C "$GAUDI_SHELL" checkout -q v0.0.2
+	assert_file_not_exist "$GAUDI_SHELL/components/aliases/lib/general.aliases.bash"
+	ln -s "../aliases/general.aliases.bash" "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
+	cd "$ELSEWHERE"
+
+	_gaudi-shell-update >"$BATS_TEST_TMPDIR/out" 2>&1 </dev/null
+
+	run cat "$BATS_TEST_TMPDIR/out"
+	assert_output --partial "latest stable version"
+	assert_line "migrated 150___general.aliases.bash -> ../aliases/lib/general.aliases.bash"
+	refute_output --partial "RESTART"
+	assert_file_exist "$GAUDI_SHELL/components/aliases/lib/general.aliases.bash"
+	assert_file_exist "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
+	assert_equal "$PWD" "$ELSEWHERE"
+	assert_equal "$(_directory_stack_depth)" "1"
+}
+
+@test "gaudi-shell helpers: update: says how to fetch the components when that fails, and still updates" {
+	_publish_components_as_submodule
+	# The shared repository cannot be reached
+	mv "$BATS_TEST_TMPDIR/shared-aliases" "$BATS_TEST_TMPDIR/shared-aliases-gone"
+	cd "$ELSEWHERE"
+
+	_gaudi-shell-update --silent >"$BATS_TEST_TMPDIR/out" 2>&1 </dev/null
+
+	run cat "$BATS_TEST_TMPDIR/out"
+	assert_output --partial "Could not update the shared components"
+	assert_output --partial "git -C \"$GAUDI_SHELL\" submodule update --init components/aliases components/completions components/plugins"
+	assert_output --partial "RESTART"
+	assert_equal "$(git -C "$GAUDI_SHELL" describe --tags)" "v0.0.2"
+}

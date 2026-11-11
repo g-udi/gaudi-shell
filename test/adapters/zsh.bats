@@ -62,11 +62,11 @@ SCRIPT
 }
 
 @test "zsh adapter: enabled components are loaded" {
-	ln -s "../aliases/general.aliases.bash" "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
-	cat >"$GAUDI_SHELL/components/aliases/zsh-smoke.aliases.bash" <<'ALIASES'
+	ln -s "../aliases/lib/general.aliases.bash" "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
+	cat >"$GAUDI_SHELL/components/aliases/lib/zsh-smoke.aliases.bash" <<'ALIASES'
 alias zsh_smoke_alias='echo smoke'
 ALIASES
-	ln -s "../aliases/zsh-smoke.aliases.bash" "$GAUDI_SHELL/components/enabled/150___zsh-smoke.aliases.bash"
+	ln -s "../aliases/lib/zsh-smoke.aliases.bash" "$GAUDI_SHELL/components/enabled/150___zsh-smoke.aliases.bash"
 
 	_write_zsh_script <<'SCRIPT'
 alias zsh_smoke_alias
@@ -388,8 +388,8 @@ SCRIPT
 }
 
 @test "zsh adapter: gshell completion offers the commands, arguments and flags of the command table" {
-	ln -s "../completions/gaudi-shell.completions.bash" "$GAUDI_SHELL/components/enabled/350___gaudi-shell.completions.bash"
-	ln -s "../aliases/general.aliases.bash" "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
+	ln -s "../host/gaudi-shell.completions.bash" "$GAUDI_SHELL/components/enabled/350___gaudi-shell.completions.bash"
+	ln -s "../aliases/lib/general.aliases.bash" "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
 	mkdir -p "$GAUDI_SHELL/profiles"
 	echo "alias general" >"$GAUDI_SHELL/profiles/work.gaudi-shell"
 
@@ -417,7 +417,7 @@ SCRIPT
 	run cat "$ZSH_ERR"
 	assert_output ""
 	run cat "$ZSH_OUT"
-	assert_line "top: show enable disable search help profile backup restore update doctor reload restart version"
+	assert_line "top: show enable disable search help profile backup restore update migrate doctor reload restart version"
 	assert_line "show: aliases plugins completions"
 	assert_line "show-type: enabled"
 	assert_line "search: --enable --disable --plugin --alias --completion --no-color --refresh --help"

@@ -17,15 +17,20 @@ if [[ -d "$GAUDI_SHELL/components/enabled" ]]; then
 			# "gshell doctor" runs, only: scripts stay quiet).
 			_gaudi_shell_dangling="${_gaudi_shell_config_file##*"${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}"}"
 			_gaudi_shell_dangling="${_gaudi_shell_dangling%.bash}"
-			case "${_gaudi_shell_dangling##*.}" in
-			aliases) _gaudi_shell_dangling="alias ${_gaudi_shell_dangling%.*}" ;;
-			plugins) _gaudi_shell_dangling="plugin ${_gaudi_shell_dangling%.*}" ;;
-			completions) _gaudi_shell_dangling="completion ${_gaudi_shell_dangling%.*}" ;;
-			esac
-			printf '%s\n' "gaudi-shell: enabled component '${_gaudi_shell_config_file##*/}' points to a missing file, skipped. Fix: gshell enable ${_gaudi_shell_dangling}" >&2
+			_gaudi_shell_dangling_type="${_gaudi_shell_dangling##*.}"
+			_gaudi_shell_dangling="${_gaudi_shell_dangling%.*}"
+			if _gaudi-shell-component-file "$_gaudi_shell_dangling_type" "$_gaudi_shell_dangling" >/dev/null || ! _gaudi-shell-component-submodules-present; then
+				# The component is there (or the shared components were never
+				# fetched): the link is from an older layout or another
+				# install directory, and "gshell migrate" rewrites it.
+				_gaudi_shell_dangling="gshell migrate"
+			else
+				_gaudi_shell_dangling="gshell enable $(_gaudi-shell-singularize-component "$_gaudi_shell_dangling_type") ${_gaudi_shell_dangling}"
+			fi
+			printf '%s\n' "gaudi-shell: enabled component '${_gaudi_shell_config_file##*/}' points to a missing file, skipped. Fix: ${_gaudi_shell_dangling}" >&2
 		fi
 	done
 fi
 
-unset _gaudi_shell_config_file _gaudi_shell_dangling
+unset _gaudi_shell_config_file _gaudi_shell_dangling _gaudi_shell_dangling_type
 unset GAUDI_SHELL_LOG_PREFIX

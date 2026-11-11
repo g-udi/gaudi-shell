@@ -16,11 +16,11 @@ _gaudi-shell-comp-list-available-not-enabled() {
 	local result=""
 	local f file_entity
 
-	for f in "${GAUDI_SHELL}/components/${subdirectory}/"*.bash; do
-		[[ -f "$f" ]] || continue
+	while IFS= read -r f; do
+		[[ -n "$f" ]] || continue
 		file_entity="${f##*/}"
 		_gaudi-shell-enabled-link "$file_entity" >/dev/null || result="${result} ${file_entity%%.*}"
-	done
+	done < <(_gaudi-shell-component-files "${subdirectory}")
 	echo "all ${result}"
 }
 
@@ -125,5 +125,5 @@ fi
 # ZSH completion — loaded from separate file to avoid bash parse errors
 # =====================================================================
 if [[ -n "${ZSH_VERSION:-}" ]]; then
-	source "${GAUDI_SHELL}/components/completions/gaudi-shell.completions.zsh"
+	source "${GAUDI_SHELL}/components/host/gaudi-shell.completions.zsh"
 fi
