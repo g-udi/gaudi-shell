@@ -374,6 +374,16 @@ The backup is a profile under a reserved name, in the profile format (one `<type
 
 For named, reusable configurations, use profiles instead.
 
+## Releasing
+
+Merging to `main` does not create a release. A release is cut by hand:
+
+1. Open **Actions > CI > Run workflow** on GitHub and pick the `main` branch.
+2. Choose which part of the version to raise: `patch`, `minor` or `major`.
+3. Once the tests and lint pass, the run tags `main` and publishes a GitHub release.
+
+`gshell update` moves an installation to the latest release tag, and `gshell update dev` to the tip of `main`, so the two only differ once `main` has moved past the last release.
+
 ## Contributing
 
 Components follow a consistent pattern:
