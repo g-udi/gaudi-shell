@@ -41,6 +41,7 @@ _enabled() {
 @test "gaudi-shell profile: load with a component that does not exist changes nothing" {
 	gshell enable alias general >/dev/null
 	gshell enable plugin base >/dev/null
+	mkdir -p "$GAUDI_SHELL/profiles"
 	printf '%s\n' "alias git" "plugin no-such-plugin" >"$GAUDI_SHELL/profiles/broken.gaudi-shell"
 
 	run gshell profile load broken
@@ -59,6 +60,7 @@ _enabled() {
 
 @test "gaudi-shell profile: load with a malformed line changes nothing" {
 	gshell enable alias general >/dev/null
+	mkdir -p "$GAUDI_SHELL/profiles"
 	printf '%s\n' "alias git" "rm -rf /" >"$GAUDI_SHELL/profiles/broken.gaudi-shell"
 
 	run gshell profile load broken

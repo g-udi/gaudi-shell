@@ -320,6 +320,7 @@ SCRIPT
 	_write_zsh_script <<'SCRIPT'
 gshell enable alias general >/dev/null
 gshell enable plugin base >/dev/null
+mkdir -p "$GAUDI_SHELL/profiles"
 print -r -- "alias git" "plugin no-such-plugin" | tr ' ' '\n' | paste -d ' ' - - >"$GAUDI_SHELL/profiles/broken.gaudi-shell"
 gshell profile load broken
 print -r -- "status=$?"
