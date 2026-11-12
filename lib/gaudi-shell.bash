@@ -5,26 +5,23 @@
 export GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR="___"
 
 _gaudi-shell-version() {
-	cd "${GAUDI_SHELL}" || return
+	# git -C, not cd: the current directory, OLDPWD and directory hooks are left alone.
 	local GAUDI_SHELL_GIT_REMOTE GAUDI_SHELL_GIT_URL GAUDI_SHELL_GIT_VERSION_INFO GAUDI_SHELL_GIT_SHA GAUDI_SHELL_GIT_TAG
 
-	GAUDI_SHELL_GIT_REMOTE=$(git remote get-url "${GAUDI_SHELL_REMOTE:-origin}" 2>/dev/null)
+	GAUDI_SHELL_GIT_REMOTE=$(git -C "${GAUDI_SHELL}" remote get-url "${GAUDI_SHELL_REMOTE:-origin}" 2>/dev/null)
 	GAUDI_SHELL_GIT_URL=${GAUDI_SHELL_GIT_REMOTE%.git}
-	GAUDI_SHELL_GIT_TAG="$(git describe --tags --abbrev=0 2>/dev/null)"
-	GAUDI_SHELL_GIT_VERSION_INFO="$(git log --pretty=format:'%h on %aI' -n 1)"
+	GAUDI_SHELL_GIT_TAG="$(git -C "${GAUDI_SHELL}" describe --tags --abbrev=0 2>/dev/null)"
+	GAUDI_SHELL_GIT_VERSION_INFO="$(git -C "${GAUDI_SHELL}" log --pretty=format:'%h on %aI' -n 1 2>/dev/null)"
 	GAUDI_SHELL_GIT_SHA=${GAUDI_SHELL_GIT_VERSION_INFO%% *}
 
 	echo "gaudi-shell (${GAUDI_SHELL_CURRENT})"
 	[[ -n "$GAUDI_SHELL_GIT_TAG" ]] && echo -e "  Version: ${CYAN}$GAUDI_SHELL_GIT_TAG${NC}"
 	echo -e "  SHA: ${GREEN}$GAUDI_SHELL_GIT_VERSION_INFO${NC}"
 	[[ -n "$GAUDI_SHELL_GIT_URL" ]] && echo -e "  ${MAGENTA}$GAUDI_SHELL_GIT_URL/commit/$GAUDI_SHELL_GIT_SHA${NC}"
-	cd - &>/dev/null || return
+	return 0
 }
 
 _gaudi-shell-reload() {
-	if [[ -n $GAUDI_TEST_RUNNER ]]; then
-		return 0
-	fi
 	_gaudi-shell-component-cache-clean
 	local profile="${HOME?}/${GAUDI_SHELL_PROFILE}"
 	if [[ -f "$profile" ]]; then
@@ -33,6 +30,18 @@ _gaudi-shell-reload() {
 	else
 		echo "Profile not found: $profile"
 		return 1
+	fi
+}
+
+# Called after a component was enabled or disabled. Reloads the profile when
+# GAUDI_SHELL_AUTOMATIC_RELOAD_AFTER_CONFIG_CHANGE is set: at once, or, inside
+# a gshell command, once when that command is done (see gshell below).
+_gaudi-shell-reload-after-change() {
+	[[ -n "${GAUDI_SHELL_AUTOMATIC_RELOAD_AFTER_CONFIG_CHANGE:-}" ]] || return 0
+	if [[ -n "${_gaudi_shell_reload_deferred:-}" ]]; then
+		_gaudi_shell_reload_wanted=1
+	else
+		_gaudi-shell-reload
 	fi
 }
 
@@ -56,7 +65,7 @@ _gaudi-shell-verbs() {
 		"profile;<save|load|list|rm> [name];save and switch sets of enabled components;save load list rm;" \
 		"backup;;record the enabled components;;" \
 		"restore;;re-enable the components recorded by 'backup';;" \
-		"update;[stable|dev];update to the latest tag (stable, default) or the development branch;stable dev;" \
+		"update;[stable|dev] [--silent];update to the latest tag (stable, default) or the development branch;stable dev --silent;--silent" \
 		"migrate;;fetch the shared components if missing and repair enabled links left by an older layout;;" \
 		"doctor;[errors|warnings|all];reload with logging at the given level;errors warnings all;" \
 		"reload;;re-source your shell profile;;" \
@@ -176,23 +185,32 @@ gshell() {
 		return 1
 	fi
 
+	# An automatic reload (see _gaudi-shell-reload-after-change) happens once,
+	# here, however many components the command enabled or disabled.
+	local _gaudi_shell_reload_deferred=1 _gaudi_shell_reload_wanted="" rc=0
+
 	case "$verb" in
 	enable | disable)
-		local type="${1:-}" name rc=0
+		local type="${1:-}" name
 		[[ $# -gt 0 ]] && shift
 		if [[ $# -eq 0 ]]; then
-			"_gaudi-shell-${verb}" "$type"
-			return
+			"_gaudi-shell-${verb}" "$type" || rc=$?
+		else
+			for name in "$@"; do
+				"_gaudi-shell-${verb}" "$type" "$name" || rc=$?
+			done
 		fi
-		for name in "$@"; do
-			"_gaudi-shell-${verb}" "$type" "$name" || rc=$?
-		done
-		return "$rc"
 		;;
 	*)
-		"_gaudi-shell-${verb}" "$@"
+		"_gaudi-shell-${verb}" "$@" || rc=$?
 		;;
 	esac
+
+	if [[ -n "$_gaudi_shell_reload_wanted" ]]; then
+		_gaudi_shell_reload_deferred=""
+		_gaudi-shell-reload
+	fi
+	return "$rc"
 }
 
 # Short alias

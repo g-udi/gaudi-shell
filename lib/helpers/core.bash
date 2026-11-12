@@ -2,10 +2,6 @@
 # shellcheck shell=bash
 # shellcheck disable=SC2001
 
-# Cache grep path at startup
-: "${GAUDI_SHELL_GREP:=$(command -v egrep 2>/dev/null || command -v grep 2>/dev/null || echo '/usr/bin/grep')}"
-export GAUDI_SHELL_GREP
-
 # Print the enabled link of a component file (e.g. git.aliases.bash).
 # Returns non-zero when there is none; a dangling link does not count.
 _gaudi-shell-enabled-link() {

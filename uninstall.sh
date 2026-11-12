@@ -2,20 +2,20 @@
 # shellcheck shell=bash
 # shellcheck disable=SC1090,SC1091
 
-# Removes gaudi-shell: takes its lines out of the shell config file and deletes
-# the install directory. Everything else in the config file is left as it is.
+# Removes gaudi-shell: takes its lines out of the shell config files, deletes
+# the install directory and its cache folder. Everything else in the config
+# files is left as it is.
 
 # The shell config files to clean, as names relative to $HOME: the one named
-# by GAUDI_SHELL_PROFILE when it is set, otherwise every usual config file
-# that loads gaudi-shell.
+# by GAUDI_SHELL_PROFILE when it is set (the file of the running shell), and
+# every usual config file that loads gaudi-shell. Both shells may be set up,
+# and a file left behind would source an adapter that no longer exists.
 _gaudi_shell_uninstall_configs() {
 	local name
 
-	if [[ -n "${GAUDI_SHELL_PROFILE:-}" ]]; then
-		printf '%s\n' "$GAUDI_SHELL_PROFILE"
-		return 0
-	fi
+	[[ -n "${GAUDI_SHELL_PROFILE:-}" ]] && printf '%s\n' "$GAUDI_SHELL_PROFILE"
 	for name in .zshrc .bash_profile .bashrc; do
+		[[ "$name" == "${GAUDI_SHELL_PROFILE:-}" ]] && continue
 		_gaudi_shell_uninstall_has_block "$HOME/$name" && printf '%s\n' "$name"
 	done
 	return 0
@@ -132,6 +132,8 @@ _gaudi_shell_uninstall() {
 	done
 
 	[[ -d "$install_dir" ]] && rm -rf "$install_dir"
+	# The lists "gshell show" caches and the zsh completion dump
+	rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/gaudi-shell"
 
 	echo ""
 	echo -e "${GREEN:-}un-installation finished successfully! Sorry to see you go!${NC:-}"

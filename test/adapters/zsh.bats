@@ -558,3 +558,72 @@ SCRIPT
 	assert_line "host=gaudi-shell/gshell"
 	assert_line "setting=localhost"
 }
+
+@test "zsh adapter: a complete function defined before the adapter is kept" {
+	{
+		# shellcheck disable=SC2016
+		printf '%s\n' 'complete() { [[ "$1" == probe ]] && print -r -- "mine"; return 0; }'
+		# shellcheck disable=SC2016
+		printf '%s\n' 'source "$GAUDI_SHELL/adapters/zsh/init.zsh"' 'complete probe' 'shopt -s whatever && print -r -- "shopt stub"'
+	} >"$ZSH_SCRIPT"
+
+	_run_zsh_script </dev/null
+
+	run cat "$ZSH_ERR"
+	assert_output ""
+	run cat "$ZSH_OUT"
+	assert_line "mine"
+	assert_line "shopt stub"
+}
+
+@test "zsh adapter: command duration has sub-second time" {
+	_write_zsh_script <<'SCRIPT'
+print -r -- "now=$(_command_duration_current_time)"
+GAUDI_SHELL_COMMAND_DURATION=true
+COMMAND_DURATION_MIN_SECONDS=0
+COMMAND_DURATION_PRECISION=2
+COMMAND_DURATION_START_SECONDS="$(_command_duration_current_time)"
+print -r -- "took=$(_command_duration)"
+SCRIPT
+
+	_run_zsh_script </dev/null
+
+	run cat "$ZSH_ERR"
+	assert_output ""
+	run cat "$ZSH_OUT"
+	assert_line --regexp '^now=[0-9]+\.[0-9]{6}$'
+	assert_line --regexp '^took=0\.[0-9]{2}s$'
+}
+
+@test "zsh adapter: the terraform and dockercompose segments work" {
+	export GAUDI_SHELL_THEME="gaudi"
+	local fakebin="$BATS_TEST_TMPDIR/fakebin" project="$BATS_TEST_TMPDIR/infra"
+	mkdir -p "$fakebin" "$project"
+	printf '%s\n' '#!/bin/sh' 'echo "staging"' >"$fakebin/terraform"
+	# Two header lines, then one container per line (docker-compose v1)
+	printf '%s\n' '#!/bin/sh' 'echo "Name State"' 'echo "----------"' 'echo "infra_cache_1 Up"' 'echo "infra_web_1 Exit 1"' >"$fakebin/docker-compose"
+	chmod +x "$fakebin/terraform" "$fakebin/docker-compose"
+	# Only a file that is not one of the fixed names
+	: >"$project/network.tf"
+	: >"$project/docker-compose.yml"
+	export FAKEBIN="$fakebin" PROJECT="$project"
+
+	_write_zsh_script <<'SCRIPT'
+PATH="$FAKEBIN:$PATH"
+cd "$PROJECT"
+gaudi::load_segment terraform
+gaudi::load_segment dockercompose
+GAUDI_DOCKERCOMPOSE_SHOW_SYMBOLS=true
+GAUDI_DOCKERCOMPOSE_SYMBOL_CACHE="CCH"
+print -r -- "terraform=[$(gaudi_terraform)]"
+print -r -- "compose=[$(gaudi_dockercompose)]"
+SCRIPT
+
+	_run_zsh_script </dev/null
+
+	run cat "$ZSH_ERR"
+	assert_output ""
+	run cat "$ZSH_OUT"
+	assert_line --partial "staging"
+	assert_line --regexp '^compose=\[.*CCH.*W'
+}

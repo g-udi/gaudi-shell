@@ -317,3 +317,40 @@ _publish_components_as_submodule() {
 	assert_output --partial "RESTART"
 	assert_equal "$(git -C "$GAUDI_SHELL" describe --tags)" "v0.0.2"
 }
+
+@test "gaudi-shell helpers: update: dev moves to the tip of the development branch" {
+	_make_install_a_checkout
+	_publish_newer_tag
+	# Whatever git calls the first branch here
+	GAUDI_SHELL_DEVELOPMENT_BRANCH="$(git -C "$GAUDI_SHELL" symbolic-ref --short HEAD)"
+	cd "$ELSEWHERE"
+
+	_gaudi-shell-update dev --silent >"$BATS_TEST_TMPDIR/out" 2>&1 </dev/null
+
+	run cat "$BATS_TEST_TMPDIR/out"
+	assert_output --partial "Updating to origin/${GAUDI_SHELL_DEVELOPMENT_BRANCH}"
+	assert_output --partial "successfully updated"
+	assert_output --partial "RESTART"
+	assert_equal "$(git -C "$GAUDI_SHELL" rev-parse HEAD)" "$(git -C "$BATS_TEST_TMPDIR/remote.git" rev-parse "$GAUDI_SHELL_DEVELOPMENT_BRANCH")"
+	assert_equal "$PWD" "$ELSEWHERE"
+	assert_equal "$(_directory_stack_depth)" "1"
+}
+
+@test "gaudi-shell helpers: update: a checkout ahead of the latest tag is offered the way back to it" {
+	_make_install_a_checkout
+	(
+		cd "$GAUDI_SHELL" || exit 1
+		_commit_dated 2021-01-01 --allow-empty -m "local work"
+	) >/dev/null 2>&1
+	cd "$ELSEWHERE"
+
+	_gaudi-shell-update >"$BATS_TEST_TMPDIR/out" 2>&1 <<<"n"
+
+	run cat "$BATS_TEST_TMPDIR/out"
+	assert_output --partial "more recent development version"
+	assert_output --partial "local work"
+	assert_output --partial "Would you like to update to v0.0.1"
+	assert_output --partial "Not updating"
+	refute_output --partial "RESTART"
+	assert_equal "$(_directory_stack_depth)" "1"
+}

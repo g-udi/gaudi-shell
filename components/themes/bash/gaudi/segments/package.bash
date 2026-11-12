@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 #
 # Package
 #
@@ -24,7 +25,6 @@ gaudi_package () {
   [[ $GAUDI_PACKAGE_SHOW == false ]] && return
 
   # Show package version only when repository is a package
-  # @todo: add more package managers
   [[ -f package.json ]] || return
 
   gaudi::exists npm || return
@@ -34,7 +34,7 @@ gaudi_package () {
   if gaudi::exists jq; then
     package_version=$(jq -r '.version' package.json 2>/dev/null)
   else
-    package_version=$(grep -E '^  "version": "v?([0-9]+\.){1,}' package.json | cut -d\" -f4  2>/dev/null)
+    package_version=$(grep -E '^  "version": "v?([0-9]+\.){1,}' package.json 2>/dev/null | cut -d\" -f4)
   fi
 
   [[ -z $package_version || $package_version == null ]] && return

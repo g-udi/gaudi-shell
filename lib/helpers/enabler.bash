@@ -22,12 +22,14 @@ _gaudi-shell-enable() {
 	[[ -z "$component" ]] && printf "${RED}%s${NC}\n" "Please enter a valid $type_singular(s) to enable" && return 1
 
 	if [[ "$component" = "all" ]]; then
-		local _file
+		# Each component reports for itself; the status says if any failed.
+		local _file _rc=0
 		while IFS= read -r _file; do
 			[[ -n "$_file" ]] || continue
 			_file="${_file##*/}"
-			_gaudi-shell-enable "$type" "${_file%."$type".bash}"
+			_gaudi-shell-enable "$type" "${_file%."$type".bash}" || _rc=1
 		done < <(_gaudi-shell-component-files "$type")
+		return "$_rc"
 	else
 		local _component="${component}.${type}.bash" _component_file
 
@@ -64,8 +66,6 @@ _gaudi-shell-enable() {
 	_gaudi-shell-component-cache-clean "${type}"
 	printf "${GREEN}%s $type_singular: ${CYAN}$component${NC} %s ${RED}$use_load_priority${NC}\n" "◉" "enabled with priority"
 
-	if [[ -n "$GAUDI_SHELL_AUTOMATIC_RELOAD_AFTER_CONFIG_CHANGE" ]]; then
-		_gaudi-shell-reload
-	fi
+	_gaudi-shell-reload-after-change
 	return 0
 }

@@ -40,17 +40,14 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install dependencies (macOS)
-      if: startsWith(runner.os, 'macOS')
-      run: brew install coreutils parallel
-
+    # macOS runners need nothing extra: the tests use the system tools and zsh
     - name: Install dependencies (Linux)
       if: startsWith(runner.os, 'Linux')
       run: |
         # zsh is needed by test/adapters/zsh.bats (skipped when it is missing)
         # The runners' package mirrors fail to resolve now and then: retry before giving up
         for attempt in 1 2 3 4 5; do
-          sudo apt-get update && sudo apt-get install -y parallel zsh && break
+          sudo apt-get update && sudo apt-get install -y zsh && break
           if [ "$attempt" = 5 ]; then exit 1; fi
           echo "apt failed (attempt $attempt), retrying in 20 seconds"; sleep 20
         done
@@ -107,11 +104,11 @@ jobs:
         } | sort | xargs shellcheck --shell=bash
 
     # Same scope as the shfmt hook in .pre-commit-config.yaml, which leaves
-    # adapters/zsh/, the component submodules, the theme, the zsh half of the
-    # gshell completion and template/ unformatted.
+    # adapters/zsh/, the component submodules, the theme and the zsh half of
+    # the gshell completion unformatted.
     - name: Run shfmt
       run: |
-        shfmt -f . | grep -vE '^(adapters/zsh/|components/(aliases|completions|plugins|themes)/|components/host/.*\.zsh$|template/|bin/)' | xargs shfmt -d
+        shfmt -f . | grep -vE '^(adapters/zsh/|components/(aliases|completions|plugins|themes)/|components/host/.*\.zsh$|bin/)' | xargs shfmt -d
 
   release:
     # Only a run started by hand on main releases; pushes and pull requests never tag

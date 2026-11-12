@@ -54,7 +54,7 @@ SCRIPT
 	run "$BASH" --noprofile --norc "$PROMPT_SCRIPT"
 	assert_success
 	# shellcheck disable=SC2016
-	assert_line 'PS1=\n${_GAUDI_RENDERED_LINE}\n\n\[${GAUDI_GREEN}\]>>\[${NC}\] '
+	assert_line 'PS1=\n${_GAUDI_RENDERED_LINE}\n\n\[${GAUDI_GREEN}\]>>\[${GAUDI_NC}\] '
 	# The hostile names are shown as plain text
 	# shellcheck disable=SC2016
 	assert_output --partial '$(touch pwned-dir)/`touch pwned-tick`'
@@ -388,7 +388,7 @@ SCRIPT
 		# shellcheck disable=SC2016
 		printf '%s\n' 'source "$GAUDI_SHELL/adapters/bash/init.bash"'
 		# shellcheck disable=SC2016
-		printf '%s\n' 'printf "%s" "$GAUDI_RED$BACKGROUND_GAUDI_ORANGE$NC" | od -An -c | tr -d " \n"; echo'
+		printf '%s\n' 'printf "%s" "$GAUDI_RED$BACKGROUND_GAUDI_ORANGE$GAUDI_NC" | od -An -c | tr -d " \n"; echo'
 	} >"$PROMPT_SCRIPT"
 
 	run "$BASH" --noprofile --norc "$PROMPT_SCRIPT"
@@ -398,4 +398,82 @@ SCRIPT
 	# Only the core asks tput once, for the number of colours
 	run cat "$BATS_TEST_TMPDIR/tput-calls"
 	assert_output "colors"
+}
+
+@test "gaudi theme: the reset of the theme has its own name and the framework's NC keeps its value" {
+	_write_prompt_script <<'SCRIPT'
+printf '%s' "nc=[$NC] theme=[$GAUDI_NC]" | od -An -c | tr -d " \n"
+echo
+SCRIPT
+
+	run "$BASH" --noprofile --norc "$PROMPT_SCRIPT"
+	assert_success
+	# NC is what lib/colors.bash gave it: empty, or the plain reset
+	assert_line --regexp '^nc=\[(033\[0m)?\]theme=\[033\(B033\[m\]$'
+}
+
+@test "gaudi theme: node: a lazy-load stub named nvm or node is never called" {
+	local fakebin="$BATS_TEST_TMPDIR/fakebin" project="$BATS_TEST_TMPDIR/project"
+	mkdir -p "$fakebin" "$project"
+	printf '%s\n' '#!/usr/bin/env bash' 'echo "v20.1.0"' >"$fakebin/node"
+	chmod +x "$fakebin/node"
+	echo '{}' >"$project/package.json"
+	export STUB_LOG="$BATS_TEST_TMPDIR/stub-calls" FAKEBIN="$fakebin" PROJECT="$project"
+
+	_write_prompt_script <<'SCRIPT'
+# What the nvm plugin defines until nvm is first used
+nvm() { echo "nvm $*" >>"$STUB_LOG"; }
+node() { echo "node $*" >>"$STUB_LOG"; }
+PATH="$FAKEBIN:$PATH"
+cd "$PROJECT" || exit 1
+gaudi::load_segment node
+printf '%s\n' "node=[$(gaudi_node)]"
+SCRIPT
+
+	run "$BASH" --noprofile --norc "$PROMPT_SCRIPT"
+	assert_success
+	assert_line --partial "v20.1.0"
+	assert_file_not_exist "$STUB_LOG"
+}
+
+@test "gaudi theme: duration: COMMAND_DURATION_MIN_SECONDS is the default of GAUDI_DURATION_MIN_SECONDS" {
+	{
+		# shellcheck disable=SC2016
+		printf '%s\n' 'COMMAND_DURATION_MIN_SECONDS=5' \
+			'source "$GAUDI_SHELL/adapters/bash/init.bash"' \
+			'gaudi::load_segment duration' \
+			'echo "min=$GAUDI_DURATION_MIN_SECONDS"'
+	} >"$PROMPT_SCRIPT"
+
+	run "$BASH" --noprofile --norc "$PROMPT_SCRIPT"
+	assert_success
+	assert_line "min=5"
+}
+
+@test "gaudi theme: battery: nothing is printed on a machine without a battery" {
+	local fakebin="$BATS_TEST_TMPDIR/fakebin"
+	mkdir -p "$fakebin"
+	# No "InternalBattery" line (macOS), no battery device (Linux)
+	printf '%s\n' '#!/usr/bin/env bash' "echo \"Now drawing from 'AC Power'\"" >"$fakebin/pmset"
+	printf '%s\n' '#!/usr/bin/env bash' 'exit 0' >"$fakebin/upower"
+	chmod +x "$fakebin/pmset" "$fakebin/upower"
+	export FAKEBIN="$fakebin"
+
+	_write_prompt_script <<'SCRIPT'
+PATH="$FAKEBIN:$PATH"
+gaudi::load_segment battery
+printf '%s\n' "battery=[$(gaudi_battery)]"
+SCRIPT
+
+	run "$BASH" --noprofile --norc "$PROMPT_SCRIPT"
+	assert_success
+	assert_line "battery=[]"
+}
+
+@test "gaudi theme: the bash adapter works out an absolute install directory by itself" {
+	cd "$GAUDI_SHELL/adapters/bash"
+	# shellcheck disable=SC2016
+	run env -u GAUDI_SHELL -u GAUDI_SHELL_THEME "$BASH" --noprofile --norc -c 'source ./init.bash; cd /; echo "dir=$GAUDI_SHELL"'
+	assert_success
+	assert_line "dir=$(cd "$GAUDI_SHELL" && pwd)"
 }

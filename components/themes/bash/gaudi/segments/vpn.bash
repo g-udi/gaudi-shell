@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 #
 # VPN
 # Show if the connection is made through a VPN

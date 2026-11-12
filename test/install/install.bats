@@ -63,25 +63,21 @@ local_setup() {
 
 @test "gaudi-shell install: verify that a backup file is created" {
 
-	local md5_orig
-	local md5_bak
-
 	cd "$GAUDI_SHELL" || exit
 
 	# HOME is shared by the tests of this file: start without older backups
 	rm -f "$HOME/$GAUDI_SHELL_PROFILE.bak" "$HOME/$GAUDI_SHELL_PROFILE.bak".*
 	touch "$HOME/$GAUDI_SHELL_PROFILE"
 	echo "test file content" >"$HOME/$GAUDI_SHELL_PROFILE"
-	md5_orig=$(md5sum "$HOME/$GAUDI_SHELL_PROFILE" | awk '{print $1}')
+	cp "$HOME/$GAUDI_SHELL_PROFILE" "$BATS_TEST_TMPDIR/original"
 
 	./setup.sh --silent --shell bash
 
 	assert_file_exist "$HOME/$GAUDI_SHELL_PROFILE"
 	assert_file_exist "$HOME/$GAUDI_SHELL_PROFILE.bak"
 
-	md5_bak=$(md5sum "$HOME/$GAUDI_SHELL_PROFILE.bak" | awk '{print $1}')
-
-	assert_equal "$md5_orig" "$md5_bak"
+	run cmp "$BATS_TEST_TMPDIR/original" "$HOME/$GAUDI_SHELL_PROFILE.bak"
+	assert_success
 }
 
 @test "gaudi-shell install: setup auto-detects zsh from SHELL" {
@@ -137,6 +133,10 @@ if [[ "$1" == "clone" ]]; then
 	tar -C "$GAUDI_SHELL_ORIGIN" \
 		--exclude='.git' \
 		--exclude='bin' \
+		--exclude='./profiles' \
+		--exclude='./components/enabled' \
+		--exclude='./components/custom' \
+		--exclude='./tmp' \
 		-cf - . | tar -C "$destination" -xf -
 	exit 0
 fi
@@ -173,7 +173,7 @@ GIT
 	# The exact command that fixes it
 	assert_line "  git -C \"$GAUDI_SHELL\" submodule update --init components/aliases components/completions components/plugins"
 	assert_file_not_exist "$home/$GAUDI_SHELL_PROFILE"
-	assert_dir_not_exist "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
+	assert_file_not_exist "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
 
 	# --silent keeps quiet about progress, not about this
 	run env HOME="$home" ./setup.sh --silent --shell bash
@@ -330,6 +330,12 @@ _existing_install() {
 	cat >"$FAKEBIN/git" <<GIT
 #!/usr/bin/env bash
 echo "\$*" >>"$GIT_CALLS"
+case "\$*" in
+# An install "gshell update" left on a tag has no current branch
+*symbolic-ref*) [[ -z "\$FAKE_GIT_DETACHED" ]] || exit 1 ;;
+*rev-list*) echo "abc123" ;;
+*describe*) echo "v9.9.9" ;;
+esac
 if [[ "\$1" == "clone" ]]; then
 	# Stands in for the clone: an install with a setup script that only reports
 	for destination in "\$@"; do :; done
@@ -382,14 +388,33 @@ _run_installer() {
 	# ... and then brings the shared components (only those three submodules)
 	# to the commits the pulled version pins
 	run cat "$GIT_CALLS"
-	assert_line --index 0 "-C $INSTALL_HOME/.gaudi-shell pull"
-	assert_line --index 1 "-C $INSTALL_HOME/.gaudi-shell submodule update --init components/aliases components/completions components/plugins"
-	assert_equal "${#lines[@]}" "2"
+	assert_line --index 0 "-C $INSTALL_HOME/.gaudi-shell symbolic-ref -q HEAD"
+	assert_line --index 1 "-C $INSTALL_HOME/.gaudi-shell pull"
+	assert_line --index 2 "-C $INSTALL_HOME/.gaudi-shell submodule update --init components/aliases components/completions components/plugins"
+	assert_equal "${#lines[@]}" "3"
 	assert_file_exist "$INSTALL_HOME/.gaudi-shell/marker"
+}
+
+@test "gaudi-shell install: over an existing install left on a tag by 'gshell update', n checks out the latest tag instead of pulling" {
+	_existing_install
+
+	FAKE_GIT_DETACHED=1 _run_installer <<<"n"
+	assert_success
+
+	run cat "$GIT_CALLS"
+	refute_line --partial " pull"
+	assert_line "-C $INSTALL_HOME/.gaudi-shell fetch --tags origin"
+	assert_line "-C $INSTALL_HOME/.gaudi-shell describe --tags abc123"
+	assert_line "-C $INSTALL_HOME/.gaudi-shell checkout v9.9.9"
+	assert_line "-C $INSTALL_HOME/.gaudi-shell submodule update --init components/aliases components/completions components/plugins"
 }
 
 @test "gaudi-shell install: over an existing install, y removes it and clones again" {
 	_existing_install
+	# The user's own files
+	mkdir -p "$INSTALL_HOME/.gaudi-shell/profiles" "$INSTALL_HOME/.gaudi-shell/components/custom"
+	echo "alias general" >"$INSTALL_HOME/.gaudi-shell/profiles/work.gaudi-shell"
+	echo "alias mine='true'" >"$INSTALL_HOME/.gaudi-shell/components/custom/mine.bash"
 
 	_run_installer <<<"y"
 	assert_success
@@ -402,4 +427,9 @@ _run_installer() {
 	assert_line "-C $INSTALL_HOME/.gaudi-shell submodule update --init --depth=1 components/aliases components/completions components/plugins"
 	refute_line --partial "pull"
 	assert_file_not_exist "$INSTALL_HOME/.gaudi-shell/marker"
+
+	# Profiles and custom scripts were moved into the fresh install
+	run cat "$INSTALL_HOME/.gaudi-shell/profiles/work.gaudi-shell"
+	assert_output "alias general"
+	assert_file_exist "$INSTALL_HOME/.gaudi-shell/components/custom/mine.bash"
 }

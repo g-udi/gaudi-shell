@@ -9,6 +9,23 @@ _gaudi-shell-profile-file() {
 	printf '%s\n' "${GAUDI_SHELL}/profiles/${1}.gaudi-shell"
 }
 
+# Check the profile name $1: not empty, and made of letters, digits, ".", "_"
+# and "-" only (no leading "."), so it can never point outside the profiles
+# folder. Prints what is wrong and returns non-zero otherwise.
+_gaudi-shell-profile-name-check() {
+	case "$1" in
+	"")
+		printf "${RED}%s${NC}\n" "Please provide a profile name"
+		return 1
+		;;
+	.* | *[!a-zA-Z0-9._-]*)
+		printf "${RED}%s${NC}\n" "Invalid profile name '$1': use letters, digits, '.', '_' and '-'"
+		return 1
+		;;
+	esac
+	return 0
+}
+
 # Print the enabled components, one "<type> <name>" per line (the profile format).
 _gaudi-shell-enabled-entries() {
 	local _file _component
@@ -80,7 +97,7 @@ _gaudi-shell-profile-apply() {
 
 _gaudi-shell-profile-save() {
 	local profile_name="$1"
-	[[ -z "$profile_name" ]] && printf "${RED}%s${NC}\n" "Please provide a profile name" && return 1
+	_gaudi-shell-profile-name-check "$profile_name" || return 1
 	if [[ "$profile_name" == "$GAUDI_SHELL_BACKUP_PROFILE" ]]; then
 		printf "${RED}%s${NC}\n" "'${profile_name}' is the profile written by 'gshell backup'; pick another name"
 		return 1
@@ -103,7 +120,7 @@ _gaudi-shell-profile-save() {
 
 _gaudi-shell-profile-load() {
 	local profile_name="$1"
-	[[ -z "$profile_name" ]] && printf "${RED}%s${NC}\n" "Please provide a profile name" && return 1
+	_gaudi-shell-profile-name-check "$profile_name" || return 1
 
 	local profile_file file_type
 	profile_file="$(_gaudi-shell-profile-file "$profile_name")"
@@ -146,8 +163,7 @@ _gaudi-shell-profile-list() {
 
 _gaudi-shell-profile-rm() {
 	local profile_name="$1"
-	[[ -z "$profile_name" ]] && printf "${RED}%s${NC}\n" "Please provide a profile name" && return 1
-	[[ "$profile_name" == "default" ]] && printf "${RED}%s${NC}\n" "Cannot remove 'default' profile" && return 1
+	_gaudi-shell-profile-name-check "$profile_name" || return 1
 
 	local profile_file
 	profile_file="$(_gaudi-shell-profile-file "$profile_name")"

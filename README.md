@@ -22,7 +22,7 @@ What makes it different:
 
 - **Cross-shell by design**: aliases and plugins are plain bash scripts, and the zsh adapter supplies what they need to load in zsh too. The aliases and most plugins work in both shells; a plugin that depends on a bash-only feature (`PROMPT_COMMAND`, readline bindings, bash completion) works in bash only. Only completions and themes need shell-specific versions.
 - **Intuitive component management**: `gshell enable plugin fzf` works the same in bash and zsh. No editing config files, no sourcing order puzzles, no plugin spec syntax to learn.
-- **Batteries included**: ships with 71 plugins, 39 alias sets, and 62 completions — curated and ready to use. No need to find and wire up third-party repositories.
+- **Batteries included**: ships with 71 plugins, 39 alias sets, and 61 completions — curated and ready to use. No need to find and wire up third-party repositories.
 - **Profiles**: save your entire setup as a named profile (`gshell profile save work`), switch between configurations (`gshell profile load minimal`), share them across machines.
 - **Search**: `gshell search docker` finds every docker-related alias, plugin, and completion in one shot. Add `--enable` to activate all matches.
 - **Proven foundation**: built on years of real-world use in [gaudi-bash](https://github.com/g-udi/gaudi-bash) — segment-based prompt theme, priority-sorted loading, diagnostic tooling (`gshell doctor`).
@@ -42,12 +42,16 @@ The aliases, completions and plugins are shared with [gaudi-bash](https://github
 
 The setup script backs up your existing shell config (to a `.bak` file, or a timestamped `.bak.<date>` file when a backup already exists, so an earlier backup is never overwritten), appends the gaudi-shell template to it or replaces it (it asks which; `--silent` appends), and enables a sane set of defaults (general aliases, base plugin, system and `gshell` completions). Running it again is safe: a config file that already loads gaudi-shell is left unchanged.
 
+`install.sh` can also be run over an existing install. It asks once: `n` updates the install (`git pull` on a branch; on the tag or remote branch `gshell update` leaves checked out, the latest release tag) and `y` sets up a fresh clone. A fresh clone keeps your `profiles/` and `components/custom/` folders: they are moved aside before the old install is deleted and put back into the new one.
+
 Options:
 
 - `--help` (`-h`): Display the usage message
 - `--silent` (`-s`): Install with defaults without prompting
 - `--no-modify-config` (`-n`): Do not modify your existing config file
-- `--shell bash|zsh`: Install for a specific shell instead of auto-detecting from `$SHELL`
+- `--shell bash|zsh`: Install for a specific shell instead of auto-detecting from `$SHELL` (the `GAUDI_SHELL_TARGET` environment variable does the same)
+
+To use gaudi-shell in both shells, run `./setup.sh --shell bash` and `./setup.sh --shell zsh`.
 
 ### Bash
 
@@ -73,7 +77,7 @@ source "$GAUDI_SHELL/adapters/zsh/init.zsh"
 ~/.gaudi-shell/uninstall.sh
 ```
 
-The uninstall script takes the gaudi-shell lines (the `# gaudi-shell` marker, the `export GAUDI_SHELL=...` line and the line that sources the adapter) out of your shell config and deletes the install directory. The rest of the config file is kept as it is, including everything you changed since installing; a copy of the file as it was is left next to it (`.before-gaudi-uninstall`). It looks at the file named by `GAUDI_SHELL_PROFILE` (set in a running gaudi-shell session), otherwise at `~/.zshrc`, `~/.bash_profile` and `~/.bashrc`. If none of them loads gaudi-shell it stops without changing anything.
+The uninstall script takes the gaudi-shell lines (the `# gaudi-shell` marker, the `export GAUDI_SHELL=...` line and the line that sources the adapter) out of your shell config and deletes the install directory. The rest of the config file is kept as it is, including everything you changed since installing; a copy of the file as it was is left next to it (`.before-gaudi-uninstall`). It cleans every one of `~/.zshrc`, `~/.bash_profile` and `~/.bashrc` that loads gaudi-shell, so an install set up for both shells leaves no file behind that sources a deleted adapter, plus the file named by `GAUDI_SHELL_PROFILE` (set in a running gaudi-shell session). If none of them loads gaudi-shell it stops without changing anything. The cache folder (`${XDG_CACHE_HOME:-~/.cache}/gaudi-shell`) is removed too.
 
 ## Quick Start
 
@@ -90,7 +94,41 @@ gshell reload                     # reload your shell to apply changes
 
 `g` is a shortcut for `gshell` — use `g show`, `g enable alias git`, etc.
 
-Tab completion for `gshell` (and `g`) works in both bash and zsh for all commands, their arguments (`gshell show aliases enabled`), component and profile names, and the `gshell search` flags. Every command returns a non-zero status when it fails, an unknown command included.
+Tab completion for `gshell` (and `g`) works in both bash and zsh for all commands, their arguments (`gshell show aliases enabled`), component and profile names, and the `gshell search` flags. Every command returns a non-zero status when it fails, an unknown command included; `gshell search` succeeds when at least one component matches.
+
+### Zsh options
+
+The zsh adapter sets two options for the whole session, because the shared components are bash scripts that rely on them:
+
+- `NO_NOMATCH`: a glob pattern without matches is left as it is instead of raising an error.
+- `BASH_REMATCH`: `[[ string =~ regex ]]` fills `BASH_REMATCH` (as in bash) instead of zsh's `match` and `MATCH`. Zsh code of your own that reads `$match` after `=~` has to run with `setopt local_options no_bash_rematch`.
+
+It also defines `shopt` and `complete` as functions that do nothing, unless they already exist: load `bashcompinit` before the adapter and its `complete` is kept.
+
+## Theme
+
+gaudi-shell ships one prompt theme, `gaudi`, which runs in bash and zsh. It is off until you name it, before the line that sources the adapter:
+
+```bash
+export GAUDI_SHELL_THEME=gaudi
+```
+
+Its segments and settings are described in [components/themes/bash/gaudi/README.md](components/themes/bash/gaudi/README.md).
+
+## Settings
+
+Set these before the line that sources the adapter:
+
+| Variable | Default | Description |
+|---|---|---|
+| `GAUDI_SHELL_THEME` | not set | Name of the prompt theme to load (`gaudi`) |
+| `GAUDI_SHELL_COMMAND_DURATION` | not set | Set to `true` to time commands (see [Command Duration](#command-duration)) |
+| `GAUDI_SHELL_AUTOMATIC_RELOAD_AFTER_CONFIG_CHANGE` | not set | Set to any value to re-source your shell profile after `gshell enable`, `disable`, `profile load`, `restore` or `search --enable`: once per command, however many components it changed |
+| `GAUDI_SHELL_LOG_LEVEL` | `0` | `1` errors, `2` errors and warnings, `3` everything (`gshell doctor` sets it for one reload) |
+| `GAUDI_SHELL_CUSTOM`, `GAUDI_SHELL_CUSTOM_PATHS` | `components/custom` | Where local scripts are loaded from (see [Local Untracked Customizations](#local-untracked-customizations)) |
+| `GAUDI_SHELL_REMOTE` | `origin` | Git remote `gshell update` fetches from |
+| `GAUDI_SHELL_DEVELOPMENT_BRANCH` | `main` | Branch `gshell update dev` moves to |
+| `LSCOLORS` | `cxfxdxgxbxegedabagacad` | Only set when you have not set it yourself |
 
 ## Architecture
 
@@ -212,6 +250,7 @@ gshell doctor errors                 # show only error-level logs
 gshell doctor warnings               # show error + warning logs
 
 gshell update                        # update gaudi-shell to latest stable tag
+gshell update --silent               # the same without asking (-s for short; also with dev)
 gshell update dev                    # update to the development branch ($GAUDI_SHELL_DEVELOPMENT_BRANCH on $GAUDI_SHELL_REMOTE)
 gshell migrate                       # fetch the shared components if missing, repair enabled links of an older layout
 
@@ -222,7 +261,7 @@ gshell restart                       # re-exec the shell (stronger than reload)
 
 `gshell update dev` targets `origin/main` unless `GAUDI_SHELL_DEVELOPMENT_BRANCH` is set.
 
-After checking out the new version, `gshell update` moves the three component submodules to the commits that version pins (`git submodule update --init components/aliases components/completions components/plugins`) and repairs enabled links if the layout changed. It refuses to run when files of the install directory were edited; a component submodule that sits on another commit does not count as an edit. If you update by hand with `git pull`, run the submodule command yourself, or run `gshell migrate`.
+After checking out the new version, `gshell update` moves the three component submodules to the commits that version pins (`git submodule update --init components/aliases components/completions components/plugins`) and repairs enabled links if the layout changed. It refuses to run when files of the install directory were edited; a component submodule that sits on another commit does not count as an edit. `gshell update` checks out a tag (or the remote development branch), which leaves the checkout without a current branch, so a plain `git pull` no longer works there: to update by hand, `git fetch --tags` and check out the tag you want (or `git checkout main` first, then `git pull`). After that run the submodule command yourself, or run `gshell migrate`.
 
 ### Upgrading from a vendored-components install
 
@@ -239,7 +278,7 @@ The `gshell update` of the old version checks out the new files and restarts the
 The same by hand:
 
 ```bash
-git -C "$GAUDI_SHELL" pull
+git -C "$GAUDI_SHELL" pull    # on a branch; after a "gshell update": git fetch --tags, then git checkout <tag>
 git -C "$GAUDI_SHELL" submodule update --init components/aliases components/completions components/plugins
 gshell migrate
 ```
@@ -248,7 +287,7 @@ Running `./setup.sh` again also migrates the links. Shells are never slowed down
 
 ## Components
 
-gaudi-shell ships with 71 plugins, 39 alias sets, and 62 completions.
+gaudi-shell ships with 71 plugins, 39 alias sets, and 61 completions.
 
 ### Plugins
 
@@ -319,7 +358,7 @@ gshell profile list                 # list saved profiles with component counts
 gshell profile rm mysetup           # delete a profile
 ```
 
-Profiles are plain text files in `$GAUDI_SHELL/profiles/` with one component per line:
+A profile name is made of letters, digits, `.`, `_` and `-`. Profiles are plain text files in `$GAUDI_SHELL/profiles/` with one component per line:
 
 ```
 alias general
@@ -344,8 +383,10 @@ Set it before the line that sources the gaudi-shell adapter. The timer starts wh
 
 | Variable | Default | Description |
 |---|---|---|
-| `COMMAND_DURATION_MIN_SECONDS` | `1` | Minimum seconds before elapsed time is shown |
+| `COMMAND_DURATION_MIN_SECONDS` | `1` | Minimum seconds before elapsed time is shown (the theme's `GAUDI_DURATION_MIN_SECONDS` takes it as its default, and wins when both are set) |
 | `COMMAND_DURATION_PRECISION` | `1` | Decimal digits for sub-second display |
+
+Sub-second precision needs `EPOCHREALTIME`: bash 5 and zsh (gaudi-shell loads the `zsh/datetime` module for it). Older bash, such as the 3.2 of macOS, measures whole seconds.
 
 ## History
 
@@ -385,10 +426,11 @@ Components load in numeric order via symlink prefixes:
 | Plugins | 250 |
 | Completions | 350 |
 
-Lower numbers load first. This ensures aliases are available when plugins run, and plugins are loaded before completions. Override per-component with a comment in the file:
+Lower numbers load first. This ensures aliases are available when plugins run, and plugins are loaded before completions. A component overrides the default of its type in its own file, in either of two forms (the first one found counts, and it is read when the component is enabled):
 
 ```bash
-# GAUDI_SHELL_LOAD_PRIORITY: 375
+priority "375"                      # what the shared components use
+# GAUDI_SHELL_LOAD_PRIORITY: 375    # a comment, for gaudi-shell's own files
 ```
 
 ## Backup and Restore
@@ -429,6 +471,7 @@ Components follow a consistent pattern:
 ```bash
 # shellcheck shell=bash
 # about-plugin 'Description of what this plugin does'
+# priority "260"    (optional: load order, see Priority System)
 
 # Your code here
 ```

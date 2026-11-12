@@ -126,3 +126,26 @@ _enabled() {
 	run gshell profile save one <<<"y"
 	assert_output --partial "2 component(s)"
 }
+
+@test "gaudi-shell profile: a name that could point outside the profiles folder is refused" {
+	gshell enable alias general >/dev/null
+
+	run gshell profile save ../escaped
+	assert_failure
+	assert_output --partial "Invalid profile name"
+	assert_file_not_exist "$GAUDI_SHELL/escaped.gaudi-shell"
+
+	echo "keep" >"$GAUDI_SHELL/victim.gaudi-shell"
+	run gshell profile rm ../victim
+	assert_failure
+	assert_file_exist "$GAUDI_SHELL/victim.gaudi-shell"
+
+	run gshell profile load .hidden
+	assert_failure
+	assert_output --partial "Invalid profile name"
+
+	# Dots, dashes and underscores inside a name are fine
+	run gshell profile save work-2.0_home
+	assert_success
+	assert_file_exist "$GAUDI_SHELL/profiles/work-2.0_home.gaudi-shell"
+}

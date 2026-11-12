@@ -51,9 +51,6 @@
 #
 
 _gaudi-shell-search() {
-	about "searches for given terms amongst gaudi-shell plugins, aliases and completions"
-	group "gaudi-shell:search"
-
 	local GAUDI_SHELL_SEARCH_USE_COLOR="${GAUDI_SHELL_SEARCH_USE_COLOR:-true}"
 	local COMPONENT="" word component
 	local -a args
@@ -95,11 +92,14 @@ _gaudi-shell-search() {
 
 	if [[ -n $COMPONENT ]]; then
 		_gaudi-shell-search-component "${COMPONENT}" "${args[@]}"
-	else
-		for component in aliases plugins completions; do
-			_gaudi-shell-search-component "${component}" "${args[@]}"
-		done
+		return
 	fi
+	# Success when any of the three types has a match
+	local found=1
+	for component in aliases plugins completions; do
+		_gaudi-shell-search-component "${component}" "${args[@]}" && found=0
+	done
+	return "$found"
 }
 
 # @function     _gaudi-shell-component-term-matches-negation
@@ -109,9 +109,6 @@ _gaudi-shell-search() {
 # @return       String of search results without the negated terms
 # @example      ❯ _gaudi-shell-component-term-matches-negation "${match}" "${negative_terms[@]}"
 _gaudi-shell-component-term-matches-negation() {
-	about "matches the negation of the search term entered"
-	group "gaudi-shell:search"
-
 	local match="$1"
 	shift
 	local negative
@@ -122,16 +119,13 @@ _gaudi-shell-component-term-matches-negation() {
 	return 1
 }
 
-# @function     _gaudi-shell-component-component
+# @function     _gaudi-shell-search-component
 # @description  searches a component to match the search terms
 # @param $1     component: the component to search in e.g., alias, completion, plugin
 # @param $2     search terms: the terms we want to search for
 # @return       Results that match our search term
 # @example      ❯ _gaudi-shell-search-component aliases @git rake bundler -chruby
 _gaudi-shell-search-component() {
-	about "searches for given terms amongst a given component"
-	group "gaudi-shell:search"
-
 	local component="$1" && shift
 
 	# --enable or --disable among the terms is applied to the matches further down.
@@ -256,7 +250,7 @@ ${YELLOW}DESCRIPTION${NC}
 
    Use the ${GREEN}gshell search${NC} command to search for a list of terms or term negations
    across all components: aliases, completions and plugins. Components that are
-   enabled are shown in green (or with a check box if --no-color option is used).
+   enabled are shown in green (or with a check mark if the --no-color option is used).
 
    In addition to simply finding the right component, you can use the results
    of the search to enable or disable all components that the search returns.
@@ -285,7 +279,7 @@ ${YELLOW}EXAMPLES${NC}
 
    For example, ${GREEN}gshell search git${NC} would match any alias, completion
    or plugin that has the word 'git' in either the module name or
-   it's description. You should see something like this when you run this
+   its description. You should see something like this when you run this
    command:
 
          ${GREEN}❯ gshell search git${NC}

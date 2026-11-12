@@ -35,22 +35,12 @@ hg_prompt_vars () {
       GAUDI_SCM_DIRTY=0
         GAUDI_SCM_STATE=${HG_THEME_PROMPT_CLEAN:-$GAUDI_SCM_THEME_PROMPT_CLEAN}
     fi
-    GAUDI_SCM_PREFIX=${HG_THEME_PROMPT_PREFIX:-$GAUDI_SCM_THEME_PROMPT_PREFIX}
-    GAUDI_SCM_SUFFIX=${HG_THEME_PROMPT_SUFFIX:-$GAUDI_SCM_THEME_PROMPT_SUFFIX}
-
     HG_ROOT=$(get_hg_root)
 
     if [[ -f "$HG_ROOT/branch" ]]; then
-        # Mercurial holds it's current branch in .hg/branch file
+        # Mercurial holds its current branch in .hg/branch file
         GAUDI_SCM_BRANCH=$(cat "$HG_ROOT/branch")
     else
         GAUDI_SCM_BRANCH=$(hg summary 2> /dev/null | grep branch: | awk '{print $2}')
-    fi
-
-    if [[ -f "$HG_ROOT/dirstate" ]]; then
-        # Mercurial holds various information about the working directory in .hg/dirstate file. More on http://mercurial.selenic.com/wiki/DirState
-        GAUDI_SCM_CHANGE=$(hexdump -n 10 -e '1/1 "%02x"' "$HG_ROOT/dirstate" | cut -c-12)
-    else
-        GAUDI_SCM_CHANGE=$(hg summary 2> /dev/null | grep parent: | awk '{print $2}')
     fi
 }

@@ -4,10 +4,9 @@
 # shellcheck disable=SC2086,SC2004
 
 # Usage: battstat [options] format
-# CGAUDI_REDit: https://github.com/imwally/battstat
+# Credit: https://github.com/imwally/battstat
 #
 # options:
-#     -h, --help                display help information
 #     -c, --charging-icon       string to display in icon's place when battery is charging
 #     -d, --discharging-icon    string to display in icon's place when battery is discharging
 #     --percent-when-charged    only display percent when charged
@@ -20,16 +19,12 @@
 
 battstat () {
 
-    exit_no_battery () {
-        return
-    }
-
     get_darwin_details () {
         battery_details=$(pmset -g batt)
 
-        # Exit if no battery exists.
+        # Stop if no battery exists.
         if ! echo "$battery_details" | grep -q InternalBattery; then
-            exit_no_battery
+            return 1
         fi
 
         charged=$(echo "$battery_details" | grep -w 'charged')
@@ -46,9 +41,9 @@ battstat () {
             battery_details=$(LC_ALL=en_US.UTF-8 upower -i "$(upower -e | grep 'BAT')")
         fi
 
-        # Exit if no batery exists.
+        # Stop if no battery exists.
         if [[ -z "$battery_details" ]]; then
-            exit_no_battery
+            return 1
         fi
 
         charged=$(echo "$battery_details" | grep 'state' | grep -w 'fully-charged')
@@ -67,7 +62,7 @@ battstat () {
             ;;
         esac
 
-        # Diplay 0 in the hours spot when only minutes remain.
+        # Display 0 in the hours spot when only minutes remain.
         if [[ -z "$hours" ]]; then
             hours="0"
         fi
@@ -83,9 +78,9 @@ battstat () {
     get_openbsd_details () {
         battery_details=$(apm)
 
-        # Exit if no battery exists.
+        # Stop if no battery exists.
         if [[ -z "$battery_details" ]]; then
-        exit_no_battery
+            return 1
         fi
 
         charging=$(echo $battery_details | grep -w 'state: connected')
@@ -93,7 +88,7 @@ battstat () {
         percent=$(echo $battery_details | grep -o '[0-9]*%')
         full_minutes=$(echo $battery_details | grep -o ' [0-9]* ')
 
-        # Battery is consideGAUDI_RED charged when AC is connected and 100%
+        # Battery is considered charged when AC is connected and 100%
         if [[ ! -z "$charging" ]] && [[ $percent = "100%" ]]; then
             charged="charged"
         fi
@@ -165,14 +160,15 @@ battstat () {
     }
 
     case $(uname) in
+        # Without a battery nothing is printed
         "Darwin")
-        get_darwin_details
+        get_darwin_details || return 0
         ;;
         "Linux")
-        get_linux_details
+        get_linux_details || return 0
         ;;
         "OpenBSD")
-        get_openbsd_details
+        get_openbsd_details || return 0
         ;;
         *)
         echo "N/A"
@@ -225,7 +221,7 @@ battstat () {
             shift
             ;;
         *)
-            print_help
+            # Not a format token: stop
             break
             ;;
         esac

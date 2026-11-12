@@ -50,6 +50,7 @@ local_setup() {
 
 @test "gaudi-shell helpers: _gaudi-shell-disable: should run the component disable function if it exists" {
 
+	# shellcheck disable=SC2329
 	git_on_disable() {
 		echo "callback"
 	}
@@ -129,4 +130,32 @@ local_setup() {
 
 	assert_link_not_exist "$GAUDI_SHELL/components/enabled/250___node.plugins.bash"
 	assert_link_not_exist "$GAUDI_SHELL/components/enabled/250___nvm.plugins.bash"
+}
+
+@test "gaudi-shell helpers: _gaudi-shell-disable: disabling all plugins runs the disable function of each one" {
+	# Called by name from _on-disable-callback
+	# shellcheck disable=SC2329
+	git_on_disable() {
+		echo "git callback"
+	}
+	# shellcheck disable=SC2329
+	base_on_disable() {
+		echo "base callback"
+	}
+	run gshell enable plugin git base
+	assert_success
+
+	run _gaudi-shell-disable plugins all
+	assert_success
+	assert_line "git callback"
+	assert_line "base callback"
+}
+
+@test "gaudi-shell helpers: _gaudi-shell-disable: disabling all without an enabled folder prints no error" {
+	rm -rf "$GAUDI_SHELL/components/enabled"
+
+	run _gaudi-shell-disable aliases all
+	assert_success
+	refute_output --partial "No such file"
+	assert_output --partial "disabled"
 }

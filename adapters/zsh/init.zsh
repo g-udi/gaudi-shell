@@ -19,11 +19,13 @@ if (( ! ${+functions[compdef]} )); then
   unset _gaudi_shell_zcompdump_dir
 fi
 
-# Provide bash builtins that zsh lacks
-shopt() { true; }
-complete() { true; }
+# Provide bash builtins that zsh lacks, unless something already did: a
+# `complete` from bashcompinit, loaded before this file, is kept.
+(( ${+functions[shopt]} )) || shopt() { true; }
+(( ${+functions[complete]} )) || complete() { true; }
 
-# Safe zsh options for bash compatibility.
+# Safe zsh options for bash compatibility. They are set for the whole session
+# (the shared components rely on them); see "Zsh options" in the README.
 # DO NOT set KSH_ARRAYS — it breaks macOS Terminal, zsh internals, and PATH handling.
 setopt NO_NOMATCH       # Don't error on failed globs
 setopt BASH_REMATCH     # Populate BASH_REMATCH for =~ regex

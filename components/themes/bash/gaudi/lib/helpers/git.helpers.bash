@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
+# The GAUDI_SCM_* variables set here are read by lib/scm.bash and segments/scm.bash.
+# shellcheck disable=SC2034
 
 GAUDI_SCM_GIT_SHOW_DETAILS=${GAUDI_SCM_GIT_SHOW_DETAILS:=true}
 GAUDI_SCM_GIT_SHOW_REMOTE_INFO=${GAUDI_SCM_GIT_SHOW_REMOTE_INFO:=auto}
@@ -12,8 +15,6 @@ GAUDI_SCM_GIT_CHAR=${GAUDI_SCM_GIT_CHAR:=git}
 GAUDI_SCM_GIT_USER_CHAR=${GAUDI_SCM_GIT_USER_CHAR:=@}
 GAUDI_SCM_GIT_AHEAD_CHAR=${GAUDI_SCM_GIT_AHEAD_CHAR:=^}
 GAUDI_SCM_GIT_BEHIND_CHAR=${GAUDI_SCM_GIT_BEHIND_CHAR:=v}
-GAUDI_SCM_THEME_TAG_PREFIX=${GAUDI_SCM_THEME_TAG_PREFIX:=tag:}
-GAUDI_SCM_THEME_DETACHED_PREFIX=${GAUDI_SCM_THEME_DETACHED_PREFIX:=detached:}
 GAUDI_SCM_GIT_UNTRACKED_CHAR=${GAUDI_SCM_GIT_UNTRACKED_CHAR:=?:}
 GAUDI_SCM_GIT_CHANGED_CHAR=${GAUDI_SCM_GIT_CHANGED_CHAR:=!:}
 GAUDI_SCM_GIT_STAGED_CHAR=${GAUDI_SCM_GIT_STAGED_CHAR:=+:}
@@ -89,7 +90,7 @@ git_user_info () {
   [[ -n "${GAUDI_SCM_CURRENT_USER}" ]] && printf "%b" "$GAUDI_SCM_GIT_USER_CHAR $GAUDI_SCM_CURRENT_USER"
 }
 
-# Fill GAUDI_SCM_BRANCH, GAUDI_SCM_STATE, GAUDI_SCM_DIRTY and GAUDI_SCM_CHANGE.
+# Fill GAUDI_SCM_BRANCH, GAUDI_SCM_STATE and GAUDI_SCM_DIRTY.
 #
 # This runs on every prompt, so it is kept to a handful of git processes:
 #   1. git status --porcelain=v2 --branch   branch, upstream, ahead/behind, counts
@@ -245,13 +246,4 @@ git_prompt_vars () {
     GAUDI_SCM_BRANCH+=" ${GAUDI_SCM_GIT_SHA_CHAR}${short_sha}"
   fi
   [[ "${GAUDI_SCM_GIT_SHOW_CURRENT_USER}" == "true" ]] && GAUDI_SCM_BRANCH+="$(git_user_info)"
-
-  GAUDI_SCM_CHANGE="$short_sha"
-
 }
-
-export GAUDI_SCM_STATE
-export GAUDI_SCM_DIRTY
-export GAUDI_SCM_CHANGE
-export GAUDI_SCM_GIT
-export GAUDI_SCM_GIT_CHAR

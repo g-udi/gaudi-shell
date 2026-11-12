@@ -4,12 +4,13 @@
 # Colours of the theme, as literal ANSI sequences: the same bytes `tput` prints
 # on a 256-colour terminal, without starting a process for each of them.
 
-# Reset. The split bash prompt pads the right-hand side by a fixed number of
+# Reset, under the theme's own name: NC belongs to the framework (lib/colors.bash)
+# and keeps its value. The split bash prompt pads the right-hand side by a fixed number of
 # invisible bytes, so this stays the exact sequence `tput sgr0` gives: screen
 # and tmux terminals use a different one from xterm-like terminals.
 case "${TERM:-}" in
-  screen* | tmux*) export NC=$'\e[m\017' ;;
-  *) export NC=$'\e(B\e[m' ;;
+  screen* | tmux*) export GAUDI_NC=$'\e[m\017' ;;
+  *) export GAUDI_NC=$'\e(B\e[m' ;;
 esac
 
 # Regular Colors

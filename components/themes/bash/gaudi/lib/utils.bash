@@ -9,6 +9,19 @@ gaudi::exists () {
   command -v "$1" > /dev/null 2>&1
 }
 
+# Print the path of the program <command> on $PATH. Shell functions, aliases
+# and builtins do not count, so a lazy-load stub (the nvm plugin defines
+# node, npm, ... as functions) is never mistaken for the program.
+# USAGE:
+#   gaudi::binary <command>
+gaudi::binary () {
+  if [[ -n "${ZSH_VERSION:-}" ]]; then
+    whence -p -- "$1"
+  else
+    type -P "$1"
+  fi
+}
+
 # Check if function is defined
 # USAGE:
 #   gaudi::defined <function>
@@ -78,7 +91,7 @@ gaudi::section () {
     printf '%b' "$symbol"    # Symbol/icon (%b interprets \uXXXX codes)
     printf '%s' "$content"   # Actual content to display
     printf '%s' "$suffix"    # Suffix after content
-    printf '%s' "$NC"        # Reset coloring
+    printf '%s' "$GAUDI_NC"  # Reset coloring
 }
 
 # Load a segment definition once per shell session.
@@ -115,22 +128,6 @@ gaudi::load_segments () {
     gaudi::load_segment "$_segment"
   done
   _GAUDI_SEGMENTS_SIGNATURE="$_signature"
-}
-
-# Render a single segment by name.
-# USAGE:
-#   gaudi::render_segment <segment>
-gaudi::render_segment () {
-  local segment="$1"
-  local segment_function="gaudi_${segment}"
-  local info=""
-  local GAUDI_SYMBOL_ALT="$segment"
-
-  gaudi::load_segment "$segment" || return 1
-  gaudi::defined "$segment_function" || return 1
-
-  info="$("$segment_function")"
-  [[ -n $info ]] && printf "%s" "$info"
 }
 
 # Render a prompt section by getting the segments from the segments definitions array

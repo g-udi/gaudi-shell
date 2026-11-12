@@ -50,27 +50,16 @@ _array-contains() {
 	return 1
 }
 
+# Print $1 without its leading and trailing blanks.
 _clean-string() {
-	local mode=${2:-"all"}
 	local text="$1"
-
-	if [[ $mode = "all" ]]; then
-		text="${text#"${text%%[![:space:]]*}"}"
-		text="${text%"${text##*[![:space:]]}"}"
-		printf '%s' "$text"
-	elif [[ $mode = "trailing" ]]; then
-		text="${text%"${text##*[![:space:]]}"}"
-		printf '%s' "$text"
-	elif [[ $mode = "leading" ]]; then
-		text="${text#"${text%%[![:space:]]*}"}"
-		printf '%s' "$text"
-	elif [[ $mode = "any" ]]; then
-		printf '%s' "${text//[[:space:]]/}"
-	fi
+	text="${text#"${text%%[![:space:]]*}"}"
+	text="${text%"${text##*[![:space:]]}"}"
+	printf '%s' "$text"
 }
 
 _array-dedupe() {
-	_clean-string "$(echo "$*" | tr ' ' '\n' | sort -u | tr '\n' ' ')" "all"
+	_clean-string "$(echo "$*" | tr ' ' '\n' | sort -u | tr '\n' ' ')"
 }
 
 # True when Homebrew is installed; its prefix is then in
@@ -99,7 +88,11 @@ _homebrew-check() {
 #   example, priority               (lib/composure.bash)
 #   _log_debug, _log_warning, _log_error                    (lib/log.bash)
 #   pathmunge                                    (lib/helpers/generic.bash)
-#   _command_exists, _binary_exists, _homebrew-check          (this file)
+#   _command_exists, _binary_exists, _homebrew-check,
+#   _read_input, _array-contains                              (this file)
+#   NC, BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE, ORANGE and
+#   their BOLD_<colour> forms: the escape sequence of the colour, or an
+#   empty string on a terminal without colours             (lib/colors.bash)
 #
 #   GAUDI_HOST_NAME              the framework's name, for messages and cache folders
 #   GAUDI_HOST_COMMAND           the command its users type

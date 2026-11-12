@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 # shellcheck disable=SC1091,SC2016,SC2034
 
 GAUDI_ROOT="${GAUDI_SHELL}/components/themes/bash/gaudi"
@@ -98,11 +99,11 @@ gaudi::prompt () {
     # The colour escapes of the last line are wrapped in \[ \] so readline
     # does not count them as visible width.
     if shopt -q promptvars; then
-      PS1='\n${_GAUDI_RENDERED_LINE}\n\n\[${GAUDI_GREEN}\]>>\[${NC}\] '
+      PS1='\n${_GAUDI_RENDERED_LINE}\n\n\[${GAUDI_GREEN}\]>>\[${GAUDI_NC}\] '
     else
       # promptvars is off: references would be shown literally, but nothing in
       # PS1 is expanded either, apart from backslash escapes — neutralise those.
-      PS1="\n${_GAUDI_RENDERED_LINE//\\/\\\\}\n\n\[${GAUDI_GREEN}\]>>\[${NC}\] "
+      PS1="\n${_GAUDI_RENDERED_LINE//\\/\\\\}\n\n\[${GAUDI_GREEN}\]>>\[${GAUDI_NC}\] "
     fi
   fi
 }

@@ -9,6 +9,8 @@ _on-disable-callback() {
 _gaudi-shell-disable() {
 	! __check-function-parameters "$1" && printf "${RED}%s${NC}\n" "Please enter a valid component to disable" && return 1
 
+	# zsh: leave a pattern without matches as it is instead of raising an error
+	[[ -n "${ZSH_VERSION:-}" ]] && setopt local_options no_nomatch
 	local type type_singular component
 
 	type=$(_gaudi-shell-pluralize-component "$1")
@@ -16,7 +18,17 @@ _gaudi-shell-disable() {
 	component="$2"
 
 	if [[ "$component" = "all" ]]; then
-		find "${GAUDI_SHELL}/components/enabled" -name "*.${type}.bash" -exec rm {} \;
+		# Every link of the type, dangling ones included. Each plugin gets its
+		# <name>_on_disable callback, as when it is disabled by name.
+		local _all_link _all_name
+		for _all_link in "${GAUDI_SHELL}/components/enabled/"*".${type}.bash"; do
+			[[ -e "$_all_link" || -L "$_all_link" ]] || continue
+			rm -f "$_all_link"
+			if [[ $type == "plugins" ]]; then
+				_all_name="${_all_link##*"${GAUDI_SHELL_LOAD_PRIORITY_SEPARATOR}"}"
+				_on-disable-callback "${_all_name%.plugins.bash}"
+			fi
+		done
 	else
 		[[ -z "$component" ]] && printf "${RED}%s ${GREEN}$type_singular(s) ${RED}%s${NC}\n" "Please enter a valid" "to disable" && return 1
 
@@ -38,10 +50,8 @@ _gaudi-shell-disable() {
 	_gaudi-shell-component-cache-clean "${type}"
 	printf "${CYAN}%s ${GREEN}$type_singular: ${CYAN}$component${NC}\n" "◯ disabled"
 
-	[[ $type == "plugins" ]] && _on-disable-callback "$component"
+	[[ $type == "plugins" && "$component" != "all" ]] && _on-disable-callback "$component"
 
-	if [[ -n "$GAUDI_SHELL_AUTOMATIC_RELOAD_AFTER_CONFIG_CHANGE" ]]; then
-		_gaudi-shell-reload
-	fi
+	_gaudi-shell-reload-after-change
 	return 0
 }

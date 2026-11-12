@@ -17,24 +17,29 @@ function load_gaudi_libs() {
 }
 
 function setup() {
-	export GIT_CONFIG_NOSYSTEM
-	export XDG_CACHE_HOME="${BATS_TEST_TMPDIR}"
+	export XDG_CACHE_HOME="${BATS_TEST_TMPDIR}/cache"
 
 	# Use a fresh copy of the project for each test
 	export GAUDI_SHELL="${BATS_TEST_TMPDIR}/gaudi-shell"
 
 	if [[ ! -d "$GAUDI_SHELL" ]]; then
 		mkdir -p "$GAUDI_SHELL"
-		# Copy everything except .git and bin (test deps)
+		# Copy everything except .git, bin (test deps) and the state of a
+		# checkout that is in use: its profiles, enabled links and custom
+		# scripts are the owner's, and must neither be read nor run by a test.
 		tar -C "${GAUDI_SHELL_ORIGIN}" \
 			--exclude='.git' \
 			--exclude='bin' \
+			--exclude='./profiles' \
+			--exclude='./components/enabled' \
+			--exclude='./components/custom' \
+			--exclude='./tmp' \
 			-cf - . | tar -C "${GAUDI_SHELL}" -xf -
 	fi
 
-	# Clean runtime state (the copy may come from a checkout that is in use)
-	rm -rf "$GAUDI_SHELL/tmp" "$GAUDI_SHELL/components/enabled"
-	rm -f "$GAUDI_SHELL/profiles/backup.gaudi-shell"
+	# Start without runtime state, whatever the copy brought along
+	rm -rf "$GAUDI_SHELL/tmp" "$GAUDI_SHELL/profiles" \
+		"$GAUDI_SHELL/components/enabled" "$GAUDI_SHELL/components/custom"
 	mkdir -p "$GAUDI_SHELL/components/enabled"
 
 	# Tests start inside the sandbox copy, so a relative path such as
@@ -47,8 +52,19 @@ function setup() {
 function setup_file() {
 	set -a
 
-	export GAUDI_TEST_RUNNER="enabled"
-	export LEGACY_HOME="$HOME"
+	# Settings of the shell the suite is started from must not reach the
+	# tests: a GAUDI_SHELL_CUSTOM exported there would make them source the
+	# developer's own scripts. Only what test/run sets is kept.
+	local _inherited
+	for _inherited in "${!GAUDI_SHELL_@}"; do
+		case "$_inherited" in
+		GAUDI_SHELL_ORIGIN | GAUDI_SHELL_PROFILE) ;;
+		*) unset "$_inherited" ;;
+		esac
+	done
+	# git reads only the configuration of the suite's home directory
+	unset GIT_CONFIG_GLOBAL
+	export GIT_CONFIG_NOSYSTEM=1
 
 	load "${GAUDI_TEST_DEPS_DIR}/bats-support/load.bash"
 	load "${GAUDI_TEST_DEPS_DIR}/bats-assert/load.bash"

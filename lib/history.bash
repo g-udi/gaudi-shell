@@ -3,8 +3,13 @@
 
 # History configuration — works in both bash and zsh
 
-shopt -s histappend 2>/dev/null || true   # bash
-setopt APPEND_HISTORY 2>/dev/null || true # zsh (no-op in bash)
+# Each shell gets its own command only: in bash an unknown "setopt" would go
+# through the command-not-found handler on every start.
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+	setopt APPEND_HISTORY
+else
+	shopt -s histappend 2>/dev/null || true
+fi
 
 # Defaults only: a value set before gaudi-shell is sourced is kept.
 : "${HISTCONTROL:=ignoredups:ignorespace}"

@@ -72,12 +72,12 @@ The file-backed background pipeline from gaudi-bash (per-segment cache files, a 
 | `host` | Hostname. Highlights differently when connected via SSH. |
 | `jobs` | Indicator for running background jobs. The count is shown once it exceeds a configurable threshold (default: 1). |
 | `multiplexer` | Detached tmux and GNU Screen session counts. |
-| `separator` | Inserts a newline to split the prompt across multiple lines. |
+| `separator` | Inserts a newline to split the prompt across multiple lines (bash only; in zsh the prompt is not split). |
 | `shlvl` | Current shell nesting level (`SHLVL`). Useful for detecting nested shells spawned from editors or nix-shell. Only shown when depth reaches a threshold (default: 2). |
 | `system` | System statistics: CPU load, free memory, and disk usage. The theme does not collect them: the segment shows the values of `GAUDI_CPU_LOAD`, `GAUDI_MEMORY_FREE` and `GAUDI_HDD_USAGE` when you set them, and nothing otherwise. |
 | `time` | Current time in a configurable format (default: `HH:MM`). |
 | `user` | Username. Visibility can be set to `always`, `true` (show if needed or on SSH), `needed`, or `false`. Root users are highlighted in red. |
-| `battery` | Battery level and charging status with threshold-based visibility. |
+| `battery` | Battery level and charging status with threshold-based visibility. Hidden on a machine without a battery. |
 | `vpn` | Indicates when the connection is routed through a VPN. |
 
 ### Version Control
@@ -90,7 +90,7 @@ The file-backed background pipeline from gaudi-bash (per-segment cache files, a 
 
 | Segment | Description |
 |---------|-------------|
-| `node` | Node.js version via nvm, nodenv, or the system binary. Shown in directories containing `package.json`, `node_modules`, or `.js` files. |
+| `node` | Node.js version via nvm (once nvm is loaded; a lazy-load stub is never called), nodenv, or the `node` program on `PATH`. Shown in directories containing `package.json`, `node_modules`, or `.js` files. |
 | `ruby` | Ruby version as reported by `ruby -v`. Shown in directories containing a `Gemfile`, a `Rakefile`, or `.rb` files. |
 | `elixir` | Elixir version. Shown in directories containing `mix.exs` or `.ex`/`.exs` files. |
 | `golang` | Go version. Shown in directories containing `.go` files, `Godeps`, `glide.yaml` or `Gopkg` files, or located under `GOPATH`. |
@@ -109,7 +109,7 @@ The file-backed background pipeline from gaudi-bash (per-segment cache files, a 
 
 | Segment | Description |
 |---------|-------------|
-| `aws` | Active AWS CLI profile (`AWS_DEFAULT_PROFILE` / `CURRENT_AWS_PROFILE`). Hidden when set to `default`. |
+| `aws` | Active AWS CLI profile (`AWS_PROFILE`, or the older `AWS_DEFAULT_PROFILE`). Hidden when set to `default`. |
 | `docker` | Docker daemon version. Shown in directories containing `Dockerfile` or `docker-compose.yml`. |
 | `dockercompose` | Docker Compose service status with up/down indicators. |
 | `gcloud` | Account and project of the active Google Cloud SDK configuration. |
@@ -151,7 +151,7 @@ Some segments expose additional variables. For example:
 
 - `GAUDI_NODE_DEFAULT_VERSION` -- Hide the segment when the active version matches this value.
 - `GAUDI_BATTERY_THRESHOLD` -- Only show battery when the charge is below this percentage.
-- `GAUDI_DURATION_MIN_SECONDS` -- Minimum command duration (in seconds) before the segment appears.
+- `GAUDI_DURATION_MIN_SECONDS` -- Minimum command duration (in seconds) before the segment appears. Defaults to `COMMAND_DURATION_MIN_SECONDS` (1).
 - `GAUDI_SCM_FETCH` -- Whether to run `git fetch` automatically.
 - `GAUDI_SCM_GIT_*` and `GAUDI_SCM_THEME_*` -- Characters and prefixes of the Git segment (for example `GAUDI_SCM_GIT_AHEAD_CHAR`, `GAUDI_SCM_THEME_PROMPT_DIRTY`). These are defaults: a value set before the adapter is sourced is kept.
 - `GAUDI_RUST_SHOW_TOOLCHAIN` -- Display the active Rust toolchain alongside the version.
