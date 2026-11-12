@@ -6,7 +6,9 @@ GAUDI_SHELL_LOG_PREFIX="THEME"
 
 # Enable coloring
 export CLICOLOR=1
-export LSCOLORS='cxfxdxgxbxegedabagacad'
+# A default only: an LSCOLORS set before gaudi-shell is sourced is kept
+: "${LSCOLORS:=cxfxdxgxbxegedabagacad}"
+export LSCOLORS
 
 # Colored grep
 alias grep='grep --color=auto'
@@ -44,4 +46,5 @@ if [[ -n "${GAUDI_SHELL_THEME:-}" ]]; then
 	fi
 fi
 
+unset theme_file
 unset GAUDI_SHELL_LOG_PREFIX

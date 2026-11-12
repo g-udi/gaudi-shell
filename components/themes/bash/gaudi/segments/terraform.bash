@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 #
 # Terraform
 #
@@ -25,10 +26,7 @@ gaudi_terraform () {
   [[ "$GAUDI_TERRAFORM_SHOW" == false ]] && return
 
   # Only show in directories with Terraform files
-  local _tf_files=(*.tf)
-  [[ -d .terraform || -f main.tf || -f terraform.tfvars ||
-     -e "${_tf_files[0]}"
-  ]] || return
+  [[ -d .terraform || -f main.tf || -f terraform.tfvars ]] || gaudi::has_files tf || return
 
   gaudi::exists terraform || return
 

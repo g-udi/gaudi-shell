@@ -9,7 +9,7 @@ GAUDI_SHELL_LOG_PREFIX="CORE"
 # GAUDI_SHELL should be set by the adapter; fallback to BASH_SOURCE for direct sourcing
 if [[ -z "${GAUDI_SHELL:-}" ]]; then
 	if [[ -n "${BASH_SOURCE:-}" ]]; then
-		GAUDI_SHELL="${BASH_SOURCE%/*}"
+		GAUDI_SHELL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 	fi
 fi
 

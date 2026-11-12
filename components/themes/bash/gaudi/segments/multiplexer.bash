@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 #
 # Multiplexer
 # A terminal multiplexer, allowing a user to access multiple separate terminal sessions inside a single terminal window or remote terminal session.

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 #
 # Ruby
 #
@@ -21,8 +22,6 @@ GAUDI_RUBY_COLOR="${GAUDI_RUBY_COLOR="$GAUDI_RED"}"
 
 # Show current version of Ruby
 gaudi_ruby () {
-
-  shopt -s nullglob
 
   [[ $GAUDI_RUBY_SHOW == false ]] && return
 

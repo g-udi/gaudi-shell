@@ -2,12 +2,21 @@
 # shellcheck shell=bash
 #
 # Command execution duration tracking.
-# Uses EPOCHREALTIME for sub-second precision, falls back to $SECONDS.
+# Uses EPOCHREALTIME for sub-second precision (bash 5 and zsh), falls back to
+# $SECONDS (whole seconds) in older bash.
+
+# zsh only has EPOCHREALTIME once this module is loaded
+if [[ -n "${ZSH_VERSION:-}" ]]; then
+	zmodload zsh/datetime 2>/dev/null
+fi
 
 _command_duration_current_time() {
-	local current_time
+	local current_time fraction
 	if [[ -n "${EPOCHREALTIME:-}" ]]; then
 		current_time="${EPOCHREALTIME//[!0-9]/.}"
+		# Exactly six decimals (microseconds): zsh prints more than bash does
+		fraction="${current_time#*.}000000"
+		current_time="${current_time%%.*}.${fraction:0:6}"
 	else
 		current_time="$SECONDS"
 	fi

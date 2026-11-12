@@ -1,14 +1,12 @@
 #!/usr/bin/env bash
 # shellcheck shell=bash
 
-# @function     _gaudi-shell-update-components
-# @description  Brings the shared components in line with the framework files
-#               that are checked out: the component submodules at the commits
-#               they pin, then the enabled links repaired if the layout changed
-# @param $1     (optional) "missing": fetch the components only when they are
-#               not there, instead of moving them to the pinned commits
-# @example      ❯ _gaudi-shell-update-components
-function _gaudi-shell-update-components() {
+# Bring the shared components in line with the framework files that are
+# checked out: the component submodules at the commits they pin, then the
+# enabled links repaired if the layout changed. With $1 = "missing" the
+# components are only fetched when they are not there, instead of being moved
+# to the pinned commits.
+_gaudi-shell-update-components() {
 	# The checkout may have brought a newer version of these helpers: use it.
 	# shellcheck disable=SC1091
 	source "${GAUDI_SHELL}/lib/helpers/components.bash"
@@ -21,15 +19,10 @@ function _gaudi-shell-update-components() {
 	_gaudi-shell-migrate-enabled-links
 }
 
-# @function     _gaudi-shell_update_and_restart
-# @description  Checks out the wanted version, pops directory and restart
-# @param $1     (optional) Which branch to checkout to
-# @param $2     (optional) Which type of version we are using
-# @example      ❯ _gaudi-shell_update_and_restarts
-function _gaudi-shell_update_and_restart() {
-	about 'Checks out the wanted version, pops directory and restart. Does not return (because of the restart!)'
-	group 'gaudi-shell:core:updater'
-
+# Check out the version $1 (a tag or a remote branch), pop the directory and
+# restart the shell. Does not return when the checkout works (because of the
+# restart).
+_gaudi-shell_update_and_restart() {
 	# Called with the install directory pushed by _gaudi-shell-update: every
 	# path out of here pops it again, so the user is never left in there.
 	if git checkout "$1" &>/dev/null; then
@@ -44,14 +37,9 @@ function _gaudi-shell_update_and_restart() {
 	fi
 }
 
-# @function      _gaudi-shell-update
-# @description  Updates gaudi-shell
-# @param $1     (optional) What kind of update to do (stable|dev)
-# @example      ❯  _gaudi-shell-update
-function _gaudi-shell-update() {
-	about 'updates gaudi-shell'
-	group 'gaudi-shell:core:updater'
-
+# "gshell update [stable|dev] [--silent]": update to the latest tag (stable,
+# the default) or to the development branch. --silent (-s) does not ask.
+_gaudi-shell-update() {
 	# Not named "status": that is a read-only special variable in zsh.
 	local silent word mode DIFF version TARGET revision pending revert log_color RESP
 	for word in "$@"; do
@@ -125,7 +113,7 @@ function _gaudi-shell-update() {
 		if [[ -n "${silent}" ]]; then
 			echo "Updating to ${TARGET}($(git log -1 --format=%h "${TARGET}"))..."
 			# Pops the directory itself, on success and on failure.
-			_gaudi-shell_update_and_restart "$TARGET" "$version"
+			_gaudi-shell_update_and_restart "$TARGET"
 			return
 		else
 			# printf + plain read works in both bash and zsh (read -e -n -p is bash-only)
@@ -134,7 +122,7 @@ function _gaudi-shell-update() {
 			read -r RESP || RESP="n"
 			case "$RESP" in
 			[yY]* | "")
-				_gaudi-shell_update_and_restart "$TARGET" "$version"
+				_gaudi-shell_update_and_restart "$TARGET"
 				return
 				;;
 			[nN]*)

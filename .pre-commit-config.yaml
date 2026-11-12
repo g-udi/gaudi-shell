@@ -16,12 +16,12 @@ repos:
   - repo: https://github.com/jumanjihouse/pre-commit-hooks
     rev: 2.1.5
     hooks:
-      - id: git-check  # Configure in .gitattributes
-        exclude: ^(components/|template/)
+      - id: git-check
+        exclude: ^components/
       - id: shellcheck
-        exclude: ^(adapters/zsh/|components/(aliases|completions|plugins|themes)/|components/host/.*\.zsh$|template/)
+        exclude: ^(adapters/zsh/|components/(aliases|completions|plugins|themes)/|components/host/.*\.zsh$)
       - id: shfmt
-        exclude: ^(adapters/zsh/|components/(aliases|completions|plugins|themes)/|components/host/.*\.zsh$|template/)
+        exclude: ^(adapters/zsh/|components/(aliases|completions|plugins|themes)/|components/host/.*\.zsh$)
   - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.1.7
     hooks:
@@ -35,11 +35,11 @@ repos:
         language: system
         files: "\\.sh$"
         types: [file]
-        exclude: ^(test/fixtures/|template/)
+        exclude: ^test/fixtures/
       - id: shellcheck-audit
         name: Check .bash files against gaudi-shell requirements (shellcheck shebang)
         entry: ./hooks/shellcheck-audit.sh
         language: system
         files: "\\.bash$"
         types: [file]
-        exclude: ^(components/|test/fixtures/|test/test_helper\\.bash|template/)
+        exclude: ^(components/|test/fixtures/)

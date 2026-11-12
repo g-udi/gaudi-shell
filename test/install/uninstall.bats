@@ -168,3 +168,22 @@ CONFIG
 	assert_output "0"
 	assert_dir_not_exist "$GAUDI_SHELL"
 }
+
+@test "gaudi-shell uninstall: with both shells set up, the config file of the other shell is cleaned too" {
+	_write_config .zshrc
+	_write_config .bash_profile
+	mkdir -p "$BATS_TEST_TMPDIR/xdg/gaudi-shell"
+	echo "cached" >"$BATS_TEST_TMPDIR/xdg/gaudi-shell/aliases"
+
+	# As run from a zsh session: only .zshrc is named
+	_uninstall GAUDI_SHELL_PROFILE=.zshrc XDG_CACHE_HOME="$BATS_TEST_TMPDIR/xdg"
+	assert_success
+
+	run grep -c "adapters/" "$FAKE_HOME/.zshrc" "$FAKE_HOME/.bash_profile"
+	assert_line "$FAKE_HOME/.zshrc:0"
+	assert_line "$FAKE_HOME/.bash_profile:0"
+	assert_file_exist "$FAKE_HOME/.bash_profile.before-gaudi-uninstall"
+	assert_dir_not_exist "$GAUDI_SHELL"
+	# The cache folder goes with the install
+	assert_dir_not_exist "$BATS_TEST_TMPDIR/xdg/gaudi-shell"
+}

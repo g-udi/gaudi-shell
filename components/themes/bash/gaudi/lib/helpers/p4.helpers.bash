@@ -10,11 +10,16 @@ GAUDI_SCM_P4_DEFAULT_CHAR='D:'
 GAUDI_SCM_P4_OPENED_CHAR='O:'
 
 _p4-opened () {
-  timeout 2.0s p4 opened -s 2> /dev/null
+  # At most two seconds, where there is a timeout program (macOS has none)
+  if command -v timeout > /dev/null 2>&1; then
+    timeout 2.0s p4 opened -s 2> /dev/null
+  else
+    p4 opened -s 2> /dev/null
+  fi
 }
 
 _p4-opened-counts () {
-  # Return the following counts seperated by tabs:
+  # Return the following counts separated by tabs:
   #  - count of opened files
   #  - count of pending changesets (other than defaults)
   #  - count of files in the default changeset
@@ -66,9 +71,6 @@ p4_prompt_vars () {
     [[ "${default_count}" -gt 0 ]] && GAUDI_SCM_BRANCH+=" ${GAUDI_SCM_P4_DEFAULT_CHAR}${default_count}"
   else
     GAUDI_SCM_DIRTY=0
-    GAUDI_SCM_STATE=${GAUDI_SCM_THEME_PROMPT_DIRTY}
+    GAUDI_SCM_STATE=${GAUDI_SCM_THEME_PROMPT_CLEAN}
   fi
-
-  GAUDI_SCM_PREFIX=${P4_THEME_PROMPT_PREFIX:-$GAUDI_SCM_THEME_PROMPT_PREFIX}
-  GAUDI_SCM_SUFFIX=${P4_THEME_PROMPT_SUFFIX:-$GAUDI_SCM_THEME_PROMPT_SUFFIX}
 }

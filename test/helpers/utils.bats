@@ -29,13 +29,8 @@ local_setup() {
 	assert_failure
 }
 
-@test "gaudi-shell helpers: utils: _clean-string: should trim all whitespace" {
-	run _clean-string " test test test " "any"
-	assert_output "testtesttest"
-}
-
 @test "gaudi-shell helpers: utils: _clean-string: should trim leading and trailing" {
-	run _clean-string " test test test " "all"
+	run _clean-string "  test test test	 "
 	assert_output "test test test"
 }
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 # shellcheck disable=SC2034
 #
 # Docker Compose
@@ -51,10 +52,14 @@ gaudi_dockercompose () {
       CONTAINER_LETTER=$(echo "${CONTAINER_NAME:0:1}" | tr '[:lower:]' '[:upper:]')
       _CONTAINER_SYMBOL="GAUDI_DOCKERCOMPOSE_SYMBOL_${CONTAINER_NAME}"
 
-      if [[ -z "${!_CONTAINER_SYMBOL}" || "$GAUDI_DOCKERCOMPOSE_SHOW_SYMBOLS" == false ]]; then
+      # The symbol configured for the container, read by name with eval:
+      # ${!name} is bash only. Names that cannot be a variable have none.
+      CONTAINER_SYMBOL=""
+      if [[ -n "$CONTAINER_NAME" && "$CONTAINER_NAME" != *[!A-Z0-9_]* ]]; then
+        eval "CONTAINER_SYMBOL=\${${_CONTAINER_SYMBOL}:-}"
+      fi
+      if [[ -z "$CONTAINER_SYMBOL" || "$GAUDI_DOCKERCOMPOSE_SHOW_SYMBOLS" == false ]]; then
         CONTAINER_SYMBOL=$CONTAINER_LETTER
-      else
-        CONTAINER_SYMBOL=${!_CONTAINER_SYMBOL}
       fi
 
       if [[ "$line" == *"Up"* ]]; then

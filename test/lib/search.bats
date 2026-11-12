@@ -84,3 +84,38 @@ local_setup() {
 	assert_output --partial "git"
 	refute_output --partial "gitsvn"
 }
+
+@test "gaudi-shell search: succeeds when any type has a match and fails when none has" {
+	# There is a "general" alias set, and no completion of that name
+	run _gaudi-shell-search @general --no-color
+	assert_success
+	assert_output --partial "aliases:"
+	refute_output --partial "completions:"
+
+	run _gaudi-shell-search no-such-component-anywhere --no-color
+	assert_failure
+	assert_output ""
+}
+
+@test "gaudi-shell search: the colour codes of the component table are not searched" {
+	load_gaudi_libs colors
+	GREEN=$'\e[0;32m' RED=$'\e[0;31m' NC=$'\e[0m'
+
+	run _gaudi-shell-search '0;31m' --alias --no-color
+	assert_failure
+	assert_output ""
+}
+
+@test "gaudi-shell search: grep is called as a program, never through a variable that could hold an alias" {
+	run grep -rn 'GAUDI_SHELL_GREP' "$GAUDI_SHELL/lib" "$GAUDI_SHELL/gaudi_shell.sh"
+	assert_failure
+
+	# An alias named egrep, as in a stock Ubuntu ~/.bashrc, changes nothing
+	ln -s "../aliases/lib/git.aliases.bash" "$GAUDI_SHELL/components/enabled/150___git.aliases.bash"
+	shopt -s expand_aliases
+	alias egrep='egrep --color=auto'
+	alias grep='grep --color=always'
+	run _gaudi-shell-search @git --alias --no-color
+	assert_success
+	assert_output $'aliases:\tgit ✓\t'
+}

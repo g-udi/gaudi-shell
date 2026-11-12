@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 #
 # Node.js
 #
@@ -23,23 +24,24 @@ GAUDI_NODE_COLOR="${GAUDI_NODE_COLOR="$GAUDI_YELLOW"}"
 # Show current version of node, exception system.
 gaudi_node () {
 
-  shopt -s nullglob
-
   [[ $GAUDI_NODE_SHOW == false ]] && return
 
   # Show NODE status only for JS-specific folders
   [[ -f package.json || -d node_modules ]] || gaudi::has_files js || return
 
-  local 'node_version'
+  local node_version node_binary
 
-  if gaudi::exists nvm; then
+  # nvm only when nvm itself is loaded. A lazy-load stub named nvm or node
+  # (the nvm plugin) is never called: this runs in a subshell, so the stub
+  # would source nvm.sh again on every prompt.
+  if gaudi::defined nvm_ls_current; then
     node_version=$(nvm current 2>/dev/null)
     [[ $node_version == "system" || $node_version == "node" ]] && return
   elif gaudi::exists nodenv; then
     node_version=$(nodenv version-name)
     [[ $node_version == "system" || $node_version == "node" ]] && return
-  elif gaudi::exists node; then
-    node_version=$(node -v 2>/dev/null)
+  elif node_binary=$(gaudi::binary node); then
+    node_version=$("$node_binary" -v 2>/dev/null)
   else
     return
   fi

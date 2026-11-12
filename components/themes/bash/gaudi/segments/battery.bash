@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 # shellcheck disable=SC1091
 #
 # Battery
@@ -27,6 +28,9 @@ gaudi_battery () {
   [[ $GAUDI_BATTERY_SHOW == false ]] && return
 
   BATTERY="$(battstat -t "$GAUDI_BATTERY_THRESHOLD" -d "$GAUDI_BATTERY_SYMBOL_DISCHARGING" -c "$GAUDI_BATTERY_SYMBOL_CHARGING" '{b}' '{i}' '{p}')"
+
+  # No battery (a desktop machine): no segment
+  [[ -z "$BATTERY" ]] && return
 
   gaudi::section \
     "" \

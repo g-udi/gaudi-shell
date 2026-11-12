@@ -5,7 +5,7 @@
 #
 # Working directory
 #
-# Current directory. Return only three last items of path
+# Current directory, shortened from the middle when it is long
 
 # ------------------------------------------------------------------------------
 # Configuration

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck shell=bash
 #
 # Amazon Web Services (AWS)
 #
@@ -26,9 +27,9 @@ gaudi_aws () {
   # Check if the AWS-cli is installed
   gaudi::exists aws || return
 
-  # Backwards compatibility with old awscli versions
+  # AWS_PROFILE is what the AWS CLI reads; AWS_DEFAULT_PROFILE is its old name
   [[ -z $CURRENT_AWS_PROFILE ]] &&
-    CURRENT_AWS_PROFILE=$AWS_DEFAULT_PROFILE
+    CURRENT_AWS_PROFILE=${AWS_PROFILE:-$AWS_DEFAULT_PROFILE}
 
   # Is the current profile not the default profile
   [[ -z $CURRENT_AWS_PROFILE ]] || [[ "$CURRENT_AWS_PROFILE" == "default" ]] &&

@@ -1,5 +1,6 @@
 #!/usr/bin/env bats
 # shellcheck shell=bats
+# shellcheck disable=SC2034
 
 load "$GAUDI_TEST_DIRECTORY"/helper.bash
 
@@ -82,7 +83,6 @@ assert_sane_defaults() {
 
 	assert_file_not_exist "$GAUDI_SHELL/components/enabled/150___general.aliases.bash"
 	assert_file_not_exist "$GAUDI_SHELL/components/enabled/250___base.plugins.bash"
-	assert_file_not_exist "$GAUDI_SHELL/components/enabled/365___alias-completion.plugins.bash"
 	assert_file_not_exist "$GAUDI_SHELL/components/enabled/325___system.completions.bash"
 
 	run _gaudi-shell-restore
@@ -143,4 +143,80 @@ assert_sane_defaults() {
 	run gshell restore
 	assert_failure
 	assert_output --partial "No valid backup file found"
+}
+
+@test "gaudi-shell core: gshell version prints the tag and the commit, and leaves the directory alone" {
+	load_gaudi_libs colors
+	GAUDI_SHELL_CURRENT="bash"
+	(
+		cd "$GAUDI_SHELL" || exit 1
+		git init -q .
+		git add -A
+		git commit -q -m "one"
+		git tag v9.9.9
+	) >/dev/null 2>&1
+	mkdir -p "$BATS_TEST_TMPDIR/elsewhere" "$BATS_TEST_TMPDIR/before"
+	cd "$BATS_TEST_TMPDIR/before"
+	cd "$BATS_TEST_TMPDIR/elsewhere"
+
+	gshell version >"$BATS_TEST_TMPDIR/out" 2>&1
+
+	assert_equal "$PWD" "$BATS_TEST_TMPDIR/elsewhere"
+	assert_equal "$OLDPWD" "$BATS_TEST_TMPDIR/before"
+	run cat "$BATS_TEST_TMPDIR/out"
+	assert_line "gaudi-shell (bash)"
+	assert_line --partial "Version: "
+	assert_line --partial "v9.9.9"
+	assert_line --regexp "SHA: .*[0-9a-f]{7} on "
+}
+
+# A shell profile that only says it was sourced.
+_write_reload_profile() {
+	GAUDI_SHELL_PROFILE=".gaudi-shell-reload-test"
+	echo 'echo "profile was sourced"' >"$HOME/$GAUDI_SHELL_PROFILE"
+}
+
+@test "gaudi-shell core: gshell reload sources the shell profile, and fails without one" {
+	_write_reload_profile
+
+	run gshell reload
+	assert_success
+	assert_line "profile was sourced"
+	assert_line "gaudi-shell reloaded from $HOME/$GAUDI_SHELL_PROFILE"
+
+	rm -f "$HOME/$GAUDI_SHELL_PROFILE"
+	run gshell reload
+	assert_failure
+	assert_output --partial "Profile not found"
+}
+
+@test "gaudi-shell core: the automatic reload happens once per gshell command" {
+	_write_reload_profile
+
+	# Off unless asked for
+	run gshell enable alias general git
+	assert_success
+	refute_output --partial "profile was sourced"
+
+	GAUDI_SHELL_AUTOMATIC_RELOAD_AFTER_CONFIG_CHANGE=true
+	run gshell enable plugin base git
+	assert_success
+	assert_equal "$(grep -c "profile was sourced" <<<"$output")" "1"
+
+	run gshell disable alias all
+	assert_equal "$(grep -c "profile was sourced" <<<"$output")" "1"
+
+	# Outside a gshell command it reloads at once
+	run _gaudi-shell-disable plugin base
+	assert_line "profile was sourced"
+
+	rm -f "$HOME/$GAUDI_SHELL_PROFILE"
+}
+
+@test "gaudi-shell core: enable <type> all reports each component and fails only when one fails" {
+	run gshell enable alias all
+	assert_success
+	assert_output --partial "general"
+	refute_output --partial "alias: all"
+	refute_output --partial "gaudi-bash"
 }

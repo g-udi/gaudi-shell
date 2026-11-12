@@ -1,7 +1,6 @@
+# shellcheck shell=bash
 #
 # Prompt character
-#
-# Why are we using new ANSI codes for the colors and not our tput you say ?
 #
 # ------------------------------------------------------------------------------
 # Configuration
@@ -14,7 +13,7 @@ GAUDI_CHAR_SYMBOL="${GAUDI_CHAR_SYMBOL=">>"}"
 # old "\\[\${GAUDI_GREEN}\\]" form (which relied on PS1 expanding it) is not used.
 GAUDI_CHAR_COLOR_SUCCESS="${GAUDI_CHAR_COLOR_SUCCESS="$GAUDI_GREEN"}"
 GAUDI_CHAR_COLOR_FAILURE="${GAUDI_CHAR_COLOR_FAILURE="$GAUDI_RED"}"
-GAUDI_CHAR_COLOR_CLEAR="${GAUDI_CHAR_COLOR_CLEAR="$NC"}"
+GAUDI_CHAR_COLOR_CLEAR="${GAUDI_CHAR_COLOR_CLEAR="$GAUDI_NC"}"
 
 # ------------------------------------------------------------------------------
 # Section

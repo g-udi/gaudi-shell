@@ -52,3 +52,4 @@ else
 	BOLD_CYAN=''
 	BOLD_WHITE=''
 fi
+unset ncolors
